@@ -19,18 +19,18 @@ State is kept in `localStorage` (`ilovelawyer-client`) so refreshes keep the dem
 
 Next.js (App Router), React, TypeScript, Tailwind CSS v4 (design tokens in `src/app/globals.css`), zustand, lucide-react. Fonts: Inter and Libre Caslon Text via `next/font`.
 
-## Delivery phases (one branch each, stacked)
+## Feature branches (stacked, merge in this order)
 
 | Branch | Scope |
 | --- | --- |
-| `phase/0-foundation` | Tokens, fonts, brand assets, UI primitives (button, inputs, chips, radio cards, modal/sheet, banner) |
-| `phase/1-onboarding` | Create account, email, phone, OTP, About you, Consent, Sign in |
-| `phase/2-shell-cases` | App shell, collapsible sidebar (persisted), phone top bar, banner, cases list |
-| `phase/3-new-case-wizard` | 3-step New case wizard, sticky phone footer |
-| `phase/4-payment-modal` | New-case payment and credit top-up (dialog on web, bottom sheet on phone) |
-| `phase/5-case-workspace` | Consultation (AI chat, credits), Overview, Documents |
-| `phase/6-lawyer-request` | Request lawyer, matching state, lawyer chat tab |
-| `phase/7-polish-docs` | Build check, edge states, this README |
+| `feat/foundation` | Tokens, fonts, brand assets, UI primitives (button, inputs, chips, radio cards, modal/sheet, banner) |
+| `feat/onboarding` | Create account, email, phone, OTP, About you, Consent, Sign in |
+| `feat/shell-cases` | App shell, collapsible sidebar (persisted), phone top bar, banner, cases list |
+| `feat/new-case-wizard` | 3-step New case wizard, sticky phone footer |
+| `feat/payment-modal` | New-case payment and credit top-up (dialog on web, bottom sheet on phone) |
+| `feat/case-workspace` | Consultation (AI chat, credits), Overview, Documents |
+| `feat/lawyer-request` | Request lawyer, matching state, lawyer chat tab |
+| `feat/polish-docs` | Build check, edge states, this README |
 
 Each branch starts from the previous one, so merge them in order.
 
