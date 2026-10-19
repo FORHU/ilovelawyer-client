@@ -58,6 +58,7 @@ body {
 
 a {
   color: var(--color-gold);
+  text-decoration: underline;
 }
 a:hover {
   color: var(--color-gold-hover);
