@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { PaymentModal } from "@/components/payment/payment-modal";
 import { SuccessBanner } from "@/components/ui/banner";
 import { Avatar, Logo, initialsOf } from "@/components/ui/misc";
 import { useApp } from "@/lib/store";
@@ -31,6 +32,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {banner && <SuccessBanner message={banner} onDismiss={() => setBanner("")} />}
         {children}
       </div>
+      <PaymentModal />
     </div>
   );
 }

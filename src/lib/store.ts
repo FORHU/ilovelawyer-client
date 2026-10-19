@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { CASE_CREDITS } from "./pricing";
 import { SAMPLE_CASE } from "./sample-data";
 import type { Case, LawyerStatus } from "./types";
 
@@ -31,6 +32,9 @@ interface AppState extends AuthFields {
   toggleConsent: (i: number) => void;
   setBanner: (message: string) => void;
   toggleSidebar: () => void;
+  /** Adds a paid case and returns its id. */
+  addCase: (data: Omit<Case, "id" | "credits" | "chat">) => number;
+  addCredits: (caseId: number, credits: number) => void;
   /** Mock sign in (prototype: any credentials open a demo account). */
   signIn: () => void;
   /** Finish onboarding after consent. */
@@ -40,7 +44,7 @@ interface AppState extends AuthFields {
 
 export const useApp = create<AppState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       email: "",
       password: "",
       phone: "",
@@ -63,6 +67,17 @@ export const useApp = create<AppState>()(
         })),
       setBanner: (banner) => set({ banner }),
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+      addCase: (data) => {
+        const id = get().cases.reduce((m, c) => Math.max(m, c.id), 0) + 1;
+        set((s) => ({
+          cases: [...s.cases, { ...data, id, credits: CASE_CREDITS, chat: [] }],
+        }));
+        return id;
+      },
+      addCredits: (caseId, credits) =>
+        set((s) => ({
+          cases: s.cases.map((c) => (c.id === caseId ? { ...c, credits: c.credits + credits } : c)),
+        })),
       signIn: () =>
         set({
           signedIn: true,
