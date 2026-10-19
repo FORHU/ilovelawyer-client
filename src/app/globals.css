@@ -98,6 +98,38 @@ button:disabled {
   display: none;
 }
 
+/* Auth screens: soft entrance + photo settle. Transform/opacity only. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes settle {
+  from {
+    transform: scale(1.04);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+.motion-rise {
+  animation: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.motion-settle {
+  animation: settle 1.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .motion-rise,
+  .motion-settle {
+    animation: none;
+  }
+}
+
 @keyframes sheet-up {
   from {
     transform: translateY(100%);
