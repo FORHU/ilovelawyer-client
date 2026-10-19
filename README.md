@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ilovelawyer-client
 
-## Getting Started
+Consumer web app for ilovelawyer: pay per case ($9.99, 50 chat credits), AI consultation inside each case, and a free optional lawyer request.
 
-First, run the development server:
+This repo currently contains the **UI/UX implementation only** of the design handoff (`design_handoff_consumer_legal_consultation`). There is no backend: auth, payment, AI replies, uploads and lawyer matching are mocked in the client store and are marked as placeholders.
+
+## Run
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm dev        # http://localhost:3000
+pnpm lint
+pnpm build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+State is kept in `localStorage` (`ilovelawyer-client`) so refreshes keep the demo session.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Next.js (App Router), React, TypeScript, Tailwind CSS v4 (design tokens in `src/app/globals.css`), zustand, lucide-react. Fonts: Inter and Libre Caslon Text via `next/font`.
 
-## Learn More
+## Delivery phases (one branch each, stacked)
 
-To learn more about Next.js, take a look at the following resources:
+| Branch | Scope |
+| --- | --- |
+| `phase/0-foundation` | Tokens, fonts, brand assets, UI primitives (button, inputs, chips, radio cards, modal/sheet, banner) |
+| `phase/1-onboarding` | Create account, email, phone, OTP, About you, Consent, Sign in |
+| `phase/2-shell-cases` | App shell, collapsible sidebar (persisted), phone top bar, banner, cases list |
+| `phase/3-new-case-wizard` | 3-step New case wizard, sticky phone footer |
+| `phase/4-payment-modal` | New-case payment and credit top-up (dialog on web, bottom sheet on phone) |
+| `phase/5-case-workspace` | Consultation (AI chat, credits), Overview, Documents |
+| `phase/6-lawyer-request` | Request lawyer, matching state, lawyer chat tab |
+| `phase/7-polish-docs` | Build check, edge states, this README |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Each branch starts from the previous one, so merge them in order.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Mocks to replace with real services
 
-## Deploy on Vercel
+- **Auth**: any credentials sign in; any 6-digit code verifies (`src/lib/store.ts`, `src/app/(auth)`).
+- **Payment**: `charge()` in `src/components/payment/payment-modal.tsx` waits 1.1s and succeeds. A card number ending in `0002` is declined so the failure state can be seen. Promo `WELCOME5` is client-side only.
+- **AI replies**: `src/lib/mock-ai.ts` (keyword-matched canned text).
+- **Uploads**: "Add documents" adds a sample file name. No real file handling, limits or scanning.
+- **Lawyer side**: the lawyer experience (queue, My clients, client file) is not in this repo. In dev builds only, the matching card has **Demo: lawyer accepts** and the lawyer strip has **Demo: resolve** to exercise the client-side states. These are hidden in production builds.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Open questions (from the handoff)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Top-up pack prices, credit expiry, refund policy, lawyer pricing visibility, bank-transfer confirmation timing, case-detail editing, and real upload limits are still undecided. See the handoff README.
