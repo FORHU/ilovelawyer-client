@@ -1,26 +1,116 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Design tokens: ilovelawyer consumer prototype v3 */
+@theme {
+  --color-page: #ecebe6;
+  --color-surface: #ffffff;
+  --color-subtle: #fafaf8;
+  --color-chip: #f2f1ec;
+  --color-bubble: #f7f7f7;
+
+  --color-ink: #252525;
+  --color-ink-2: #6b6b6b;
+  --color-muted: #8e8e8e;
+
+  --color-line: #e8e8e8;
+  --color-line-input: #d8d8d8;
+  --color-line-chip: rgb(37 37 37 / 0.25);
+  --color-line-hover: rgb(37 37 37 / 0.4);
+
+  --color-gold: #8a6200;
+  --color-gold-hover: #6d4d00;
+
+  --color-success: #2e8b57;
+  --color-success-bg: #f3f8f4;
+  --color-success-line: #d6e8dc;
+  --color-success-ink: #1f6b42;
+
+  --color-error: #b3261e;
+  --color-error-field: #e07a74;
+  --color-error-bg: #fdf3f2;
+  --color-error-line: #e8b4b0;
+  --color-error-ink: #8c1d18;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-caslon), Georgia, serif;
+
+  --radius-input: 14px;
+  --radius-card: 16px;
+  --radius-modal: 20px;
+  --radius-composer: 26px;
+
+  --shadow-modal: 0 24px 60px rgb(0 0 0 / 0.28);
+  --shadow-frame: 0 1px 3px rgb(0 0 0 / 0.08);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  min-height: 100%;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer base {
+  a {
+    color: var(--color-gold);
+    text-decoration: underline;
+  }
+  a:hover {
+    color: var(--color-gold-hover);
+  }
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-muted);
+}
+
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* Phone rules: 44px tap targets and 16px inputs (prevents iOS zoom). */
+@media (max-width: 767px) {
+  input,
+  textarea {
+    font-size: 16px !important;
+  }
+  button:not([data-no-tap]) {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Utility: hide scrollbar (tab strip) */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
