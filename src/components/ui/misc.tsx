@@ -25,7 +25,8 @@ export function AiMark({ size = 26, className }: { size?: number; className?: st
       alt=""
       width={size}
       height={size}
-      className={cn("shrink-0 rounded-full border border-line", className)}
+      className={cn("shrink-0 self-start rounded-full border border-line", className)}
+      style={{ width: size, height: size }}
     />
   );
 }

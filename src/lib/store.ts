@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { CASE_CREDITS } from "./pricing";
-import { SAMPLE_CASE } from "./sample-data";
+import { SAMPLE_CASE, SAMPLE_FILES } from "./sample-data";
 import type { Case, LawyerStatus } from "./types";
 
 export type AuthMethod = "email" | "phone" | "social";
@@ -35,6 +35,17 @@ interface AppState extends AuthFields {
   /** Adds a paid case and returns its id. */
   addCase: (data: Omit<Case, "id" | "credits" | "chat">) => number;
   addCredits: (caseId: number, credits: number) => void;
+  /** User asks the AI: costs 1 credit. No-op without credits. Returns whether it was sent. */
+  askAi: (caseId: number, text: string) => boolean;
+  /** Appends the AI answer (and the lawyer offer while no request exists). */
+  answerAi: (caseId: number, text: string) => void;
+  /** Attaching a document is free; it is added to the case and the AI acknowledges it. */
+  attachToChat: (caseId: number) => void;
+  addCaseFile: (caseId: number) => void;
+  /** Free lawyer request for a case. */
+  requestLawyer: (caseId: number) => void;
+  /** @internal */
+  _patchCase: (id: number, fn: (c: Case) => Case) => void;
   /** Mock sign in (prototype: any credentials open a demo account). */
   signIn: () => void;
   /** Finish onboarding after consent. */
@@ -78,6 +89,62 @@ export const useApp = create<AppState>()(
         set((s) => ({
           cases: s.cases.map((c) => (c.id === caseId ? { ...c, credits: c.credits + credits } : c)),
         })),
+      askAi: (caseId, text) => {
+        const c = get().cases.find((x) => x.id === caseId);
+        const msg = text.trim();
+        if (!c || !msg || c.credits <= 0) return false;
+        get()._patchCase(caseId, (x) => ({
+          ...x,
+          credits: x.credits - 1,
+          chat: [...x.chat.filter((m) => m.role !== "offer"), { role: "user", text: msg }],
+        }));
+        return true;
+      },
+      answerAi: (caseId, text) => {
+        const noRequest = get().lawyer.status === "none";
+        get()._patchCase(caseId, (x) => ({
+          ...x,
+          chat: [
+            ...x.chat.filter((m) => m.role !== "offer"),
+            { role: "ai", text },
+            ...(noRequest ? [{ role: "offer" as const }] : []),
+          ],
+        }));
+      },
+      attachToChat: (caseId) => {
+        const c = get().cases.find((x) => x.id === caseId);
+        if (!c) return;
+        const name = nextSampleFile(c.files);
+        const noRequest = get().lawyer.status === "none";
+        get()._patchCase(caseId, (x) => ({
+          ...x,
+          files: [...x.files, name],
+          chat: [
+            ...x.chat.filter((m) => m.role !== "offer"),
+            { role: "file", text: name },
+            {
+              role: "ai",
+              text: `Got it. I've added "${name}" to this case and will use it when answering your questions.`,
+            },
+            ...(noRequest ? [{ role: "offer" as const }] : []),
+          ],
+        }));
+      },
+      addCaseFile: (caseId) => {
+        const c = get().cases.find((x) => x.id === caseId);
+        if (!c) return;
+        const name = SAMPLE_FILES.find((f) => !c.files.includes(f));
+        if (name) get()._patchCase(caseId, (x) => ({ ...x, files: [...x.files, name] }));
+      },
+      requestLawyer: (caseId) => {
+        if (get().lawyer.status !== "none") return;
+        set({
+          lawyer: { status: "matching", caseId },
+          banner: "Request sent. Verified lawyers are reviewing your case.",
+        });
+      },
+      _patchCase: (id, fn) =>
+        set((s) => ({ cases: s.cases.map((c) => (c.id === id ? fn(c) : c)) })),
       signIn: () =>
         set({
           signedIn: true,
@@ -115,6 +182,10 @@ export const useApp = create<AppState>()(
     },
   ),
 );
+
+export function nextSampleFile(files: string[]) {
+  return SAMPLE_FILES.find((f) => !files.includes(f)) ?? `Document ${files.length + 1}.pdf`;
+}
 
 export function lawyerLabel(status: LawyerStatus) {
   return status === "matching"
