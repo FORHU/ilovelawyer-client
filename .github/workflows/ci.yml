@@ -24,5 +24,6 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
+      - run: pnpm exec next typegen # generates LayoutProps/PageProps into .next/types
       - run: pnpm exec tsc --noEmit
       - run: pnpm build
