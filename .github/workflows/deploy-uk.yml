@@ -1,0 +1,255 @@
+name: Deploy UK
+
+# FORHU/ilovelawyer-client → the London stack (eu-west-2), served at the apex
+# ilovelawyer.com (and www, which Caddy on that box already redirects to it).
+#
+# Two jobs, as in ilovelawyer-api: `build` runs on every merge and only produces
+# an image; `promote` is what touches the live box and parks on `production-uk`
+# until someone clicks Approve. A merge cannot reach users on its own — and this
+# one is the front door, so that matters more here than anywhere else.
+#
+# The host has no SSH port and no key pair, so the deploy runs through SSM Run
+# Command.
+#
+# Images are built into the ap-southeast-1 registry and pulled cross-region, the
+# same as every other UK service. Tagged uk-<sha>, so the dev- tags the other
+# workflow in this repo pushes are never touched.
+#
+# BEFORE THE FIRST RUN
+#   1. `terraform apply` in forhu-terraform-v2/ilovelawyer-uk. The deploy role
+#      enumerates repositories by name; without ilovelawyer-client in
+#      deploy_repositories and ecr_repository_names, OIDC fails before the build
+#      and the pull is denied on the box.
+#   2. An ACM certificate in eu-west-2 for ilovelawyer.com + www.ilovelawyer.com,
+#      attached to the ALB's 443 listener. It currently carries exactly one
+#      certificate, uk.ilovelawyer.com, and no wildcard.
+#   3. The apex vhost in /etc/caddy/Caddyfile on the box, pointing at 3003.
+#   4. Cloudflare: the apex to
+#      forhu-ilovelawyer-uk-alb-1635992166.eu-west-2.elb.amazonaws.com.
+#
+# There is no Parameter Store step. src/ reads no environment variable but
+# NODE_ENV, so there is nothing to encrypt and nothing to merge. When the client
+# starts calling the API the URL is a NEXT_PUBLIC_* build arg — `next build`
+# inlines it, so a runtime variable would arrive too late to change anything.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch, tag, or SHA to build (blank = the branch you ran this from)"
+        required: false
+      image_tag:
+        description: "Existing image tag to promote. Leave blank to build from ref."
+        required: false
+        default: ""
+
+env:
+  ECR_REPOSITORY: ilovelawyer-client
+  ECR_REGION: ap-southeast-1          # where the images live
+  AWS_REGION: eu-west-2               # where the UK stack runs
+  ACCOUNT_ID: "617163942417"
+  INSTANCE_ID: i-0c21e7d8c1aae968c
+  CONTAINER: ilovelawyer-client
+  # The container listens on 3002 (set in the Dockerfile) and is published on
+  # 3003, the first free port on this box: 3000 admin, 3001 api, 3002 app.
+  HOST_PORT: "3003"
+  APP_PORT: "3002"
+
+jobs:
+  # ---------------------------------------------------------------- build ---
+  # No `environment:` here: a build must not consume a production approval.
+  build:
+    name: Build & Push (UK)
+    # Native arm64 — matches Graviton EC2. Do not build linux/arm64 via QEMU on
+    # ubuntu-latest; the build looks stuck and can take hours.
+    runs-on: ubuntu-24.04-arm
+
+    permissions:
+      id-token: write
+      contents: read
+
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      registry: ${{ steps.tag.outputs.registry }}
+
+    steps:
+      # On push there is no `ref` input, so fall back to the pushed commit.
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.sha }}
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_UK_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Resolve image tag
+        id: tag
+        run: |
+          TAG="${{ github.event.inputs.image_tag }}"
+          [ -z "$TAG" ] && TAG="uk-${{ github.sha }}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "registry=${{ env.ACCOUNT_ID }}.dkr.ecr.${{ env.ECR_REGION }}.amazonaws.com" >> "$GITHUB_OUTPUT"
+          echo "Image: ${{ env.ECR_REPOSITORY }}:$TAG"
+
+      # The registry is in ap-southeast-1, so log in against that region.
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region "${{ env.ECR_REGION }}" \
+            | docker login --username AWS --password-stdin "${{ steps.tag.outputs.registry }}"
+
+      - name: Set up Docker Buildx
+        if: ${{ github.event.inputs.image_tag == '' }}
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        if: ${{ github.event.inputs.image_tag == '' }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: linux/arm64
+          provenance: false
+          tags: ${{ steps.tag.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.tag.outputs.tag }}
+          # Where NEXT_PUBLIC_* belongs once the client talks to the API. Caddy
+          # serves /api/* on the apex from the UK API container, so the value is
+          # a path on the client's own origin — not a Singapore hostname, which
+          # would send every UK request back round the world and undo the point
+          # of running this in London at all.
+          # build-args: |
+          #   NEXT_PUBLIC_API_URL=/api
+
+      - name: Summary
+        run: |
+          {
+            echo "### UK image ready"
+            echo
+            echo "    ${{ steps.tag.outputs.tag }}"
+            echo
+            echo "Awaiting approval on the **Promote to production (UK)** job."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ------------------------------------------------------------------ gate ---
+  # Exists only to carry the approval click. `production-uk` holds no secrets and
+  # no variables — just Required reviewers. Deliberately not `production`, which
+  # other ilovelawyer repos use for deploys that must stay automatic.
+  gate:
+    name: Awaiting approval (UK)
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production-uk
+    steps:
+      - name: Approved
+        run: echo "Promoting ${{ needs.build.outputs.tag }} to the UK stack."
+
+  # --------------------------------------------------------------- promote ---
+  promote:
+    name: Promote to production (UK)
+    needs: [build, gate]
+    # No build here, so no need for an arm64 runner.
+    runs-on: ubuntu-latest
+
+    concurrency:
+      group: ilovelawyer-uk-deploy      # shared with the other UK services: one deploy at a time
+      cancel-in-progress: false
+
+    permissions:
+      id-token: write
+      contents: read
+
+    # Deliberately no checkout: this job must be incapable of building. It
+    # deploys the exact bytes `build` pushed, nothing else.
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_UK_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Resolve image tag
+        id: tag
+        run: |
+          echo "tag=${{ needs.build.outputs.tag }}" >> "$GITHUB_OUTPUT"
+          echo "registry=${{ needs.build.outputs.registry }}" >> "$GITHUB_OUTPUT"
+
+      # Fail here rather than halfway through an SSM deploy: a missing tag would
+      # otherwise be found only after the running container had been removed.
+      - name: Verify the image exists
+        run: |
+          set -euo pipefail
+          aws ecr describe-images \
+            --region "${{ env.ECR_REGION }}" \
+            --repository-name "${{ env.ECR_REPOSITORY }}" \
+            --image-ids imageTag="${{ steps.tag.outputs.tag }}" \
+            --query 'imageDetails[0].[imageTags[0],imagePushedAt]' --output text \
+            || { echo "::error::no such tag in ECR: ${{ steps.tag.outputs.tag }}"; exit 1; }
+
+      - name: Deploy via SSM
+        id: send
+        env:
+          REGISTRY: ${{ steps.tag.outputs.registry }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          IMAGE="${REGISTRY}/${{ env.ECR_REPOSITORY }}:${TAG}"
+
+          # No --env-file: there is nothing to merge. NODE_ENV, PORT and HOSTNAME
+          # come from the Dockerfile, and an empty env file fails the run rather
+          # than defaulting harmlessly.
+          #
+          # `docker image prune -af` runs BEFORE the pull: both this box and the
+          # Singapore one filled their disks with :<sha> images, which are tagged
+          # and so invisible to a prune without -a. Everything dropped here is
+          # re-pullable from ECR, so a rollback is another pull.
+          COMMANDS=(
+            "set -euo pipefail"
+            "aws ecr get-login-password --region ${{ env.ECR_REGION }} | docker login --username AWS --password-stdin ${REGISTRY}"
+            "docker container prune -f || true"
+            "docker image prune -af || true"
+            "docker pull --platform linux/arm64 ${IMAGE}"
+            "docker rm -f ${{ env.CONTAINER }} 2>/dev/null || true"
+            "docker run -d --name ${{ env.CONTAINER }} --restart unless-stopped --platform linux/arm64 -p 127.0.0.1:${{ env.HOST_PORT }}:${{ env.APP_PORT }} ${IMAGE}"
+          )
+
+          # jq builds the JSON, so a quote inside any command cannot break it.
+          PARAMS=$(printf '%s\n' "${COMMANDS[@]}" | jq -R . | jq -sc '{commands: .}')
+
+          CMD_ID=$(aws ssm send-command \
+            --region "${{ env.AWS_REGION }}" \
+            --instance-ids "${{ env.INSTANCE_ID }}" \
+            --document-name AWS-RunShellScript \
+            --comment "deploy ${{ env.CONTAINER }} ${TAG}" \
+            --timeout-seconds 900 \
+            --parameters "${PARAMS}" \
+            --query Command.CommandId --output text)
+
+          echo "command_id=$CMD_ID" >> "$GITHUB_OUTPUT"
+          echo "SSM command: $CMD_ID"
+
+      - name: Wait for the deploy
+        run: |
+          set -uo pipefail
+          STATUS=Pending
+          for i in $(seq 1 90); do
+            STATUS=$(aws ssm get-command-invocation \
+              --region "${{ env.AWS_REGION }}" \
+              --command-id "${{ steps.send.outputs.command_id }}" \
+              --instance-id "${{ env.INSTANCE_ID }}" \
+              --query Status --output text 2>/dev/null || echo Pending)
+            echo "status: $STATUS"
+            case "$STATUS" in Success|Failed|Cancelled|TimedOut) break ;; esac
+            sleep 10
+          done
+
+          aws ssm get-command-invocation \
+            --region "${{ env.AWS_REGION }}" \
+            --command-id "${{ steps.send.outputs.command_id }}" \
+            --instance-id "${{ env.INSTANCE_ID }}" \
+            --query '[StandardOutputContent,StandardErrorContent]' --output text
+
+          [ "$STATUS" = "Success" ] || { echo "::error::deploy $STATUS"; exit 1; }
