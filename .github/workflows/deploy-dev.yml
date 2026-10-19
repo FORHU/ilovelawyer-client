@@ -1,0 +1,176 @@
+name: Deploy Dev
+
+# FORHU/ilovelawyer-client → the shared dev host (ap-southeast-1),
+# served at https://dev-app.ilovelawyer.com — the dev copy of what will become
+# app.ilovelawyer.com. This is the client for USERS; ph.* and uk.* are the
+# lawyer-facing app and stay on the ilovelawyer-app container.
+#
+# One EC2 instance runs every project's dev environment. This workflow owns
+# only its own container; it cannot touch another project's, and the deploy
+# role cannot reach any host but this one.
+#
+# Shorter than its siblings on purpose: src/ reads no environment variable but
+# NODE_ENV, so there is no Parameter Store step and no shared credentials file.
+# The moment the client calls the API, NEXT_PUBLIC_API_URL goes in as a build
+# arg — see the build step — not as a runtime variable.
+#
+# BEFORE THE FIRST RUN
+#   1. Repository variable:
+#        AWS_DEV_DEPLOY_ROLE_ARN = arn:aws:iam::617163942417:role/forhu-deploy
+#      A new name on purpose: AWS_DEPLOY_ROLE_ARN already points at production
+#      in several repos, and in gate-closes-api it switches the deploy target.
+#   2. The ECR repository must exist — nothing here creates it:
+#        aws ecr create-repository --repository-name ilovelawyer-client \
+#          --region ap-southeast-1
+#   3. HOST_PORT 4036 is free in ilovelawyer's 4030-4039 band (4030-4032 dev,
+#      4033-4035 production). Confirm against /etc/caddy/sites/00-PORTS.md
+#      before the first run and add it there after.
+
+on:
+  # Dev tracks main. Without this the dev container only changes when somebody
+  # remembers to dispatch, and it silently falls behind: on 2026-10-16 ilovelawyer
+  # dev was 24h and several merges stale while production deployed on every merge,
+  # which read as "changes not propagating" rather than as a missing trigger.
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        # No default: repos in this org disagree on a default branch name, and a
+        # hardcoded one fetches a branch that may not exist, failing in checkout
+        # before anything is built. Blank falls back to github.ref_name.
+        description: "Branch, tag or SHA to deploy (blank = the branch you ran this from)"
+        required: false
+
+# Shared with the other ilovelawyer dev workflows: they deploy to the same host
+# and the same `docker image prune -af` would pull the rug from under a build
+# running beside it.
+concurrency:
+  group: forhu-dev-ilovelawyer
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-southeast-1
+  ACCOUNT_ID: "617163942417"
+  INSTANCE_ID: i-0f95a93145ea25e7a
+  ECR_REPOSITORY: ilovelawyer-client
+  CONTAINER: ilovelawyer-client-dev
+  NETWORK: forhu-dev
+  HOST_PORT: "4036"
+  APP_PORT: "3002"
+
+jobs:
+  deploy:
+    name: Build and deploy (ilovelawyer client dev)
+    # Native arm64: the host is Graviton. An image built on ubuntu-latest is
+    # amd64, pulls cleanly, then dies with "exec format error". Do not
+    # cross-build under QEMU — Node builds take hours and look hung.
+    runs-on: ubuntu-24.04-arm
+    environment: staging
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.ref_name }}
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEV_DEPLOY_ROLE_ARN || 'arn:aws:iam::617163942417:role/forhu-deploy' }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Resolve image tag
+        id: tag
+        run: |
+          # dev- prefix so a dev image can never be mistaken for, or overwrite,
+          # a production tag in the same ECR repository.
+          echo "tag=dev-$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "registry=${{ env.ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com" >> "$GITHUB_OUTPUT"
+
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region "${{ env.AWS_REGION }}" \
+            | docker login --username AWS --password-stdin "${{ steps.tag.outputs.registry }}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: linux/arm64
+          provenance: false
+          tags: ${{ steps.tag.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.tag.outputs.tag }}
+          # Where NEXT_PUBLIC_* belongs once the client talks to the API. These
+          # are inlined by `next build`, so a value added to the container's
+          # environment instead arrives too late to change anything.
+          # build-args: |
+          #   NEXT_PUBLIC_API_URL=${{ vars.DEV_NEXT_PUBLIC_API_URL }}
+
+      - name: Deploy via SSM
+        id: send
+        env:
+          REGISTRY: ${{ steps.tag.outputs.registry }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          IMAGE="${REGISTRY}/${{ env.ECR_REPOSITORY }}:${TAG}"
+
+          # No --env-file: there is nothing to merge. NODE_ENV, PORT and HOSTNAME
+          # come from the Dockerfile, and an empty env file would fail the run
+          # rather than default harmlessly.
+          COMMANDS=(
+            "set -euo pipefail"
+            "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${REGISTRY}"
+            "docker container prune -f || true"
+            "docker image prune -af || true"
+            "docker pull --platform linux/arm64 ${IMAGE}"
+            "docker rm -f ${{ env.CONTAINER }} 2>/dev/null || true"
+            "docker run -d --name ${{ env.CONTAINER }} --restart unless-stopped --platform linux/arm64 --network ${{ env.NETWORK }} -p 127.0.0.1:${{ env.HOST_PORT }}:${{ env.APP_PORT }} ${IMAGE}"
+          )
+
+          # jq builds the JSON, so a quote inside any command cannot break it.
+          PARAMS=$(printf '%s\n' "${COMMANDS[@]}" | jq -R . | jq -sc '{commands: .}')
+
+          CMD_ID=$(aws ssm send-command \
+            --region "${{ env.AWS_REGION }}" \
+            --instance-ids "${{ env.INSTANCE_ID }}" \
+            --document-name AWS-RunShellScript \
+            --comment "deploy ${{ env.CONTAINER }} ${TAG}" \
+            --timeout-seconds 900 \
+            --parameters "${PARAMS}" \
+            --query Command.CommandId --output text)
+
+          echo "command_id=$CMD_ID" >> "$GITHUB_OUTPUT"
+          echo "SSM command: $CMD_ID"
+
+      - name: Wait for the deploy
+        run: |
+          set -uo pipefail
+          STATUS=Pending
+          for i in $(seq 1 90); do
+            STATUS=$(aws ssm get-command-invocation \
+              --region "${{ env.AWS_REGION }}" \
+              --command-id "${{ steps.send.outputs.command_id }}" \
+              --instance-id "${{ env.INSTANCE_ID }}" \
+              --query Status --output text 2>/dev/null || echo Pending)
+            echo "status: $STATUS"
+            case "$STATUS" in Success|Failed|Cancelled|TimedOut) break ;; esac
+            sleep 10
+          done
+
+          aws ssm get-command-invocation \
+            --region "${{ env.AWS_REGION }}" \
+            --command-id "${{ steps.send.outputs.command_id }}" \
+            --instance-id "${{ env.INSTANCE_ID }}" \
+            --query '[StandardOutputContent,StandardErrorContent]' --output text
+
+          [ "$STATUS" = "Success" ] || { echo "::error::deploy $STATUS"; exit 1; }
