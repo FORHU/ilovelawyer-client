@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { CASE_CREDITS } from "./pricing";
 import { SAMPLE_CASE, SAMPLE_FILES } from "./sample-data";
-import type { Case, LawyerStatus } from "./types";
+import type { Case, LawyerStatus, ThreadMessage } from "./types";
 
 export type AuthMethod = "email" | "phone" | "social";
 
@@ -25,6 +25,9 @@ interface AppState extends AuthFields {
   cases: Case[];
   /** Lawyer request for one case at a time (prototype behaviour). */
   lawyer: { status: LawyerStatus; caseId: number | null };
+  /** Messages with the lawyer for the case in `lawyer.caseId`. */
+  thread: ThreadMessage[];
+  lawyerUnread: boolean;
   sidebarCollapsed: boolean;
 
   setField: <K extends keyof AuthFields>(key: K, value: AuthFields[K]) => void;
@@ -44,6 +47,15 @@ interface AppState extends AuthFields {
   addCaseFile: (caseId: number) => void;
   /** Free lawyer request for a case. */
   requestLawyer: (caseId: number) => void;
+  cancelLawyerRequest: () => void;
+  /** Client message (or shared file) in the lawyer thread. */
+  sendToLawyer: (text: string, file?: boolean) => void;
+  /** Shares a sample document in the lawyer thread and adds it to the case documents. */
+  attachToLawyer: () => void;
+  markLawyerRead: () => void;
+  /** DEMO ONLY (dev builds): stands in for the lawyer app until real matching exists. */
+  demoLawyerAccept: () => void;
+  demoLawyerResolve: () => void;
   /** @internal */
   _patchCase: (id: number, fn: (c: Case) => Case) => void;
   /** Mock sign in (prototype: any credentials open a demo account). */
@@ -68,6 +80,8 @@ export const useApp = create<AppState>()(
       banner: "",
       cases: [],
       lawyer: { status: "none", caseId: null },
+      thread: [],
+      lawyerUnread: false,
       sidebarCollapsed: false,
 
       setField: (key, value) => set({ [key]: value } as Partial<AppState>),
@@ -140,9 +154,48 @@ export const useApp = create<AppState>()(
         if (get().lawyer.status !== "none") return;
         set({
           lawyer: { status: "matching", caseId },
+          thread: [],
+          lawyerUnread: false,
           banner: "Request sent. Verified lawyers are reviewing your case.",
         });
       },
+      cancelLawyerRequest: () =>
+        set({
+          lawyer: { status: "none", caseId: null },
+          thread: [],
+          lawyerUnread: false,
+          banner: "Request cancelled.",
+        }),
+      sendToLawyer: (text, file) => {
+        const t = text.trim();
+        if (!t) return;
+        set((s) => ({ thread: [...s.thread, { role: "user", text: t, file }] }));
+      },
+      attachToLawyer: () => {
+        const { lawyer, cases } = get();
+        const c = cases.find((x) => x.id === lawyer.caseId);
+        if (!c) return;
+        const name = nextSampleFile(c.files);
+        get()._patchCase(c.id, (x) => ({ ...x, files: [...x.files, name] }));
+        set((s) => ({ thread: [...s.thread, { role: "user", text: name, file: true }] }));
+      },
+      markLawyerRead: () => set({ lawyerUnread: false }),
+      demoLawyerAccept: () => {
+        const first = get().fullName.split(" ")[0] || "there";
+        set((s) => ({
+          lawyer: { ...s.lawyer, status: "accepted" },
+          lawyerUnread: true,
+          thread: [
+            { role: "event", text: "Atty. Maria Reyes accepted your request" },
+            {
+              role: "lawyer",
+              text: `Hi ${first}, I've read your case and the documents you attached. Can you tell me in your own words what happened, and when?`,
+            },
+          ],
+        }));
+      },
+      demoLawyerResolve: () =>
+        set((s) => ({ lawyer: { ...s.lawyer, status: "closed" }, lawyerUnread: true })),
       _patchCase: (id, fn) =>
         set((s) => ({ cases: s.cases.map((c) => (c.id === id ? fn(c) : c)) })),
       signIn: () =>
@@ -162,6 +215,8 @@ export const useApp = create<AppState>()(
           signedIn: false,
           cases: [],
           lawyer: { status: "none", caseId: null },
+          thread: [],
+          lawyerUnread: false,
           consent: [false, false, false],
           banner: "",
         }),
@@ -177,6 +232,8 @@ export const useApp = create<AppState>()(
         email: s.email,
         cases: s.cases,
         lawyer: s.lawyer,
+        thread: s.thread,
+        lawyerUnread: s.lawyerUnread,
         sidebarCollapsed: s.sidebarCollapsed,
       }),
     },
