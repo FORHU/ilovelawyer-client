@@ -51,6 +51,8 @@ export interface Case {
   side: "CLAIMANT" | "RESPONDENT" | null;
   others: OtherParty[];
   documents: CaseDocument[];
+  /** Chat credits left. Each message to the AI uses one. */
+  credits: number;
   createdAt: string;
   updatedAt: string;
 }

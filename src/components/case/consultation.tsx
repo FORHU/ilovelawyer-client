@@ -9,7 +9,7 @@ import { FilePicker } from "@/components/ui/file-picker";
 import { AiMark } from "@/components/ui/misc";
 import { useMessagesQuery, useSendMessageMutation, useUploadDocumentsMutation } from "@/lib/cases/queries";
 import { usePayment } from "@/lib/payment-store";
-import { creditsLeft, useApp } from "@/lib/store";
+import { useApp } from "@/lib/store";
 import type { Case } from "@/lib/types";
 
 const PROMPTS = [
@@ -20,8 +20,8 @@ const PROMPTS = [
 ];
 
 export function Consultation({ c }: { c: Case }) {
-  const { spendCredit, refundCredit, requestLawyer } = useApp.getState();
-  const credits = useApp((s) => creditsLeft(s.credits, c.id));
+  const { requestLawyer } = useApp.getState();
+  const credits = c.credits;
   const lawyerStatus = useApp((s) => s.lawyer.status);
   const { data, error: loadError } = useMessagesQuery(c.id);
   const sendMessage = useSendMessageMutation(c.id);
@@ -44,12 +44,11 @@ export function Consultation({ c }: { c: Case }) {
 
   const send = (raw: string) => {
     const text = raw.trim();
-    if (!text || thinking || !spendCredit(c.id)) return;
+    if (!text || thinking || credits <= 0) return;
     setInput("");
     setNotice("");
     sendMessage.mutate(text, {
       onError: (err) => {
-        refundCredit(c.id);
         setInput(text);
         setNotice(err instanceof Error ? err.message : "Couldn't send that. Try again.");
       },

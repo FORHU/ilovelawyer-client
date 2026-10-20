@@ -71,7 +71,8 @@ export function useSendMessageMutation(caseId: string) {
   const userId = useUserId();
   return useMutation({
     mutationFn: (text: string) => sendMessage(caseId, text),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: caseKeys.messages(userId, caseId) }),
+    // The case too: sending used a credit.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: caseKeys.all(userId) }),
   });
 }
 

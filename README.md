@@ -2,7 +2,7 @@
 
 Consumer web app for ilovelawyer: pay per case ($9.99, 50 chat credits), AI consultation inside each case, and a free optional lawyer request.
 
-Sign up, sign in, cases, documents and the AI consultation are real, against ilovelawyer-api (accounts with `role = USER`). Payment, chat credits and lawyer matching are still mocked in the client store and are marked as placeholders.
+Sign up, sign in, cases, documents and the AI consultation are real, against ilovelawyer-api (accounts with `role = USER`). Payments and chat credits are recorded by the API, but the payment itself is a dummy for now (see below). Lawyer matching is still mocked in the client store.
 
 ## Run
 
@@ -37,7 +37,14 @@ Every client account is in the **UK** tenant. The client app is served from one 
 - The AI answers in the background. The chat polls the messages every 1.5s while a reply is coming, and a case's documents every 4s while one is still being read.
 - Uploads go straight from the browser to S3 on a signed URL, so the S3 bucket's CORS rules must allow this app's origin (`PUT`). Locally that's `http://localhost:3004`.
 
-Chat credits, the lawyer request and its thread are still kept in `localStorage` (`ilovelawyer-client`), tied to the signed-in account and cleared on sign-out.
+## Payments (dummy for now)
+
+- Prices, credits per case, top-up packs and promo codes come from the API (`GET /api/client/pricing`). The numbers are placeholders.
+- A new case is paid first (`POST /api/client/payments/case`), then created with that payment. A payment creates one case only.
+- The API's payment provider is a dummy: it always succeeds, except a card number ending in `0002`, which declines so the failure screen can be seen. The card form never sends card details anywhere. Stripe replaces the dummy later, on the API side.
+- Chat credits are counted on the server. Each AI message uses one, and the chat stops at 0 until the client tops up.
+
+The lawyer request and its thread are still kept in `localStorage` (`ilovelawyer-client`), tied to the signed-in account and cleared on sign-out.
 
 ## Stack
 
@@ -60,8 +67,7 @@ Each branch starts from the previous one, so merge them in order.
 
 ## Mocks to replace with real services
 
-- **Payment**: `charge()` in `src/components/payment/payment-modal.tsx` waits 1.1s and succeeds. A card number ending in `0002` is declined so the failure state can be seen. Promo `WELCOME5` is client-side only.
-- **Chat credits**: counted per case in the browser (`src/lib/store.ts`).
+- **Payment**: the API's dummy provider (see Payments above), until Stripe.
 - **Lawyer side**: the lawyer experience (queue, My clients, client file) is not in this repo. In dev builds only, the matching card has **Demo: lawyer accepts** and the lawyer strip has **Demo: resolve** to exercise the client-side states. These are hidden in production builds.
 
 ## Open questions (from the handoff)

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { DEFAULT_PACK, PROMO_CODE, type PackId } from "./pricing";
+import type { CaseQuote } from "./billing/api";
 
 export type PaymentKind = "case" | "topup";
 export type PayMethod = "card" | "bank";
@@ -9,22 +9,24 @@ interface PaymentState {
   kind: PaymentKind;
   /** Case receiving the credits when kind === "topup". */
   caseId: string | null;
-  pack: PackId;
+  /** Top-up pack id; null means the API's default pack. */
+  pack: string | null;
   method: PayMethod;
+  /** Only ever kept in this form: card details are never sent anywhere (the payment is a dummy). */
   card: { number: string; expiry: string; cvc: string };
   promoInput: string;
-  promoApplied: boolean;
-  promoMessage: string;
+  /** The API's answer to the last code applied. */
+  quote: CaseQuote | null;
   error: string;
   processing: boolean;
 
   openFor: (kind: PaymentKind, caseId?: string | null) => void;
   close: () => void;
-  setPack: (p: PackId) => void;
+  setPack: (p: string) => void;
   setMethod: (m: PayMethod) => void;
   setCard: (patch: Partial<PaymentState["card"]>) => void;
   setPromoInput: (v: string) => void;
-  applyPromo: () => void;
+  setQuote: (quote: CaseQuote | null) => void;
   setProcessing: (v: boolean) => void;
   setError: (message: string) => void;
 }
@@ -33,12 +35,11 @@ export const usePayment = create<PaymentState>((set, get) => ({
   open: false,
   kind: "case",
   caseId: null,
-  pack: DEFAULT_PACK,
+  pack: null,
   method: "card",
   card: { number: "", expiry: "", cvc: "" },
   promoInput: "",
-  promoApplied: false,
-  promoMessage: "",
+  quote: null,
   error: "",
   processing: false,
 
@@ -47,11 +48,11 @@ export const usePayment = create<PaymentState>((set, get) => ({
       open: true,
       kind,
       caseId,
-      pack: DEFAULT_PACK,
+      pack: null,
       method: "card",
+      card: { number: "", expiry: "", cvc: "" },
       promoInput: "",
-      promoApplied: false,
-      promoMessage: "",
+      quote: null,
       error: "",
       processing: false,
     }),
@@ -62,16 +63,7 @@ export const usePayment = create<PaymentState>((set, get) => ({
   setMethod: (method) => set({ method, error: "" }),
   setCard: (patch) => set((s) => ({ card: { ...s.card, ...patch } })),
   setPromoInput: (promoInput) => set({ promoInput }),
-  applyPromo: () => {
-    const { promoInput, kind } = get();
-    if (promoInput.trim().toUpperCase() !== PROMO_CODE) {
-      set({ promoApplied: false, promoMessage: "That code isn't valid." });
-    } else if (kind === "case") {
-      set({ promoApplied: true, promoMessage: "WELCOME5 applied: $5 off your first case." });
-    } else {
-      set({ promoApplied: false, promoMessage: "WELCOME5 only applies to creating a case." });
-    }
-  },
+  setQuote: (quote) => set({ quote }),
   setProcessing: (processing) => set({ processing }),
   setError: (error) => set({ error }),
 }));

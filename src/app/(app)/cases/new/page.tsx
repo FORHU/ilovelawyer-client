@@ -6,7 +6,7 @@ import { ArrowLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StepDetails, StepDocuments, StepPeople } from "@/components/wizard/steps";
 import { cn } from "@/lib/cn";
-import { CASE_CREDITS, CASE_PRICE, money } from "@/lib/pricing";
+import { money, usePricingQuery } from "@/lib/pricing";
 import { usePayment } from "@/lib/payment-store";
 import { useWizard } from "@/lib/wizard-store";
 
@@ -20,6 +20,9 @@ export default function NewCasePage() {
   const router = useRouter();
   const wiz = useWizard();
   const { step, maxStep, title, region, side } = wiz;
+  const { data: pricing } = usePricingQuery();
+  const price = pricing ? money(pricing.case.price) : "…";
+  const included = pricing?.case.credits ?? "…";
 
   useEffect(() => {
     useWizard.getState().enter();
@@ -53,7 +56,7 @@ export default function NewCasePage() {
             </h1>
             <p className="text-[13px] leading-[1.6] text-ink-2">
               Tell us what happened, who is involved, and add your documents. You can edit
-              everything later. A case costs {money(CASE_PRICE)} and includes {CASE_CREDITS} chat
+              everything later. A case costs {price} and includes {included} chat
               credits.
             </p>
           </div>
@@ -115,7 +118,7 @@ export default function NewCasePage() {
             </Button>
             <div className="flex items-center gap-3.5">
               <div className="hidden text-xs text-muted md:block">
-                {money(CASE_PRICE)} · includes {CASE_CREDITS} chat credits
+                {price} · includes {included} chat credits
               </div>
               <Button className="px-[26px]" onClick={onNext}>
                 {step < 3 ? "Continue" : "Continue to payment"}

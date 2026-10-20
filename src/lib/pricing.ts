@@ -1,26 +1,27 @@
-// Pricing and credit rules. Pack sizes/prices are placeholders (see handoff README, open question 1).
-export const CASE_PRICE = 9.99;
-export const CASE_CREDITS = 50;
-export const PROMO_CODE = "WELCOME5";
-export const PROMO_DISCOUNT = 5;
+import { useQuery } from "@tanstack/react-query";
+import { getPricing, type Money } from "./billing/api";
 
-export type PackId = "p25" | "p100" | "p250";
+// Prices come from the API (GET /api/client/pricing); see usePricingQuery. The one exception is
+// the Terms text, which is shown before sign-in and versioned, so it states the price itself.
+// Keep TERMS_CASE_PRICE / TERMS_CASE_CREDITS in step with the API's CLIENT_CASE_PRICE_MINOR /
+// CLIENT_CASE_CREDITS, and bump the Terms version when they change.
+export const TERMS_CASE_PRICE = 9.99;
+export const TERMS_CASE_CREDITS = 50;
 
-export interface CreditPack {
-  id: PackId;
-  name: string;
-  credits: number;
-  price: number;
+/** Shown in the promo box while promos are placeholders. */
+export const PROMO_HINT = "WELCOME5";
+
+/** "$9.99", or "$10" for a whole amount. Accepts a plain number for the Terms text. */
+export function money(value: Money | number) {
+  const { amountMinor, currency } = typeof value === "number" ? { amountMinor: Math.round(value * 100), currency: "USD" } : value;
+  const amount = amountMinor / 100;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+  }).format(amount);
 }
 
-export const PACKS: Record<PackId, CreditPack> = {
-  p25: { id: "p25", name: "Small", credits: 25, price: 4.99 },
-  p100: { id: "p100", name: "Standard", credits: 100, price: 14.99 },
-  p250: { id: "p250", name: "Large", credits: 250, price: 29.99 },
-};
-
-export const DEFAULT_PACK: PackId = "p100";
-
-export function money(n: number) {
-  return "$" + (Number.isInteger(n) ? String(n) : n.toFixed(2));
+export function usePricingQuery() {
+  return useQuery({ queryKey: ["pricing"], queryFn: getPricing, staleTime: 1000 * 60 * 30 });
 }
