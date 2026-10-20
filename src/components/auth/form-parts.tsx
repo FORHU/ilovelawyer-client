@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { lawyerAppUrl, currentTenantCode } from "@/lib/tenant/resolve-host";
+import { LAWYER_APP_URL } from "@/lib/tenant/client-tenant";
 
 // Building blocks shared by the auth screens (unified-auth.tsx, reset-password-form.tsx).
 
@@ -81,7 +81,7 @@ export function FormError({ message, lawyerLink = false }: { message: string | n
       {lawyerLink && (
         <>
           {" "}
-          <a href={lawyerAppUrl(currentTenantCode())} className="font-semibold">
+          <a href={LAWYER_APP_URL} className="font-semibold">
             Go to the lawyer site
           </a>
         </>

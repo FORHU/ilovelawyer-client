@@ -1,5 +1,5 @@
 import { CASE_CREDITS, CASE_PRICE, money } from "@/lib/pricing";
-import type { TenantCode } from "@/lib/tenant/resolve-host";
+import type { TenantCode } from "@/lib/tenant/client-tenant";
 
 // The client app's own Terms of Service — not the lawyer Terms ilovelawyer-app shows.
 // DRAFT pending legal review. Whenever this text materially changes, bump CLIENT_TERMS_VERSION in

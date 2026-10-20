@@ -6,26 +6,21 @@ Sign up, sign in and password recovery are real, against ilovelawyer-api (accoun
 
 ## Run
 
-1. Start ilovelawyer-api on port 3001. Its `.env` must list the client origins in both `CLIENT_URL` and `USER_APP_URL`: `http://ph-client.ilovelawyer:3004,http://uk-client.ilovelawyer:3004`.
-2. Add the client hosts to your hosts file (`C:\Windows\System32\drivers\etc\hosts` on Windows, as administrator):
-   ```
-   127.0.0.1 ph-client.ilovelawyer uk-client.ilovelawyer
-   ```
-3. Create `.env.local` (git-ignored):
+1. Start ilovelawyer-api on port 3001. Its `.env` must list `http://localhost:3004` in both `CLIENT_URL` and `USER_APP_URL`.
+2. Create `.env.local` (git-ignored):
    ```
    NEXT_PUBLIC_API_URL=http://localhost:3001
-   NEXT_PUBLIC_LAWYER_APP_URL_PH=http://ph.ilovelawyer.local:3002
-   NEXT_PUBLIC_LAWYER_APP_URL_UK=http://uk.ilovelawyer.local:3002
+   NEXT_PUBLIC_LAWYER_APP_URL=http://uk.ilovelawyer.local:3002
    ```
-4. Run:
+3. Run:
    ```bash
    pnpm install
-   pnpm dev        # open http://ph-client.ilovelawyer:3004 (PH) or http://uk-client.ilovelawyer:3004 (UK)
+   pnpm dev        # http://localhost:3004
    pnpm lint
    pnpm build
    ```
 
-The host decides the account's Tenant (PH or UK) at signup, and the Terms' governing law. Plain `localhost:3004` works too but creates accounts with no Tenant.
+Every client account is in the **UK** tenant. The client app is served from one domain for every region (ilovelawyer.com, and app.ilovelawyer.com for staging), so the host can't tell PH from UK. The API assigns `CLIENT_TENANT_CODE` at signup, and the Terms show UK governing law (`src/lib/tenant/client-tenant.ts`).
 
 ## How auth works
 
