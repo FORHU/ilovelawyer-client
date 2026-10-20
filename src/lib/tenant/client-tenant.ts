@@ -9,5 +9,6 @@ export type TenantCode = "PH" | "UK";
  */
 export const CLIENT_TENANT_CODE: TenantCode = "UK";
 
-/** The lawyer app (ilovelawyer-app), for a lawyer account that tried to use the client app. */
-export const LAWYER_APP_URL = process.env.NEXT_PUBLIC_LAWYER_APP_URL ?? "http://uk.ilovelawyer.local:3002";
+/** The lawyer app (ilovelawyer-app), for a lawyer account that tried to use the client app. `||`,
+ * not `??`: an unset deploy secret reaches the build as an empty string, not undefined. */
+export const LAWYER_APP_URL = process.env.NEXT_PUBLIC_LAWYER_APP_URL || "http://uk.ilovelawyer.local:3002";
