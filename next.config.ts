@@ -10,6 +10,10 @@ const nextConfig: NextConfig = {
     // every page under it as "dropped". Only validate segments that opt in.
     instantInsights: { validationLevel: "manual-warning" },
   },
+  // The old onboarding flow lived under /auth; keep bookmarks and stale tabs working.
+  async redirects() {
+    return [{ source: "/auth/:path*", destination: "/login", permanent: false }];
+  },
   turbopack: {
     rules: {
       "*.css": {

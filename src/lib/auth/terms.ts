@@ -1,0 +1,71 @@
+export interface TermsSection {
+  number: string;
+  title: string;
+  paragraphs: string[];
+  bullets?: string[];
+  prohibited?: string[];
+  quote?: string;
+}
+
+export const TERMS_TITLE = "Terms and Conditions";
+export const TERMS_EFFECTIVE_DATE = "Effective Date: October 24, 2024. Jurisdiction: Republic of the Philippines.";
+
+export const TERMS_SECTIONS: TermsSection[] = [
+  {
+    "number": "Section 01",
+    "title": "Acceptance of Terms",
+    "paragraphs": [
+      "By accessing or using the ilovelawyer platform (\"the Platform\"), you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions. This agreement constitutes a legally binding contract between you and ilovelawyer Juris Editorial Excellence.",
+      "If you do not agree to these terms, you must immediately cease all use of the Platform and its associated AI counsel services. We reserve the right to modify these terms at any time, with continued use constituting acceptance of such changes."
+    ]
+  },
+  {
+    "number": "Section 02",
+    "title": "User Accounts",
+    "paragraphs": [
+      "To access certain premium features, including AI-driven case management and transcription, you must register for an account. You represent and warrant that all information provided during registration is accurate, current, and complete."
+    ],
+    "bullets": [
+      "Confidentiality of login credentials rests solely with the account holder.",
+      "Unauthorized access must be reported within 24 hours of discovery.",
+      "Each account is personal and non-transferable without express written consent."
+    ]
+  },
+  {
+    "number": "Section 03",
+    "title": "Intellectual Property",
+    "paragraphs": [
+      "The Platform, including but not limited to its AI algorithms, proprietary legal database, interface design, and \"ilovelawyer\" branding, is the exclusive property of our organization protected by Philippine and international copyright laws."
+    ],
+    "quote": "Users retain ownership of the original documents uploaded to the platform. However, the AI-generated insights, summaries, and comparative analyses derived from such documents remain the intellectual property of ilovelawyer."
+  },
+  {
+    "number": "Section 04",
+    "title": "Prohibited Uses",
+    "paragraphs": [
+      "You agree not to use the Platform for any unlawful purpose or in any way that violates the ethical standards of the Philippine Bar. Prohibited actions include:"
+    ],
+    "prohibited": [
+      "Reverse engineering, decompiling, or attempting to extract the source code of our AI modules.",
+      "Using the AI to generate fraudulent documents or deceptive legal strategies.",
+      "Automated scraping of the Legal Library for external commercial use."
+    ]
+  },
+  {
+    "number": "Section 05",
+    "title": "AI Processing and Your Responsibilities",
+    "paragraphs": [
+      "The Platform uses artificial intelligence to analyse the documents and information you upload, answer your questions and help you draft. AI processing is on by default for every account. By agreeing to these Terms and using the Platform, you consent to your content being processed by AI in this way.",
+      "You can switch AI processing off at any time under Profile > Your Data. While it is off, the Platform's AI features, including chat, case analysis and the automatic analysis after an upload, will not work. Switching it off does not delete content already generated.",
+      "You are responsible for the content you upload and for having the right to upload and process it, including the lawfulness of using client and third-party information on the Platform and any duties of confidentiality, privilege and data protection that apply to it. You are responsible for reviewing all AI output before relying on it. To the fullest extent permitted by applicable law, ilovelawyer is not liable for loss arising from your content, your use of AI output, or your failure to meet those duties."
+    ]
+  },
+  {
+    "number": "Section 06",
+    "title": "Termination",
+    "paragraphs": [
+      "We reserve the right to suspend or terminate your access to the Platform without prior notice for any breach of these Terms. Termination does not waive your liability for outstanding fees or obligations accrued during the period of service.",
+      "Upon termination, all licenses granted herein shall immediately cease, and you must destroy any confidential Platform material in your possession."
+    ]
+  }
+];
