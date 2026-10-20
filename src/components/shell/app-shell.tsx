@@ -15,7 +15,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { signedIn, fullName, banner, setBanner } = useApp();
 
   useEffect(() => {
-    if (ready && !signedIn) router.replace("/auth");
+    if (ready && !signedIn) router.replace("/login");
   }, [ready, signedIn, router]);
 
   if (!ready || !signedIn) return <div className="h-dvh" />;
