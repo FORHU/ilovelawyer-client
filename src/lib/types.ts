@@ -1,5 +1,24 @@
-export type CaseArea = "Employment" | "Property" | "Family" | "Consumer" | "Other";
-export const CASE_AREAS: CaseArea[] = ["Employment", "Property", "Family", "Consumer", "Other"];
+/** The kinds of problem a case can be about. The values are the API's (Case.practiceArea), and
+ * lawyer matching uses them later. */
+export type CaseArea = "EMPLOYMENT" | "PROPERTY" | "FAMILY" | "CONSUMER" | "OTHER";
+export const CASE_AREAS: CaseArea[] = ["EMPLOYMENT", "PROPERTY", "FAMILY", "CONSUMER", "OTHER"];
+export const AREA_LABELS: Record<CaseArea, string> = {
+  EMPLOYMENT: "Employment",
+  PROPERTY: "Property",
+  FAMILY: "Family",
+  CONSUMER: "Consumer",
+  OTHER: "Other",
+};
+
+/** The three UK legal systems. A lawyer is qualified in one or more of them. */
+export type UkJurisdiction = "England and Wales" | "Scotland" | "Northern Ireland";
+export const UK_JURISDICTIONS: UkJurisdiction[] = ["England and Wales", "Scotland", "Northern Ireland"];
+/** What the wizard asks: one of the three, or outside the UK (no UK jurisdiction). */
+export type CaseRegion = UkJurisdiction | "OUTSIDE_UK";
+
+export function regionLabel(ukJurisdiction: UkJurisdiction | null) {
+  return ukJurisdiction ?? "Outside the UK";
+}
 
 export type Side = "CLAIMANT" | "RESPONDENT" | "";
 
@@ -12,22 +31,37 @@ export interface OtherParty {
   role: PartyRole;
 }
 
-export type ChatMessage =
-  | { role: "user"; text: string }
-  | { role: "ai"; text: string }
-  | { role: "file"; text: string }
-  | { role: "offer" };
+/** READY once the AI can read it. */
+export type DocumentStatus = "PENDING" | "READY" | "FAILED";
 
+export interface CaseDocument {
+  id: string;
+  name: string;
+  status: DocumentStatus;
+  createdAt: string;
+}
+
+/** A case as the API returns it (GET /api/client/cases/:id). */
 export interface Case {
-  id: number;
+  id: string;
   title: string;
   area: CaseArea;
+  ukJurisdiction: UkJurisdiction | null;
   where: string;
-  side: Side;
+  side: "CLAIMANT" | "RESPONDENT" | null;
   others: OtherParty[];
-  files: string[];
-  credits: number;
-  chat: ChatMessage[];
+  documents: CaseDocument[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "ai";
+  text: string;
+  /** On the client's own messages: whether the AI's answer arrived. */
+  replyStatus: "PENDING" | "DONE" | "FAILED" | "CANCELLED" | null;
+  createdAt: string;
 }
 
 export type LawyerStatus = "none" | "matching" | "accepted" | "closed";
@@ -38,7 +72,7 @@ export interface ThreadMessage {
   file?: boolean;
 }
 
-export function sideLabel(side: Side) {
+export function sideLabel(side: Side | null) {
   return side === "CLAIMANT"
     ? "Bringing the complaint"
     : side === "RESPONDENT"

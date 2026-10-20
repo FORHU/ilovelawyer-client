@@ -7,12 +7,14 @@ import { Consultation } from "@/components/case/consultation";
 import { LawyerTab } from "@/components/case/lawyer-tab";
 import { Documents, Overview } from "@/components/case/overview-docs";
 import { Tabs, type TabDef } from "@/components/case/tabs";
+import { ApiError } from "@/lib/api/fetch";
+import { useCaseQuery } from "@/lib/cases/queries";
 import { useApp } from "@/lib/store";
 
 export default function CasePage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
-  const c = useApp((s) => s.cases.find((x) => String(x.id) === id));
+  const { data: c, error, isPending } = useCaseQuery(id);
   const lawyer = useApp((s) => s.lawyer);
   const unread = useApp((s) => s.lawyerUnread);
   const [tab, setTab] = useState("chat");
@@ -25,11 +27,19 @@ export default function CasePage() {
     setTab(hasLawyerTab ? "lawyer" : "chat");
   }
 
+  const notFound = error instanceof ApiError && error.status === 404;
   useEffect(() => {
-    if (!c) router.replace("/cases");
-  }, [c, router]);
+    if (notFound) router.replace("/cases");
+  }, [notFound, router]);
 
-  if (!c) return null;
+  if (isPending || notFound) return null;
+  if (!c) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-6 text-sm text-ink-2">
+        {error instanceof Error ? error.message : "Couldn't load this case."}
+      </div>
+    );
+  }
 
   const active = tab === "lawyer" && !hasLawyerTab ? "chat" : tab;
   const tabs: TabDef[] = [

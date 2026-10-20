@@ -2,7 +2,7 @@
 
 Consumer web app for ilovelawyer: pay per case ($9.99, 50 chat credits), AI consultation inside each case, and a free optional lawyer request.
 
-Sign up, sign in and password recovery are real, against ilovelawyer-api (accounts with `role = USER`). Payment, AI replies, uploads and lawyer matching are still mocked in the client store and are marked as placeholders.
+Sign up, sign in, cases, documents and the AI consultation are real, against ilovelawyer-api (accounts with `role = USER`). Payment, chat credits and lawyer matching are still mocked in the client store and are marked as placeholders.
 
 ## Run
 
@@ -31,7 +31,13 @@ Every client account is in the **UK** tenant. The client app is served from one 
 - Recovery: the emailed link opens `/reset-password?token=…` on this app.
 - The client has its own Terms (`src/lib/auth/terms.ts`, a draft pending legal review). When they change, bump `CLIENT_TERMS_VERSION` there and in ilovelawyer-api's `auth.constants.ts`.
 
-Cases and the lawyer thread are still kept in `localStorage` (`ilovelawyer-client`), tied to the signed-in account and cleared on sign-out.
+## Cases and the AI
+
+- Cases, their documents and the AI chat live in ilovelawyer-api, under `/api/client` (client accounts only). Each case is a normal case in the client's own personal workspace on the UK site, and the chat uses the same legal AI as the lawyer app. Calls are in `src/lib/cases/api.ts`, hooks in `src/lib/cases/queries.ts`.
+- The AI answers in the background. The chat polls the messages every 1.5s while a reply is coming, and a case's documents every 4s while one is still being read.
+- Uploads go straight from the browser to S3 on a signed URL, so the S3 bucket's CORS rules must allow this app's origin (`PUT`). Locally that's `http://localhost:3004`.
+
+Chat credits, the lawyer request and its thread are still kept in `localStorage` (`ilovelawyer-client`), tied to the signed-in account and cleared on sign-out.
 
 ## Stack
 
@@ -55,8 +61,7 @@ Each branch starts from the previous one, so merge them in order.
 ## Mocks to replace with real services
 
 - **Payment**: `charge()` in `src/components/payment/payment-modal.tsx` waits 1.1s and succeeds. A card number ending in `0002` is declined so the failure state can be seen. Promo `WELCOME5` is client-side only.
-- **AI replies**: `src/lib/mock-ai.ts` (keyword-matched canned text).
-- **Uploads**: "Add documents" adds a sample file name. No real file handling, limits or scanning.
+- **Chat credits**: counted per case in the browser (`src/lib/store.ts`).
 - **Lawyer side**: the lawyer experience (queue, My clients, client file) is not in this repo. In dev builds only, the matching card has **Demo: lawyer accepts** and the lawyer strip has **Demo: resolve** to exercise the client-side states. These are hidden in production builds.
 
 ## Open questions (from the handoff)

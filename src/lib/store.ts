@@ -3,21 +3,23 @@ import { persist } from "zustand/middleware";
 import { useSession } from "./auth/session";
 import { CASE_CREDITS } from "./pricing";
 import { SAMPLE_FILES } from "./sample-data";
-import type { Case, LawyerStatus, ThreadMessage } from "./types";
+import type { LawyerStatus, ThreadMessage } from "./types";
 
-// Who is signed in lives in ./auth/session (from the API). This store keeps the app data that is
-// still mocked (cases, the lawyer thread) plus UI state, persisted per browser.
+// Who is signed in lives in ./auth/session, and cases, documents and the AI chat come from the API
+// (./cases). This store keeps what is still mocked (chat credits, the lawyer request and its
+// thread) plus UI state, persisted per browser.
 
 interface AppState {
-  /** The account the persisted cases belong to. They're still local-only, so another account
-   * signing in on this browser must not see them (see claimFor). */
+  /** The account the persisted data belongs to, so another account signing in on this browser
+   * doesn't see it (see claimFor). */
   ownerId: string | null;
   /** Dismissible success banner at the top of the app shell. */
   banner: string;
 
-  cases: Case[];
+  /** Chat credits left per case id. Still local until payments move to the API. */
+  credits: Record<string, number>;
   /** Lawyer request for one case at a time (prototype behaviour). */
-  lawyer: { status: LawyerStatus; caseId: number | null };
+  lawyer: { status: LawyerStatus; caseId: string | null };
   /** Messages with the lawyer for the case in `lawyer.caseId`. */
   thread: ThreadMessage[];
   lawyerUnread: boolean;
@@ -25,29 +27,23 @@ interface AppState {
 
   setBanner: (message: string) => void;
   toggleSidebar: () => void;
-  /** Adds a paid case and returns its id. */
-  addCase: (data: Omit<Case, "id" | "credits" | "chat">) => number;
-  addCredits: (caseId: number, credits: number) => void;
-  /** User asks the AI: costs 1 credit. No-op without credits. Returns whether it was sent. */
-  askAi: (caseId: number, text: string) => boolean;
-  /** Appends the AI answer (and the lawyer offer while no request exists). */
-  answerAi: (caseId: number, text: string) => void;
-  /** Attaching a document is free; it is added to the case and the AI acknowledges it. */
-  attachToChat: (caseId: number) => void;
-  addCaseFile: (caseId: number) => void;
+  /** A newly paid case starts with CASE_CREDITS. */
+  startCredits: (caseId: string) => void;
+  addCredits: (caseId: string, credits: number) => void;
+  /** Takes 1 credit for a message to the AI. Returns false (and takes nothing) when there are none. */
+  spendCredit: (caseId: string) => boolean;
+  refundCredit: (caseId: string) => void;
   /** Free lawyer request for a case. */
-  requestLawyer: (caseId: number) => void;
+  requestLawyer: (caseId: string) => void;
   cancelLawyerRequest: () => void;
   /** Client message (or shared file) in the lawyer thread. */
   sendToLawyer: (text: string, file?: boolean) => void;
-  /** Shares a sample document in the lawyer thread and adds it to the case documents. */
+  /** Shares a sample document in the lawyer thread. */
   attachToLawyer: () => void;
   markLawyerRead: () => void;
   /** DEMO ONLY (dev builds): stands in for the lawyer app until real matching exists. */
   demoLawyerAccept: () => void;
   demoLawyerResolve: () => void;
-  /** @internal */
-  _patchCase: (id: number, fn: (c: Case) => Case) => void;
   /** Called when an account signs in: keeps this browser's data if it is that account's, else
    * starts it empty. */
   claimFor: (userId: string) => void;
@@ -56,19 +52,24 @@ interface AppState {
 }
 
 const EMPTY_USER_DATA = {
-  cases: [] as Case[],
+  credits: {} as Record<string, number>,
   lawyer: { status: "none" as LawyerStatus, caseId: null },
   thread: [] as ThreadMessage[],
   lawyerUnread: false,
   banner: "",
 };
 
+/** Credits left on a case. A case this browser hasn't seen (made on another device) starts full. */
+export function creditsLeft(credits: Record<string, number>, caseId: string) {
+  return credits[caseId] ?? CASE_CREDITS;
+}
+
 export const useApp = create<AppState>()(
   persist(
     (set, get) => ({
       ownerId: null,
       banner: "",
-      cases: [],
+      credits: {},
       lawyer: { status: "none", caseId: null },
       thread: [],
       lawyerUnread: false,
@@ -76,64 +77,17 @@ export const useApp = create<AppState>()(
 
       setBanner: (banner) => set({ banner }),
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
-      addCase: (data) => {
-        const id = get().cases.reduce((m, c) => Math.max(m, c.id), 0) + 1;
-        set((s) => ({
-          cases: [...s.cases, { ...data, id, credits: CASE_CREDITS, chat: [] }],
-        }));
-        return id;
-      },
+      startCredits: (caseId) => set((s) => ({ credits: { ...s.credits, [caseId]: CASE_CREDITS } })),
       addCredits: (caseId, credits) =>
-        set((s) => ({
-          cases: s.cases.map((c) => (c.id === caseId ? { ...c, credits: c.credits + credits } : c)),
-        })),
-      askAi: (caseId, text) => {
-        const c = get().cases.find((x) => x.id === caseId);
-        const msg = text.trim();
-        if (!c || !msg || c.credits <= 0) return false;
-        get()._patchCase(caseId, (x) => ({
-          ...x,
-          credits: x.credits - 1,
-          chat: [...x.chat.filter((m) => m.role !== "offer"), { role: "user", text: msg }],
-        }));
+        set((s) => ({ credits: { ...s.credits, [caseId]: creditsLeft(s.credits, caseId) + credits } })),
+      spendCredit: (caseId) => {
+        const left = creditsLeft(get().credits, caseId);
+        if (left <= 0) return false;
+        set((s) => ({ credits: { ...s.credits, [caseId]: left - 1 } }));
         return true;
       },
-      answerAi: (caseId, text) => {
-        const noRequest = get().lawyer.status === "none";
-        get()._patchCase(caseId, (x) => ({
-          ...x,
-          chat: [
-            ...x.chat.filter((m) => m.role !== "offer"),
-            { role: "ai", text },
-            ...(noRequest ? [{ role: "offer" as const }] : []),
-          ],
-        }));
-      },
-      attachToChat: (caseId) => {
-        const c = get().cases.find((x) => x.id === caseId);
-        if (!c) return;
-        const name = nextSampleFile(c.files);
-        const noRequest = get().lawyer.status === "none";
-        get()._patchCase(caseId, (x) => ({
-          ...x,
-          files: [...x.files, name],
-          chat: [
-            ...x.chat.filter((m) => m.role !== "offer"),
-            { role: "file", text: name },
-            {
-              role: "ai",
-              text: `Got it. I've added "${name}" to this case and will use it when answering your questions.`,
-            },
-            ...(noRequest ? [{ role: "offer" as const }] : []),
-          ],
-        }));
-      },
-      addCaseFile: (caseId) => {
-        const c = get().cases.find((x) => x.id === caseId);
-        if (!c) return;
-        const name = SAMPLE_FILES.find((f) => !c.files.includes(f));
-        if (name) get()._patchCase(caseId, (x) => ({ ...x, files: [...x.files, name] }));
-      },
+      refundCredit: (caseId) =>
+        set((s) => ({ credits: { ...s.credits, [caseId]: creditsLeft(s.credits, caseId) + 1 } })),
       requestLawyer: (caseId) => {
         if (get().lawyer.status !== "none") return;
         set({
@@ -156,11 +110,8 @@ export const useApp = create<AppState>()(
         set((s) => ({ thread: [...s.thread, { role: "user", text: t, file }] }));
       },
       attachToLawyer: () => {
-        const { lawyer, cases } = get();
-        const c = cases.find((x) => x.id === lawyer.caseId);
-        if (!c) return;
-        const name = nextSampleFile(c.files);
-        get()._patchCase(c.id, (x) => ({ ...x, files: [...x.files, name] }));
+        const shared = get().thread.filter((m) => m.file).map((m) => m.text);
+        const name = SAMPLE_FILES.find((f) => !shared.includes(f)) ?? `Document ${shared.length + 1}.pdf`;
         set((s) => ({ thread: [...s.thread, { role: "user", text: name, file: true }] }));
       },
       markLawyerRead: () => set({ lawyerUnread: false }),
@@ -180,8 +131,6 @@ export const useApp = create<AppState>()(
       },
       demoLawyerResolve: () =>
         set((s) => ({ lawyer: { ...s.lawyer, status: "closed" }, lawyerUnread: true })),
-      _patchCase: (id, fn) =>
-        set((s) => ({ cases: s.cases.map((c) => (c.id === id ? fn(c) : c)) })),
       claimFor: (userId) => {
         if (get().ownerId === userId) return;
         set({ ...EMPTY_USER_DATA, ownerId: userId });
@@ -190,15 +139,15 @@ export const useApp = create<AppState>()(
     }),
     {
       name: "ilovelawyer-client",
-      // v1: auth moved to the API. v0 data (mock sign-in fields, demo cases) belongs to no real
-      // account, so it is dropped rather than shown to whoever signs in first.
-      version: 1,
+      // v1: auth moved to the API. v2: cases moved to the API. Older local data belongs to cases
+      // the API doesn't have, so it is dropped.
+      version: 2,
       migrate: () => ({ ownerId: null, ...EMPTY_USER_DATA }) as unknown as AppState,
       // Hydrate on the client (see useHydrated) so SSR markup stays stable.
       skipHydration: true,
       partialize: (s) => ({
         ownerId: s.ownerId,
-        cases: s.cases,
+        credits: s.credits,
         lawyer: s.lawyer,
         thread: s.thread,
         lawyerUnread: s.lawyerUnread,
@@ -207,10 +156,6 @@ export const useApp = create<AppState>()(
     },
   ),
 );
-
-export function nextSampleFile(files: string[]) {
-  return SAMPLE_FILES.find((f) => !files.includes(f)) ?? `Document ${files.length + 1}.pdf`;
-}
 
 export function lawyerLabel(status: LawyerStatus) {
   return status === "matching"

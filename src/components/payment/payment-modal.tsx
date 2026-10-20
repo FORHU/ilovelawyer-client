@@ -13,6 +13,7 @@ import {
   PROMO_DISCOUNT,
   money,
 } from "@/lib/pricing";
+import { uploadAll, useCreateCaseMutation } from "@/lib/cases/queries";
 import { usePayment } from "@/lib/payment-store";
 import { useApp } from "@/lib/store";
 import { useWizard } from "@/lib/wizard-store";
@@ -39,6 +40,7 @@ function charge(cardNumber: string, method: "card" | "bank") {
 export function PaymentModal() {
   const router = useRouter();
   const pay = usePayment();
+  const createCase = useCreateCaseMutation();
   const isCase = pay.kind === "case";
   const pack = PACKS[pay.pack];
 
@@ -65,19 +67,32 @@ export function PaymentModal() {
     const app = useApp.getState();
     if (isCase) {
       const w = useWizard.getState();
-      const id = app.addCase({
-        title: w.title.trim(),
-        area: w.area,
-        where: w.where.trim(),
-        side: w.side,
-        others: w.others.filter((o) => o.name.trim()),
-        files: w.files,
-      });
+      let created;
+      try {
+        created = await createCase.mutateAsync({
+          title: w.title.trim(),
+          area: w.area,
+          ukJurisdiction: w.region === "OUTSIDE_UK" || !w.region ? null : w.region,
+          where: w.where.trim(),
+          side: w.side || null,
+          others: w.others.filter((o) => o.name.trim()).map(({ name, role }) => ({ name: name.trim(), role })),
+        });
+      } catch (err) {
+        pay.setProcessing(false);
+        pay.setError(err instanceof Error ? err.message : "Couldn't create your case. Try again.");
+        return;
+      }
+      app.startCredits(created.id);
+      const notUploaded = await uploadAll(created.id, w.files);
       w.reset();
-      app.setBanner(`Payment received. Your case is created with ${CASE_CREDITS} chat credits.`);
+      app.setBanner(
+        notUploaded.length
+          ? `Your case is created, but ${notUploaded.join(", ")} didn't upload. Add ${notUploaded.length === 1 ? "it" : "them"} again from Documents.`
+          : `Payment received. Your case is created with ${CASE_CREDITS} chat credits.`,
+      );
       pay.setProcessing(false);
       usePayment.setState({ open: false });
-      router.push(`/cases/${id}`);
+      router.push(`/cases/${created.id}`);
     } else {
       if (pay.caseId != null) app.addCredits(pay.caseId, pack.credits);
       app.setBanner(`${pack.credits} chat credits added to this case.`);

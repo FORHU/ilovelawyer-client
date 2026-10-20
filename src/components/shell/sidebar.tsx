@@ -6,8 +6,10 @@ import { FolderPlus, LayoutList, PanelLeft } from "lucide-react";
 import { SignOutButton } from "@/components/shell/sign-out-button";
 import { Avatar, Logo, initialsOf } from "@/components/ui/misc";
 import { useSession } from "@/lib/auth/session";
+import { useCasesQuery } from "@/lib/cases/queries";
 import { cn } from "@/lib/cn";
 import { lawyerLabel, useApp } from "@/lib/store";
+import { AREA_LABELS } from "@/lib/types";
 
 const railBtn =
   "flex size-[34px] shrink-0 items-center justify-center rounded-full border bg-white text-ink";
@@ -15,11 +17,12 @@ const railBtn =
 export function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { cases, lawyer, sidebarCollapsed: collapsed, toggleSidebar } = useApp();
+  const { lawyer, sidebarCollapsed: collapsed, toggleSidebar } = useApp();
+  const { data: cases = [] } = useCasesQuery();
   const fullName = useSession((s) => s.user?.name ?? "");
   const initials = initialsOf(fullName || "You");
 
-  const activeId = /^\/cases\/(\d+)/.exec(pathname)?.[1];
+  const activeId = /^\/cases\/([^/]+)/.exec(pathname)?.[1];
   const label = collapsed ? "Expand sidebar" : "Collapse sidebar";
 
   return (
@@ -74,12 +77,12 @@ export function Sidebar() {
                   href={`/cases/${c.id}`}
                   className={cn(
                     "flex flex-col gap-0.5 rounded-[10px] px-2.5 py-[9px] no-underline",
-                    activeId === String(c.id) ? "bg-chip" : "bg-transparent",
+                    activeId === c.id ? "bg-chip" : "bg-transparent",
                   )}
                 >
                   <span className="truncate text-[13px] font-medium text-ink">{c.title}</span>
                   <span className={cn("text-[11px]", law ? "text-gold" : "text-muted")}>
-                    {law ? lawyerLabel(lawyer.status) : c.area}
+                    {law ? lawyerLabel(lawyer.status) : AREA_LABELS[c.area]}
                   </span>
                 </Link>
               );
@@ -121,7 +124,7 @@ export function Sidebar() {
               <LayoutList size={15} />
             </button>
             {cases.map((c) => {
-              const on = activeId === String(c.id);
+              const on = activeId === c.id;
               return (
                 <button
                   key={c.id}

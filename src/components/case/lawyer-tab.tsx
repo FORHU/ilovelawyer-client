@@ -5,7 +5,7 @@ import { ArrowUpRight, FileText, Paperclip, Radar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { useApp } from "@/lib/store";
-import type { Case, ThreadMessage } from "@/lib/types";
+import { AREA_LABELS, type Case, type ThreadMessage } from "@/lib/types";
 
 const QUICK = ["I've added my documents", "Can we schedule a call?", "What should I do next?"];
 const isDev = process.env.NODE_ENV !== "production";
@@ -107,7 +107,7 @@ export function LawyerTab({ c }: { c: Case }) {
         </div>
         <div className="flex-1">
           <div className="text-sm font-semibold">Atty. Maria Reyes</div>
-          <div className="text-xs text-muted">Verified · {c.area}</div>
+          <div className="text-xs text-muted">Verified · {AREA_LABELS[c.area]}</div>
         </div>
         {isDev && !closed && (
           <Button variant="ghost" size="sm" data-no-tap onClick={() => useApp.getState().demoLawyerResolve()}>

@@ -19,13 +19,13 @@ const STEPS = [
 export default function NewCasePage() {
   const router = useRouter();
   const wiz = useWizard();
-  const { step, maxStep, title, side } = wiz;
+  const { step, maxStep, title, region, side } = wiz;
 
   useEffect(() => {
     useWizard.getState().enter();
   }, []);
 
-  const stepDone = (n: number) => (n === 1 ? !!title.trim() : n === 2 ? !!side : false);
+  const stepDone = (n: number) => (n === 1 ? !!title.trim() && !!region : n === 2 ? !!side : false);
 
   const onNext = () => {
     if (wiz.next()) usePayment.getState().openFor("case");
