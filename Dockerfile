@@ -61,6 +61,7 @@ COPY --from=builder /app/public ./public
 # partialPrefetching and the turbopack CSS rule. Without it the pages still render
 # while those quietly stop applying.
 COPY --from=builder /app/next.config.ts ./
+COPY --from=builder /app/src ./src
 
 EXPOSE 3002
 CMD ["pnpm", "start"]
