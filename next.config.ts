@@ -2,9 +2,6 @@ import type { NextConfig } from "next";
 import { API_URL, COOKIE_PATHS } from "./src/lib/api/config";
 
 const nextConfig: NextConfig = {
-  // The client's local hosts (hosts file → 127.0.0.1); each resolves to a Tenant, see
-  // src/lib/tenant/resolve-host.ts. Next's dev server refuses other hosts' requests otherwise.
-  allowedDevOrigins: ["ph-client.ilovelawyer", "uk-client.ilovelawyer"],
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
