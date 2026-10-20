@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Ban, ChevronDown } from "lucide-react";
-import { TERMS_EFFECTIVE_DATE, TERMS_SECTIONS, TERMS_TITLE } from "@/lib/auth/terms";
+import { getClientTerms } from "@/lib/auth/terms";
+import { currentTenantCode } from "@/lib/tenant/resolve-host";
 
 // A couple of pixels of slack: some browsers report fractional scroll heights
 // that never quite reach 0 even when the content is fully visible.
@@ -21,6 +22,9 @@ export function TermsReviewDialog({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [reachedEnd, setReachedEnd] = useState(false);
+  // The governing law follows the site's Tenant, read from the host. Only while open, which never
+  // happens during server rendering, so the server and first client render agree.
+  const terms = getClientTerms(open ? currentTenantCode() : null);
 
   // Native <dialog> gives the focus trap, Escape and an inert background.
   useEffect(() => {
@@ -57,13 +61,13 @@ export function TermsReviewDialog({
     >
       <header className="flex flex-col gap-1.5 border-b border-line px-6 pb-4 pt-6">
         <h2 id="terms-title" className="font-display text-2xl font-normal">
-          {TERMS_TITLE}
+          {terms.title}
         </h2>
-        <p className="text-sm text-muted">{TERMS_EFFECTIVE_DATE}</p>
+        <p className="text-sm text-muted">{terms.effectiveDate}</p>
       </header>
 
       <div ref={scrollRef} onScroll={handleScroll} className="flex flex-col overflow-y-auto px-6 py-4">
-        {TERMS_SECTIONS.map((section) => (
+        {terms.sections.map((section) => (
           <section key={section.number} className="flex flex-col gap-2 border-b border-line py-5 last:border-b-0">
             <p className="text-[11px] font-medium uppercase tracking-[1.5px] text-muted">
               {section.number} — {section.title}

@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { FolderPlus, LayoutList, PanelLeft } from "lucide-react";
+import { SignOutButton } from "@/components/shell/sign-out-button";
 import { Avatar, Logo, initialsOf } from "@/components/ui/misc";
+import { useSession } from "@/lib/auth/session";
 import { cn } from "@/lib/cn";
 import { lawyerLabel, useApp } from "@/lib/store";
 
@@ -13,7 +15,8 @@ const railBtn =
 export function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { cases, lawyer, fullName, sidebarCollapsed: collapsed, toggleSidebar } = useApp();
+  const { cases, lawyer, sidebarCollapsed: collapsed, toggleSidebar } = useApp();
+  const fullName = useSession((s) => s.user?.name ?? "");
   const initials = initialsOf(fullName || "You");
 
   const activeId = /^\/cases\/(\d+)/.exec(pathname)?.[1];
@@ -91,6 +94,7 @@ export function Sidebar() {
           <div className="flex items-center gap-2.5 border-t border-line px-2.5 pb-0.5 pt-3">
             <Avatar initials={initials} size={28} />
             <div className="flex-1 truncate text-[13px]">{fullName}</div>
+            <SignOutButton />
           </div>
         </>
       ) : (
@@ -141,8 +145,9 @@ export function Sidebar() {
               );
             })}
           </div>
-          <div className="flex justify-center border-t border-line pt-3">
+          <div className="flex flex-col items-center gap-2 border-t border-line pt-3">
             <Avatar initials={initials} size={28} />
+            <SignOutButton compact />
           </div>
         </>
       )}

@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { PaymentModal } from "@/components/payment/payment-modal";
+import { SignOutButton } from "@/components/shell/sign-out-button";
 import { SuccessBanner } from "@/components/ui/banner";
 import { Avatar, Logo, initialsOf } from "@/components/ui/misc";
+import { leaveToLogin } from "@/lib/auth/api";
+import { useRestoreSessionQuery } from "@/lib/auth/mutations";
+import { useSession } from "@/lib/auth/session";
 import { useApp } from "@/lib/store";
 import { useHydrated } from "@/lib/use-hydrated";
 import { Sidebar } from "./sidebar";
@@ -12,13 +16,29 @@ import { Sidebar } from "./sidebar";
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const ready = useHydrated();
-  const { signedIn, fullName, banner, setBanner } = useApp();
+  const status = useSession((s) => s.status);
+  const user = useSession((s) => s.user);
+  const { banner, setBanner, claimFor } = useApp();
 
+  // A reload starts with no access token in memory: resume from the refresh cookie, if any.
+  useRestoreSessionQuery();
+
+  // Never signed in on this page load: a plain navigation. Signed out mid-session (the session
+  // expired): a full load, so nothing of the account stays in memory (see leaveToLogin).
+  const wasSignedIn = useRef(false);
   useEffect(() => {
-    if (ready && !signedIn) router.replace("/login");
-  }, [ready, signedIn, router]);
+    if (status === "signedIn") wasSignedIn.current = true;
+    if (status !== "signedOut") return;
+    if (wasSignedIn.current) leaveToLogin();
+    else router.replace("/login");
+  }, [status, router]);
 
-  if (!ready || !signedIn) return <div className="h-dvh" />;
+  // Local (still mocked) case data is per account: drop another account's on this browser.
+  useEffect(() => {
+    if (ready && user) claimFor(user.id);
+  }, [ready, user, claimFor]);
+
+  if (!ready || status !== "signedIn") return <div className="h-dvh" />;
 
   return (
     <div className="flex h-dvh min-h-0">
@@ -27,7 +47,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Phone top bar */}
         <div className="flex min-h-[52px] shrink-0 items-center justify-between border-b border-line px-4 py-2 md:hidden">
           <Logo height={20} />
-          <Avatar initials={initialsOf(fullName || "You")} size={36} />
+          <div className="flex items-center gap-2">
+            <SignOutButton compact />
+            <Avatar initials={initialsOf(user?.name || "You")} size={36} />
+          </div>
         </div>
         {banner && <SuccessBanner message={banner} onDismiss={() => setBanner("")} />}
         {children}
