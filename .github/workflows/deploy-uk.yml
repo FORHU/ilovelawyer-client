@@ -118,8 +118,7 @@ jobs:
           tags: ${{ steps.tag.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.tag.outputs.tag }}
           build-args: |
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
-            NEXT_PUBLIC_LAWYER_APP_URL_PH=${{ secrets.NEXT_PUBLIC_LAWYER_APP_URL_PH }}
-            NEXT_PUBLIC_LAWYER_APP_URL_UK=${{ secrets.NEXT_PUBLIC_LAWYER_APP_URL_UK }}
+            NEXT_PUBLIC_LAWYER_APP_URL=${{ secrets.NEXT_PUBLIC_LAWYER_APP_URL }}
 
       - name: Summary
         run: |
