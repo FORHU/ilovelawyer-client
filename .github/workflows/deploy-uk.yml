@@ -116,13 +116,10 @@ jobs:
           platforms: linux/arm64
           provenance: false
           tags: ${{ steps.tag.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.tag.outputs.tag }}
-          # Where NEXT_PUBLIC_* belongs once the client talks to the API. Caddy
-          # serves /api/* on the apex from the UK API container, so the value is
-          # a path on the client's own origin — not a Singapore hostname, which
-          # would send every UK request back round the world and undo the point
-          # of running this in London at all.
-          # build-args: |
-          #   NEXT_PUBLIC_API_URL=/api
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_LAWYER_APP_URL_PH=${{ secrets.NEXT_PUBLIC_LAWYER_APP_URL_PH }}
+            NEXT_PUBLIC_LAWYER_APP_URL_UK=${{ secrets.NEXT_PUBLIC_LAWYER_APP_URL_UK }}
 
       - name: Summary
         run: |

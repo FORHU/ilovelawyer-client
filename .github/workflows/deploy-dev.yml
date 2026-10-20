@@ -109,11 +109,12 @@ jobs:
           platforms: linux/arm64
           provenance: false
           tags: ${{ steps.tag.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.tag.outputs.tag }}
-          # Where NEXT_PUBLIC_* belongs once the client talks to the API. These
-          # are inlined by `next build`, so a value added to the container's
-          # environment instead arrives too late to change anything.
-          # build-args: |
-          #   NEXT_PUBLIC_API_URL=${{ vars.DEV_NEXT_PUBLIC_API_URL }}
+          # NEXT_PUBLIC_* are inlined by `next build`, so they are build args, not
+          # runtime variables. Values come from the "staging" environment secrets.
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_LAWYER_APP_URL_PH=${{ secrets.NEXT_PUBLIC_LAWYER_APP_URL_PH }}
+            NEXT_PUBLIC_LAWYER_APP_URL_UK=${{ secrets.NEXT_PUBLIC_LAWYER_APP_URL_UK }}
 
       - name: Deploy via SSM
         id: send

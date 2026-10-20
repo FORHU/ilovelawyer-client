@@ -20,11 +20,17 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 
-# No NEXT_PUBLIC_* yet: src/ reads nothing but NODE_ENV. When the client starts
-# calling the API, the URL goes here as an ARG and in the workflow's build-args —
-# `next build` inlines these into the browser bundle, so passing them to
-# `docker run` later ships a bundle that calls localhost from the tester's
-# browser and fails with nothing in any server log.
+# NEXT_PUBLIC_* are inlined into the browser bundle by `next build`, so they are
+# build args supplied by the deploy workflows — passing them to `docker run`
+# later ships a bundle that calls localhost from the tester's browser and fails
+# with nothing in any server log. Any new NEXT_PUBLIC_* also needs adding to
+# build-args in deploy-dev.yml and deploy-uk.yml.
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_LAWYER_APP_URL_PH
+ARG NEXT_PUBLIC_LAWYER_APP_URL_UK
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_LAWYER_APP_URL_PH=$NEXT_PUBLIC_LAWYER_APP_URL_PH
+ENV NEXT_PUBLIC_LAWYER_APP_URL_UK=$NEXT_PUBLIC_LAWYER_APP_URL_UK
 
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm build
