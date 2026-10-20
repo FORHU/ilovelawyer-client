@@ -1,3 +1,12 @@
+import { CASE_CREDITS, CASE_PRICE, money } from "@/lib/pricing";
+import type { TenantCode } from "@/lib/tenant/resolve-host";
+
+// The client app's own Terms of Service — not the lawyer Terms ilovelawyer-app shows.
+// DRAFT pending legal review. Whenever this text materially changes, bump CLIENT_TERMS_VERSION in
+// ilovelawyer-api/src/constants/auth.constants.ts (and the copy below): the API records which
+// version each client account agreed to at signup.
+export const CLIENT_TERMS_VERSION = "client-2026-10";
+
 export interface TermsSection {
   number: string;
   title: string;
@@ -7,65 +16,132 @@ export interface TermsSection {
   quote?: string;
 }
 
-export const TERMS_TITLE = "Terms and Conditions";
-export const TERMS_EFFECTIVE_DATE = "Effective Date: October 24, 2024. Jurisdiction: Republic of the Philippines.";
+export interface ClientTerms {
+  title: string;
+  effectiveDate: string;
+  sections: TermsSection[];
+}
 
-export const TERMS_SECTIONS: TermsSection[] = [
-  {
-    "number": "Section 01",
-    "title": "Acceptance of Terms",
-    "paragraphs": [
-      "By accessing or using the ilovelawyer platform (\"the Platform\"), you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions. This agreement constitutes a legally binding contract between you and ilovelawyer Juris Editorial Excellence.",
-      "If you do not agree to these terms, you must immediately cease all use of the Platform and its associated AI counsel services. We reserve the right to modify these terms at any time, with continued use constituting acceptance of such changes."
-    ]
-  },
-  {
-    "number": "Section 02",
-    "title": "User Accounts",
-    "paragraphs": [
-      "To access certain premium features, including AI-driven case management and transcription, you must register for an account. You represent and warrant that all information provided during registration is accurate, current, and complete."
+const EFFECTIVE = "Effective Date: October 20, 2026.";
+
+const GOVERNING_LAW: Record<TenantCode, { label: string; paragraphs: string[] }> = {
+  PH: {
+    label: "Republic of the Philippines",
+    paragraphs: [
+      "These Terms are governed by the laws of the Republic of the Philippines. Any dispute arising from them or from your use of the Platform will be brought before the proper courts of the Philippines.",
+      "We process your personal information in line with the Data Privacy Act of 2012 (Republic Act No. 10173) and its implementing rules.",
     ],
-    "bullets": [
-      "Confidentiality of login credentials rests solely with the account holder.",
-      "Unauthorized access must be reported within 24 hours of discovery.",
-      "Each account is personal and non-transferable without express written consent."
-    ]
   },
-  {
-    "number": "Section 03",
-    "title": "Intellectual Property",
-    "paragraphs": [
-      "The Platform, including but not limited to its AI algorithms, proprietary legal database, interface design, and \"ilovelawyer\" branding, is the exclusive property of our organization protected by Philippine and international copyright laws."
+  UK: {
+    label: "England and Wales",
+    paragraphs: [
+      "These Terms are governed by the laws of England and Wales. Any dispute arising from them or from your use of the Platform will be decided by the courts of England and Wales, unless the law where you live gives you the right to bring it there.",
+      "We process your personal information in line with the UK GDPR and the Data Protection Act 2018. Nothing in these Terms affects your statutory rights as a consumer.",
     ],
-    "quote": "Users retain ownership of the original documents uploaded to the platform. However, the AI-generated insights, summaries, and comparative analyses derived from such documents remain the intellectual property of ilovelawyer."
   },
+};
+
+const BASE_SECTIONS: TermsSection[] = [
   {
-    "number": "Section 04",
-    "title": "Prohibited Uses",
-    "paragraphs": [
-      "You agree not to use the Platform for any unlawful purpose or in any way that violates the ethical standards of the Philippine Bar. Prohibited actions include:"
+    number: "Section 01",
+    title: "Acceptance of Terms",
+    paragraphs: [
+      "These Terms apply to your use of the ilovelawyer client app (\"the Platform\"). By creating an account you confirm that you have read them and agree to be bound by them.",
+      "We may update these Terms. When a change is significant we will tell you before it takes effect and ask you to agree to the new version. If you don't agree, you can close your account.",
     ],
-    "prohibited": [
-      "Reverse engineering, decompiling, or attempting to extract the source code of our AI modules.",
-      "Using the AI to generate fraudulent documents or deceptive legal strategies.",
-      "Automated scraping of the Legal Library for external commercial use."
-    ]
   },
   {
-    "number": "Section 05",
-    "title": "AI Processing and Your Responsibilities",
-    "paragraphs": [
-      "The Platform uses artificial intelligence to analyse the documents and information you upload, answer your questions and help you draft. AI processing is on by default for every account. By agreeing to these Terms and using the Platform, you consent to your content being processed by AI in this way.",
-      "You can switch AI processing off at any time under Profile > Your Data. While it is off, the Platform's AI features, including chat, case analysis and the automatic analysis after an upload, will not work. Switching it off does not delete content already generated.",
-      "You are responsible for the content you upload and for having the right to upload and process it, including the lawfulness of using client and third-party information on the Platform and any duties of confidentiality, privilege and data protection that apply to it. You are responsible for reviewing all AI output before relying on it. To the fullest extent permitted by applicable law, ilovelawyer is not liable for loss arising from your content, your use of AI output, or your failure to meet those duties."
-    ]
+    number: "Section 02",
+    title: "What ilovelawyer Is",
+    paragraphs: [
+      "ilovelawyer helps you understand a legal problem. Its AI explains how the law may apply to the facts and documents you give it, and you can ask a verified lawyer to take a look.",
+      "The AI's answers are legal information, not legal advice, and they can be wrong or incomplete. Using the Platform does not create a lawyer-client relationship. That relationship starts only when a lawyer accepts your request and agrees the terms of their help with you.",
+    ],
+    quote:
+      "If you face a deadline, a hearing, or a risk to your safety, contact a lawyer or the proper authorities directly. Don't wait for an answer here.",
   },
   {
-    "number": "Section 06",
-    "title": "Termination",
-    "paragraphs": [
-      "We reserve the right to suspend or terminate your access to the Platform without prior notice for any breach of these Terms. Termination does not waive your liability for outstanding fees or obligations accrued during the period of service.",
-      "Upon termination, all licenses granted herein shall immediately cease, and you must destroy any confidential Platform material in your possession."
-    ]
-  }
+    number: "Section 03",
+    title: "Your Account",
+    paragraphs: ["You need an account to open cases. You must be at least 18 years old to create one."],
+    bullets: [
+      "Give accurate details and keep them up to date.",
+      "Keep your password to yourself. You are responsible for what happens under your account.",
+      "Tell us straight away if you think someone else has used it.",
+      "One account per person. Accounts can't be shared or transferred.",
+    ],
+  },
+  {
+    number: "Section 04",
+    title: "Cases, Payment and Credits",
+    paragraphs: [
+      `Each case costs ${money(CASE_PRICE)} and includes ${CASE_CREDITS} chat credits. Each question you ask the AI uses one credit. You can buy more credits for a case at any time. Prices are shown before you pay.`,
+      "Credits belong to the case they were bought for and can't be moved to another case or exchanged for cash. Attaching documents and requesting a lawyer don't use credits.",
+      "Refunds follow the refund policy shown at checkout and any rights you have under consumer law.",
+    ],
+  },
+  {
+    number: "Section 05",
+    title: "AI Processing",
+    paragraphs: [
+      "To answer you, the Platform's AI reads the questions you ask and the documents you add to a case. AI processing is on by default. By agreeing to these Terms you consent to it.",
+      "You can switch AI processing off in your account settings. While it is off, the AI can't answer questions or read new documents. Switching it off doesn't delete answers you already received.",
+      "Check important answers before you rely on them, and ask a lawyer when the outcome matters.",
+    ],
+  },
+  {
+    number: "Section 06",
+    title: "Requesting a Lawyer",
+    paragraphs: [
+      "Requesting a lawyer for a case is free. Verified lawyers review requests and decide whether to accept them. We can't promise that a lawyer will accept yours, or how quickly.",
+      "Lawyers on the Platform are independent professionals, not ilovelawyer employees. Their fees, if any, and the scope of their help are agreed between you and them. When a lawyer accepts, they can see the case details and documents you have shared in that case.",
+    ],
+  },
+  {
+    number: "Section 07",
+    title: "Your Documents and Privacy",
+    paragraphs: [
+      "You keep ownership of everything you upload. You give us permission to store and process it only to run the Platform for you, including the AI processing described above.",
+      "Only upload documents you have the right to share. You can delete a case and its documents at any time. Our Privacy Notice explains what we collect, how long we keep it, and your rights.",
+    ],
+  },
+  {
+    number: "Section 08",
+    title: "Acceptable Use",
+    paragraphs: ["You agree not to use the Platform to:"],
+    prohibited: [
+      "Create fake or misleading documents, or deceive a court, an authority, or another person.",
+      "Harass, threaten, or expose the private information of the other party or anyone else.",
+      "Copy, scrape, or reverse engineer the Platform or its AI.",
+      "Break the law or help someone else do so.",
+    ],
+  },
+  {
+    number: "Section 09",
+    title: "Suspension and Closing Your Account",
+    paragraphs: [
+      "You can close your account at any time from your account settings. We may suspend or close an account that breaks these Terms. Where we can, we will tell you why first.",
+      "When an account closes, we delete its cases and documents after the grace period described in the Privacy Notice, except for records the law requires us to keep. Credits that haven't been used don't carry over.",
+    ],
+  },
 ];
+
+/** The Terms for the client app on `tenant`'s site. Governing law follows the Tenant; with none
+ * (an unmapped host), the section names the law of the site the account was opened on. */
+export function getClientTerms(tenant: TenantCode | null): ClientTerms {
+  const law = tenant ? GOVERNING_LAW[tenant] : null;
+  return {
+    title: "Terms of Service",
+    effectiveDate: law ? `${EFFECTIVE} Governing law: ${law.label}.` : EFFECTIVE,
+    sections: [
+      ...BASE_SECTIONS,
+      {
+        number: "Section 10",
+        title: "Governing Law",
+        paragraphs: law?.paragraphs ?? [
+          "These Terms are governed by the laws of the country of the ilovelawyer site where you opened your account, and disputes go before the courts of that country.",
+        ],
+      },
+    ],
+  };
+}

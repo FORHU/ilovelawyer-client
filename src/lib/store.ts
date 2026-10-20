@@ -1,24 +1,17 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { useSession } from "./auth/session";
 import { CASE_CREDITS } from "./pricing";
-import { SAMPLE_CASE, SAMPLE_FILES } from "./sample-data";
+import { SAMPLE_FILES } from "./sample-data";
 import type { Case, LawyerStatus, ThreadMessage } from "./types";
 
-export type AuthMethod = "email" | "phone" | "social";
+// Who is signed in lives in ./auth/session (from the API). This store keeps the app data that is
+// still mocked (cases, the lawyer thread) plus UI state, persisted per browser.
 
-interface AuthFields {
-  email: string;
-  password: string;
-  phone: string;
-  otp: string;
-  fullName: string;
-  city: string;
-}
-
-interface AppState extends AuthFields {
-  authMethod: AuthMethod;
-  consent: [boolean, boolean, boolean];
-  signedIn: boolean;
+interface AppState {
+  /** The account the persisted cases belong to. They're still local-only, so another account
+   * signing in on this browser must not see them (see claimFor). */
+  ownerId: string | null;
   /** Dismissible success banner at the top of the app shell. */
   banner: string;
 
@@ -30,9 +23,6 @@ interface AppState extends AuthFields {
   lawyerUnread: boolean;
   sidebarCollapsed: boolean;
 
-  setField: <K extends keyof AuthFields>(key: K, value: AuthFields[K]) => void;
-  setAuthMethod: (m: AuthMethod) => void;
-  toggleConsent: (i: number) => void;
   setBanner: (message: string) => void;
   toggleSidebar: () => void;
   /** Adds a paid case and returns its id. */
@@ -58,25 +48,25 @@ interface AppState extends AuthFields {
   demoLawyerResolve: () => void;
   /** @internal */
   _patchCase: (id: number, fn: (c: Case) => Case) => void;
-  /** Mock sign in (prototype: any credentials open a demo account). */
-  signIn: () => void;
-  /** Finish onboarding after consent. */
-  completeOnboarding: () => void;
+  /** Called when an account signs in: keeps this browser's data if it is that account's, else
+   * starts it empty. */
+  claimFor: (userId: string) => void;
+  /** Clears the account's local data on sign-out. */
   signOut: () => void;
 }
+
+const EMPTY_USER_DATA = {
+  cases: [] as Case[],
+  lawyer: { status: "none" as LawyerStatus, caseId: null },
+  thread: [] as ThreadMessage[],
+  lawyerUnread: false,
+  banner: "",
+};
 
 export const useApp = create<AppState>()(
   persist(
     (set, get) => ({
-      email: "",
-      password: "",
-      phone: "",
-      otp: "",
-      fullName: "",
-      city: "",
-      authMethod: "email",
-      consent: [false, false, false],
-      signedIn: false,
+      ownerId: null,
       banner: "",
       cases: [],
       lawyer: { status: "none", caseId: null },
@@ -84,12 +74,6 @@ export const useApp = create<AppState>()(
       lawyerUnread: false,
       sidebarCollapsed: false,
 
-      setField: (key, value) => set({ [key]: value } as Partial<AppState>),
-      setAuthMethod: (authMethod) => set({ authMethod }),
-      toggleConsent: (i) =>
-        set((s) => ({
-          consent: s.consent.map((v, j) => (j === i ? !v : v)) as AppState["consent"],
-        })),
       setBanner: (banner) => set({ banner }),
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       addCase: (data) => {
@@ -181,7 +165,7 @@ export const useApp = create<AppState>()(
       },
       markLawyerRead: () => set({ lawyerUnread: false }),
       demoLawyerAccept: () => {
-        const first = get().fullName.split(" ")[0] || "there";
+        const first = useSession.getState().user?.name?.split(" ")[0] || "there";
         set((s) => ({
           lawyer: { ...s.lawyer, status: "accepted" },
           lawyerUnread: true,
@@ -198,38 +182,22 @@ export const useApp = create<AppState>()(
         set((s) => ({ lawyer: { ...s.lawyer, status: "closed" }, lawyerUnread: true })),
       _patchCase: (id, fn) =>
         set((s) => ({ cases: s.cases.map((c) => (c.id === id ? fn(c) : c)) })),
-      signIn: () =>
-        set({
-          signedIn: true,
-          fullName: "Juan Dela Cruz",
-          cases: [SAMPLE_CASE],
-          banner: "Welcome back, Juan.",
-        }),
-      completeOnboarding: () =>
-        set({
-          signedIn: true,
-          banner: "Welcome to ilovelawyer. Create your first case to get started.",
-        }),
-      signOut: () =>
-        set({
-          signedIn: false,
-          cases: [],
-          lawyer: { status: "none", caseId: null },
-          thread: [],
-          lawyerUnread: false,
-          consent: [false, false, false],
-          banner: "",
-        }),
+      claimFor: (userId) => {
+        if (get().ownerId === userId) return;
+        set({ ...EMPTY_USER_DATA, ownerId: userId });
+      },
+      signOut: () => set({ ...EMPTY_USER_DATA, ownerId: null }),
     }),
     {
       name: "ilovelawyer-client",
+      // v1: auth moved to the API. v0 data (mock sign-in fields, demo cases) belongs to no real
+      // account, so it is dropped rather than shown to whoever signs in first.
+      version: 1,
+      migrate: () => ({ ownerId: null, ...EMPTY_USER_DATA }) as unknown as AppState,
       // Hydrate on the client (see useHydrated) so SSR markup stays stable.
       skipHydration: true,
       partialize: (s) => ({
-        signedIn: s.signedIn,
-        fullName: s.fullName,
-        city: s.city,
-        email: s.email,
+        ownerId: s.ownerId,
         cases: s.cases,
         lawyer: s.lawyer,
         thread: s.thread,
