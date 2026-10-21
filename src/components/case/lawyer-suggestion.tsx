@@ -27,7 +27,7 @@ export function LawyerSuggestion({ caseId, latestAnswerId }: { caseId: string; l
           <div className="text-[13px] text-ink-2">A verified lawyer reviews this case and your chat. Included with your case.</div>
         </div>
         <Button size="sm" onClick={() => requestLawyer(caseId)}>
-          Request lawyer
+          Get a lawyer
         </Button>
       </div>
     );
@@ -53,7 +53,7 @@ export function LawyerSuggestion({ caseId, latestAnswerId }: { caseId: string; l
           </div>
         </div>
         <Button size="sm" onClick={() => requestLawyer(caseId)}>
-          Request lawyer
+          Get a lawyer
         </Button>
       </div>
     );
