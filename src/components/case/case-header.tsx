@@ -5,12 +5,11 @@ import { ArrowLeft, Scale, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AREA_LABELS, type Case } from "@/lib/types";
 import { usePayment } from "@/lib/payment-store";
-import { creditsLeft, useApp } from "@/lib/store";
+import { useApp } from "@/lib/store";
 
 export function CaseHeader({ c }: { c: Case }) {
   const router = useRouter();
   const status = useApp((s) => s.lawyer.status);
-  const credits = useApp((s) => creditsLeft(s.credits, c.id));
   const requestLawyer = useApp((s) => s.requestLawyer);
   const canRequest = status === "none";
 
@@ -42,7 +41,7 @@ export function CaseHeader({ c }: { c: Case }) {
           className="flex h-11 flex-1 shrink-0 items-center justify-center gap-2 rounded-full border border-line bg-subtle px-3.5 text-[12.5px] font-medium text-ink md:h-9 md:flex-none"
         >
           <Zap size={14} className="text-gold" />
-          {credits} credits
+          {c.credits} credits
           <span className="font-semibold text-gold">Top up</span>
         </button>
         {canRequest && (

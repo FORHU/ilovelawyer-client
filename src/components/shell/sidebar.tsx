@@ -8,6 +8,7 @@ import { Avatar, Logo, initialsOf } from "@/components/ui/misc";
 import { useSession } from "@/lib/auth/session";
 import { useCasesQuery } from "@/lib/cases/queries";
 import { cn } from "@/lib/cn";
+import { money, usePricingQuery } from "@/lib/pricing";
 import { lawyerLabel, useApp } from "@/lib/store";
 import { AREA_LABELS } from "@/lib/types";
 
@@ -19,6 +20,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const { lawyer, sidebarCollapsed: collapsed, toggleSidebar } = useApp();
   const { data: cases = [] } = useCasesQuery();
+  const { data: pricing } = usePricingQuery();
   const fullName = useSession((s) => s.user?.name ?? "");
   const initials = initialsOf(fullName || "You");
 
@@ -91,7 +93,9 @@ export function Sidebar() {
           <div className="flex flex-col gap-1 rounded-input border border-line bg-white px-3.5 py-3">
             <div className="text-[13px] font-semibold">Pay per case</div>
             <div className="text-xs leading-[1.5] text-ink-2">
-              $9.99 per case, with 50 chat credits included. Top up any time.
+              {pricing
+                ? `${money(pricing.case.price)} per case, with ${pricing.case.credits} chat credits included. Top up any time.`
+                : "Pay once per case. Top up any time."}
             </div>
           </div>
           <div className="flex items-center gap-2.5 border-t border-line px-2.5 pb-0.5 pt-3">

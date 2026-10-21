@@ -7,14 +7,17 @@ import { Button, buttonClass } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/misc";
 import { ErrorBox } from "@/components/ui/banner";
 import { useCasesQuery } from "@/lib/cases/queries";
-import { CASE_CREDITS, CASE_PRICE, money } from "@/lib/pricing";
-import { creditsLeft, lawyerLabel, useApp } from "@/lib/store";
+import { money, usePricingQuery } from "@/lib/pricing";
+import { lawyerLabel, useApp } from "@/lib/store";
 import { AREA_LABELS } from "@/lib/types";
 
 export default function CasesPage() {
   const router = useRouter();
   const { data: cases = [], isPending, error } = useCasesQuery();
-  const { lawyer, credits } = useApp();
+  const { lawyer } = useApp();
+  const { data: pricing } = usePricingQuery();
+  const price = pricing ? money(pricing.case.price) : "…";
+  const included = pricing?.case.credits ?? "…";
   const count = isPending ? "Loading your cases…" : `${cases.length} ${cases.length === 1 ? "case" : "cases"}`;
 
   return (
@@ -27,7 +30,7 @@ export default function CasesPage() {
               Your cases
             </h1>
             <div className="text-sm text-ink-2">
-              {count}. Each case is {money(CASE_PRICE)} and includes {CASE_CREDITS} chat
+              {count}. Each case is {price} and includes {included} chat
               credits.
             </div>
           </div>
@@ -61,7 +64,7 @@ export default function CasesPage() {
                   </div>
                   <div className="text-xs text-muted">
                     {c.others.length + 1} parties · {c.documents.length} documents ·{" "}
-                    {creditsLeft(credits, c.id)} credits
+                    {c.credits} credits
                   </div>
                 </Link>
               );
@@ -75,7 +78,7 @@ export default function CasesPage() {
             <div className="font-display text-2xl tracking-[-0.02em]">Create your first case</div>
             <div className="max-w-[380px] text-sm leading-[1.6] text-ink-2">
               Each case keeps your details, documents and AI consultation in one place.{" "}
-              {money(CASE_PRICE)} per case, with {CASE_CREDITS} chat credits included.
+              {price} per case, with {included} chat credits included.
             </div>
             <Button className="mt-1.5" onClick={() => router.push("/cases/new")}>
               New case
@@ -87,7 +90,7 @@ export default function CasesPage() {
         <div className="sticky bottom-0 z-[2] -mx-4 mt-auto border-t border-line bg-white px-4 pb-[30px] pt-3 md:hidden">
           <Button size="xl" className="w-full" onClick={() => router.push("/cases/new")}>
             <Plus size={16} />
-            New case · {money(CASE_PRICE)}
+            New case · {price}
           </Button>
         </div>
       </div>

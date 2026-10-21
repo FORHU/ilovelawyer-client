@@ -6,6 +6,8 @@ import type { Case, CaseArea, CaseDocument, ChatMessage, OtherParty, UkJurisdict
 // header is needed.
 
 export interface NewCase {
+  /** The case payment this case uses up (POST /api/client/payments/case). */
+  paymentId: string;
   title: string;
   area: CaseArea;
   /** null: it happened outside the UK. */

@@ -1,19 +1,17 @@
 "use client";
 
+import { useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { Field, TextInput } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { RadioCard } from "@/components/ui/radio-card";
-import {
-  CASE_CREDITS,
-  CASE_PRICE,
-  PACKS,
-  PROMO_DISCOUNT,
-  money,
-} from "@/lib/pricing";
-import { uploadAll, useCreateCaseMutation } from "@/lib/cases/queries";
+import { payForCase, quoteCase, topUp, type TestOutcome } from "@/lib/billing/api";
+import { caseKeys, uploadAll, useCreateCaseMutation } from "@/lib/cases/queries";
+import { useSession } from "@/lib/auth/session";
+import { PROMO_HINT, money, usePricingQuery } from "@/lib/pricing";
 import { usePayment } from "@/lib/payment-store";
 import { useApp } from "@/lib/store";
 import { useWizard } from "@/lib/wizard-store";
@@ -23,82 +21,110 @@ const METHODS = [
   { id: "bank", title: "Bank transfer", desc: "Pay from your banking app" },
 ] as const;
 
-/** Mock processor. Placeholder for the real payment service (UI phase only). */
-function charge(cardNumber: string, method: "card" | "bank") {
-  return new Promise<{ ok: boolean; message?: string }>((resolve) =>
-    setTimeout(() => {
-      const declined = method === "card" && cardNumber.replace(/\s/g, "").endsWith("0002");
-      resolve(
-        declined
-          ? { ok: false, message: "Your payment was declined by the bank. Try another method." }
-          : { ok: true },
-      );
-    }, 1100),
-  );
+/** The payment is a dummy for now (see lib/billing/api.ts). A card number ending in 0002 asks it to
+ * decline, so the failure screen can be seen. The number itself is never sent. */
+function testOutcomeFor(cardNumber: string, method: "card" | "bank"): TestOutcome | undefined {
+  return method === "card" && cardNumber.replace(/\s/g, "").endsWith("0002") ? "decline" : undefined;
 }
 
 export function PaymentModal() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const userId = useSession((s) => s.user?.id);
   const pay = usePayment();
   const createCase = useCreateCaseMutation();
-  const isCase = pay.kind === "case";
-  const pack = PACKS[pay.pack];
+  const { data: pricing, error: pricingError } = usePricingQuery();
+  /** A case payment that went through but whose case wasn't created yet: retrying creates the case
+   * with it rather than paying twice. */
+  const paidCase = useRef<{ paymentId: string; credits: number } | null>(null);
+  const draftTitle = useWizard((w) => w.title);
 
-  const price = isCase ? CASE_PRICE : pack.price;
-  const discount = isCase && pay.promoApplied ? PROMO_DISCOUNT : 0;
-  const total = Math.max(0, price - discount);
+  const isCase = pay.kind === "case";
+  const pack = pricing?.topUpPacks.find((p) => p.id === (pay.pack ?? pricing.defaultPackId));
+  const price = isCase ? pricing?.case.price : pack?.price;
+  const discount = isCase && pay.quote?.promo?.applied ? pay.quote.discount : null;
+  const total = isCase && pay.quote ? pay.quote.total : price;
 
   const title = isCase ? "Confirm payment" : "Top up chat credits";
-  const draftTitle = useWizard((w) => w.title);
   const subtitle = isCase
     ? `You are creating "${draftTitle.trim() || "Untitled"}". Chat credits are included.`
-    : `Adds ${pack.credits} chat credits to this case.`;
+    : `Adds ${pack?.credits ?? "more"} chat credits to this case.`;
+
+  const fail = (err: unknown, fallback: string) => {
+    pay.setProcessing(false);
+    pay.setError(err instanceof Error ? err.message : fallback);
+  };
+
+  const applyPromo = async () => {
+    const code = pay.promoInput.trim();
+    if (!code) return pay.setQuote(null);
+    try {
+      pay.setQuote(await quoteCase(code));
+    } catch (err) {
+      pay.setError(err instanceof Error ? err.message : "Couldn't check that code.");
+    }
+  };
+
+  const payForNewCase = async () => {
+    const w = useWizard.getState();
+    const app = useApp.getState();
+    if (!paidCase.current) {
+      try {
+        const paid = await payForCase({
+          promoCode: pay.quote?.promo?.applied ? pay.quote.promo.code : undefined,
+          testOutcome: testOutcomeFor(pay.card.number, pay.method),
+        });
+        paidCase.current = { paymentId: paid.paymentId, credits: paid.credits };
+      } catch (err) {
+        return fail(err, "Payment failed.");
+      }
+    }
+    let created;
+    try {
+      created = await createCase.mutateAsync({
+        paymentId: paidCase.current.paymentId,
+        title: w.title.trim(),
+        area: w.area,
+        ukJurisdiction: w.region === "OUTSIDE_UK" || !w.region ? null : w.region,
+        where: w.where.trim(),
+        side: w.side || null,
+        others: w.others.filter((o) => o.name.trim()).map(({ name, role }) => ({ name: name.trim(), role })),
+      });
+    } catch (err) {
+      return fail(err, "Your payment went through, but we couldn't create the case. Press Pay to try again; you won't be charged twice.");
+    }
+    paidCase.current = null;
+    const notUploaded = await uploadAll(created.id, w.files);
+    w.reset();
+    app.setBanner(
+      notUploaded.length
+        ? `Your case is created, but ${notUploaded.join(", ")} didn't upload. Add ${notUploaded.length === 1 ? "it" : "them"} again from Documents.`
+        : `Payment received. Your case is created with ${created.credits} chat credits.`,
+    );
+    pay.setProcessing(false);
+    usePayment.setState({ open: false });
+    router.push(`/cases/${created.id}`);
+  };
+
+  const topUpCase = async () => {
+    if (!pay.caseId || !pack) return;
+    const caseId = pay.caseId;
+    try {
+      const result = await topUp(caseId, { packId: pack.id, testOutcome: testOutcomeFor(pay.card.number, pay.method) });
+      useApp.getState().setBanner(`${result.added} chat credits added to this case.`);
+    } catch (err) {
+      return fail(err, "Payment failed.");
+    }
+    await queryClient.invalidateQueries({ queryKey: caseKeys.all(userId) });
+    pay.setProcessing(false);
+    usePayment.setState({ open: false });
+  };
 
   const submit = async () => {
-    if (pay.processing) return;
+    if (pay.processing || !pricing) return;
     pay.setProcessing(true);
     pay.setError("");
-    const res = await charge(pay.card.number, pay.method);
-    if (!res.ok) {
-      pay.setProcessing(false);
-      pay.setError(res.message ?? "Payment failed.");
-      return;
-    }
-    const app = useApp.getState();
-    if (isCase) {
-      const w = useWizard.getState();
-      let created;
-      try {
-        created = await createCase.mutateAsync({
-          title: w.title.trim(),
-          area: w.area,
-          ukJurisdiction: w.region === "OUTSIDE_UK" || !w.region ? null : w.region,
-          where: w.where.trim(),
-          side: w.side || null,
-          others: w.others.filter((o) => o.name.trim()).map(({ name, role }) => ({ name: name.trim(), role })),
-        });
-      } catch (err) {
-        pay.setProcessing(false);
-        pay.setError(err instanceof Error ? err.message : "Couldn't create your case. Try again.");
-        return;
-      }
-      app.startCredits(created.id);
-      const notUploaded = await uploadAll(created.id, w.files);
-      w.reset();
-      app.setBanner(
-        notUploaded.length
-          ? `Your case is created, but ${notUploaded.join(", ")} didn't upload. Add ${notUploaded.length === 1 ? "it" : "them"} again from Documents.`
-          : `Payment received. Your case is created with ${CASE_CREDITS} chat credits.`,
-      );
-      pay.setProcessing(false);
-      usePayment.setState({ open: false });
-      router.push(`/cases/${created.id}`);
-    } else {
-      if (pay.caseId != null) app.addCredits(pay.caseId, pack.credits);
-      app.setBanner(`${pack.credits} chat credits added to this case.`);
-      pay.setProcessing(false);
-      usePayment.setState({ open: false });
-    }
+    await (isCase ? payForNewCase() : topUpCase());
   };
 
   return (
@@ -109,17 +135,19 @@ export function PaymentModal() {
       title={title}
       subtitle={subtitle}
     >
+      {pricingError && <ErrorBox message={pricingError.message} />}
+
       {!isCase && (
         <div className="flex flex-col gap-2" role="radiogroup" aria-label="Credit pack">
-          {Object.values(PACKS).map((p) => (
+          {pricing?.topUpPacks.map((p) => (
             <RadioCard
               key={p.id}
               compact
-              selected={pay.pack === p.id}
+              selected={pack?.id === p.id}
               onSelect={() => pay.setPack(p.id)}
               title={`${p.credits} chat credits`}
-              description={`$${(p.price / p.credits).toFixed(2)} per credit · added to this case`}
-              trailing={`$${p.price}`}
+              description={`${money({ ...p.price, amountMinor: Math.round(p.price.amountMinor / p.credits) })} per credit · added to this case`}
+              trailing={money(p.price)}
             />
           ))}
         </div>
@@ -127,21 +155,23 @@ export function PaymentModal() {
 
       <div className="flex flex-col gap-2 rounded-input border border-line bg-subtle px-4 py-[14px]">
         <div className="flex justify-between text-sm">
-          <span>{isCase ? "New case" : `${pack.name} top-up`}</span>
-          <span>{money(price)}</span>
+          <span>{isCase ? "New case" : `${pack?.name ?? ""} top-up`}</span>
+          <span>{price ? money(price) : "…"}</span>
         </div>
         <div className="text-xs text-ink-2">
-          {isCase ? `Includes ${CASE_CREDITS} chat credits` : `${pack.credits} chat credits, one-time`}
+          {isCase
+            ? `Includes ${pricing?.case.credits ?? "…"} chat credits`
+            : `${pack?.credits ?? "…"} chat credits, one-time`}
         </div>
-        {discount > 0 && (
+        {discount && discount.amountMinor > 0 && (
           <div className="flex justify-between text-sm text-success">
-            <span>WELCOME5, first case</span>
+            <span>{pay.quote?.promo?.code}</span>
             <span>-{money(discount)}</span>
           </div>
         )}
         <div className="flex justify-between border-t border-line pt-2.5 text-[17px] font-semibold">
           <span>Due today</span>
-          <span>{money(total)}</span>
+          <span>{total ? money(total) : "…"}</span>
         </div>
       </div>
 
@@ -194,6 +224,9 @@ export function PaymentModal() {
               />
             </Field>
           </div>
+          <div className="text-[11.5px] text-muted">
+            Test payments only: nothing is charged and card details aren&apos;t sent anywhere.
+          </div>
         </div>
       )}
       {pay.method === "bank" && (
@@ -203,38 +236,38 @@ export function PaymentModal() {
         </div>
       )}
 
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="promo" className="text-xs font-semibold text-ink-2">
-          Promo code
-        </label>
-        <div className="flex gap-2">
-          <TextInput
-            id="promo"
-            placeholder="Try WELCOME5"
-            value={pay.promoInput}
-            onChange={(e) => pay.setPromoInput(e.target.value)}
-          />
-          <Button variant="outline" size="lg" className="shrink-0 !px-[18px]" onClick={pay.applyPromo}>
-            Apply
-          </Button>
-        </div>
-        {pay.promoMessage && (
-          <div
-            className={`text-xs ${pay.promoApplied && isCase ? "text-success" : "text-error"}`}
-          >
-            {pay.promoMessage}
+      {isCase && (
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="promo" className="text-xs font-semibold text-ink-2">
+            Promo code
+          </label>
+          <div className="flex gap-2">
+            <TextInput
+              id="promo"
+              placeholder={`Try ${PROMO_HINT}`}
+              value={pay.promoInput}
+              onChange={(e) => pay.setPromoInput(e.target.value)}
+            />
+            <Button variant="outline" size="lg" className="shrink-0 !px-[18px]" onClick={applyPromo}>
+              Apply
+            </Button>
           </div>
-        )}
-      </div>
+          {pay.quote?.promo && (
+            <div className={`text-xs ${pay.quote.promo.applied ? "text-success" : "text-error"}`}>
+              {pay.quote.promo.message}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-col gap-1.5">
         <Button
           size="xl"
           className="w-full disabled:!opacity-60"
-          disabled={pay.processing}
+          disabled={pay.processing || !pricing}
           onClick={submit}
         >
-          {pay.processing ? "Processing…" : `Pay ${money(total)}`}
+          {pay.processing ? "Processing…" : `Pay ${total ? money(total) : ""}`}
         </Button>
         <div className="text-center text-xs leading-[1.5] text-muted">
           {isCase

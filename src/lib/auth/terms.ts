@@ -1,4 +1,4 @@
-import { CASE_CREDITS, CASE_PRICE, money } from "@/lib/pricing";
+import { TERMS_CASE_CREDITS, TERMS_CASE_PRICE, money } from "@/lib/pricing";
 import type { TenantCode } from "@/lib/tenant/client-tenant";
 
 // The client app's own Terms of Service — not the lawyer Terms ilovelawyer-app shows.
@@ -75,7 +75,7 @@ const BASE_SECTIONS: TermsSection[] = [
     number: "Section 04",
     title: "Cases, Payment and Credits",
     paragraphs: [
-      `Each case costs ${money(CASE_PRICE)} and includes ${CASE_CREDITS} chat credits. Each question you ask the AI uses one credit. You can buy more credits for a case at any time. Prices are shown before you pay.`,
+      `Each case costs ${money(TERMS_CASE_PRICE)} and includes ${TERMS_CASE_CREDITS} chat credits. Each question you ask the AI uses one credit. You can buy more credits for a case at any time. Prices are shown before you pay.`,
       "Credits belong to the case they were bought for and can't be moved to another case or exchanged for cash. Attaching documents and requesting a lawyer don't use credits.",
       "Refunds follow the refund policy shown at checkout and any rights you have under consumer law.",
     ],

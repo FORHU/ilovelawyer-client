@@ -1,13 +1,12 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useSession } from "./auth/session";
-import { CASE_CREDITS } from "./pricing";
 import { SAMPLE_FILES } from "./sample-data";
 import type { LawyerStatus, ThreadMessage } from "./types";
 
 // Who is signed in lives in ./auth/session, and cases, documents and the AI chat come from the API
-// (./cases). This store keeps what is still mocked (chat credits, the lawyer request and its
-// thread) plus UI state, persisted per browser.
+// (./cases), as do payments and chat credits (./billing). This store keeps what is still mocked
+// (the lawyer request and its thread) plus UI state, persisted per browser.
 
 interface AppState {
   /** The account the persisted data belongs to, so another account signing in on this browser
@@ -16,8 +15,6 @@ interface AppState {
   /** Dismissible success banner at the top of the app shell. */
   banner: string;
 
-  /** Chat credits left per case id. Still local until payments move to the API. */
-  credits: Record<string, number>;
   /** Lawyer request for one case at a time (prototype behaviour). */
   lawyer: { status: LawyerStatus; caseId: string | null };
   /** Messages with the lawyer for the case in `lawyer.caseId`. */
@@ -27,12 +24,6 @@ interface AppState {
 
   setBanner: (message: string) => void;
   toggleSidebar: () => void;
-  /** A newly paid case starts with CASE_CREDITS. */
-  startCredits: (caseId: string) => void;
-  addCredits: (caseId: string, credits: number) => void;
-  /** Takes 1 credit for a message to the AI. Returns false (and takes nothing) when there are none. */
-  spendCredit: (caseId: string) => boolean;
-  refundCredit: (caseId: string) => void;
   /** Free lawyer request for a case. */
   requestLawyer: (caseId: string) => void;
   cancelLawyerRequest: () => void;
@@ -52,24 +43,17 @@ interface AppState {
 }
 
 const EMPTY_USER_DATA = {
-  credits: {} as Record<string, number>,
   lawyer: { status: "none" as LawyerStatus, caseId: null },
   thread: [] as ThreadMessage[],
   lawyerUnread: false,
   banner: "",
 };
 
-/** Credits left on a case. A case this browser hasn't seen (made on another device) starts full. */
-export function creditsLeft(credits: Record<string, number>, caseId: string) {
-  return credits[caseId] ?? CASE_CREDITS;
-}
-
 export const useApp = create<AppState>()(
   persist(
     (set, get) => ({
       ownerId: null,
       banner: "",
-      credits: {},
       lawyer: { status: "none", caseId: null },
       thread: [],
       lawyerUnread: false,
@@ -77,17 +61,6 @@ export const useApp = create<AppState>()(
 
       setBanner: (banner) => set({ banner }),
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
-      startCredits: (caseId) => set((s) => ({ credits: { ...s.credits, [caseId]: CASE_CREDITS } })),
-      addCredits: (caseId, credits) =>
-        set((s) => ({ credits: { ...s.credits, [caseId]: creditsLeft(s.credits, caseId) + credits } })),
-      spendCredit: (caseId) => {
-        const left = creditsLeft(get().credits, caseId);
-        if (left <= 0) return false;
-        set((s) => ({ credits: { ...s.credits, [caseId]: left - 1 } }));
-        return true;
-      },
-      refundCredit: (caseId) =>
-        set((s) => ({ credits: { ...s.credits, [caseId]: creditsLeft(s.credits, caseId) + 1 } })),
       requestLawyer: (caseId) => {
         if (get().lawyer.status !== "none") return;
         set({
@@ -139,15 +112,14 @@ export const useApp = create<AppState>()(
     }),
     {
       name: "ilovelawyer-client",
-      // v1: auth moved to the API. v2: cases moved to the API. Older local data belongs to cases
-      // the API doesn't have, so it is dropped.
-      version: 2,
+      // v1: auth moved to the API. v2: cases moved to the API. v3: credits moved to the API.
+      // Older local data is dropped.
+      version: 3,
       migrate: () => ({ ownerId: null, ...EMPTY_USER_DATA }) as unknown as AppState,
       // Hydrate on the client (see useHydrated) so SSR markup stays stable.
       skipHydration: true,
       partialize: (s) => ({
         ownerId: s.ownerId,
-        credits: s.credits,
         lawyer: s.lawyer,
         thread: s.thread,
         lawyerUnread: s.lawyerUnread,
