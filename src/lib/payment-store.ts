@@ -1,8 +1,16 @@
 import { create } from "zustand";
-import type { CaseQuote } from "./billing/api";
+import type { CaseQuote, StripeCheckout } from "./billing/api";
 
 export type PaymentKind = "case" | "topup";
-export type PayMethod = "card" | "bank";
+
+/** A payment started with Stripe whose outcome we don't know yet. While it's set, "Pay" never starts
+ * another payment: it shows Stripe's form, or checks this one again. */
+export interface OpenPayment {
+  paymentId: string;
+  checkout: StripeCheckout;
+  /** Stripe's form has completed; waiting for the API to confirm. */
+  submitted: boolean;
+}
 
 interface PaymentState {
   open: boolean;
@@ -11,59 +19,52 @@ interface PaymentState {
   caseId: string | null;
   /** Top-up pack id; null means the API's default pack. */
   pack: string | null;
-  method: PayMethod;
-  /** Only ever kept in this form: card details are never sent anywhere (the payment is a dummy). */
-  card: { number: string; expiry: string; cvc: string };
   promoInput: string;
   /** The API's answer to the last code applied. */
   quote: CaseQuote | null;
+  /** Dev builds only: ask the dummy provider to decline, to see the failure state. */
+  simulateDecline: boolean;
+  openPayment: OpenPayment | null;
   error: string;
   processing: boolean;
 
   openFor: (kind: PaymentKind, caseId?: string | null) => void;
   close: () => void;
   setPack: (p: string) => void;
-  setMethod: (m: PayMethod) => void;
-  setCard: (patch: Partial<PaymentState["card"]>) => void;
   setPromoInput: (v: string) => void;
   setQuote: (quote: CaseQuote | null) => void;
+  setSimulateDecline: (v: boolean) => void;
+  setOpenPayment: (p: OpenPayment | null) => void;
   setProcessing: (v: boolean) => void;
   setError: (message: string) => void;
 }
+
+const fresh = {
+  pack: null,
+  promoInput: "",
+  quote: null,
+  simulateDecline: false,
+  openPayment: null,
+  error: "",
+  processing: false,
+};
 
 export const usePayment = create<PaymentState>((set, get) => ({
   open: false,
   kind: "case",
   caseId: null,
-  pack: null,
-  method: "card",
-  card: { number: "", expiry: "", cvc: "" },
-  promoInput: "",
-  quote: null,
-  error: "",
-  processing: false,
+  ...fresh,
 
-  openFor: (kind, caseId = null) =>
-    set({
-      open: true,
-      kind,
-      caseId,
-      pack: null,
-      method: "card",
-      card: { number: "", expiry: "", cvc: "" },
-      promoInput: "",
-      quote: null,
-      error: "",
-      processing: false,
-    }),
+  openFor: (kind, caseId = null) => set({ open: true, kind, caseId, ...fresh }),
+  // Closing mid-checkout is fine: nothing is charged, and the unpaid checkout expires on its own.
   close: () => {
-    if (!get().processing) set({ open: false, error: "" });
+    if (!get().processing) set({ open: false, error: "", openPayment: null });
   },
   setPack: (pack) => set({ pack }),
-  setMethod: (method) => set({ method, error: "" }),
-  setCard: (patch) => set((s) => ({ card: { ...s.card, ...patch } })),
   setPromoInput: (promoInput) => set({ promoInput }),
   setQuote: (quote) => set({ quote }),
+  setSimulateDecline: (simulateDecline) => set({ simulateDecline }),
+  setOpenPayment: (openPayment) => set({ openPayment }),
   setProcessing: (processing) => set({ processing }),
   setError: (error) => set({ error }),
 }));
