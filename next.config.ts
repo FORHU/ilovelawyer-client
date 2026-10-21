@@ -3,6 +3,9 @@ import { API_URL, COOKIE_PATHS } from "./src/lib/api/config";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  // Dev only: Next blocks /_next/* (the JS bundles) from any host but localhost unless it is
+  // listed, so on ilovelawyer.local the page rendered but never hydrated.
+  allowedDevOrigins: ["ilovelawyer.local", "app.ilovelawyer.local"],
   cacheComponents: true,
   partialPrefetching: true,
   experimental: {
