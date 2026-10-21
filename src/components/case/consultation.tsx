@@ -7,6 +7,7 @@ import { ErrorBox } from "@/components/ui/banner";
 import { PromptChip } from "@/components/ui/chip";
 import { FilePicker } from "@/components/ui/file-picker";
 import { AiMark } from "@/components/ui/misc";
+import { LawyerSuggestion } from "@/components/case/lawyer-suggestion";
 import { useMessagesQuery, useSendMessageMutation, useUploadDocumentsMutation } from "@/lib/cases/queries";
 import { usePayment } from "@/lib/payment-store";
 import { useApp } from "@/lib/store";
@@ -20,7 +21,6 @@ const PROMPTS = [
 ];
 
 export function Consultation({ c }: { c: Case }) {
-  const { requestLawyer } = useApp.getState();
   const credits = c.credits;
   const lawyerStatus = useApp((s) => s.lawyer.status);
   const { data, error: loadError } = useMessagesQuery(c.id);
@@ -35,7 +35,7 @@ export function Consultation({ c }: { c: Case }) {
   const thinking = sendMessage.isPending || !!data?.replying;
   const out = credits <= 0;
   const lastFailed = messages.at(-1)?.replyStatus === "FAILED";
-  const hasAnswer = messages.some((m) => m.role === "ai");
+  const latestAnswer = messages.findLast((m) => m.role === "ai");
 
   useEffect(() => {
     const el = scroller.current;
@@ -111,18 +111,8 @@ export function Consultation({ c }: { c: Case }) {
                 The AI couldn&apos;t answer that one. Try asking again.
               </div>
             )}
-            {hasAnswer && !thinking && lawyerStatus === "none" && (
-                <div className="ml-[38px] flex flex-wrap items-center gap-4 rounded-card border border-line bg-subtle px-[18px] py-4">
-                  <div className="min-w-[200px] flex-1">
-                    <div className="text-sm font-semibold">Want a lawyer to look at this case?</div>
-                    <div className="text-[13px] text-ink-2">
-                      A verified lawyer reviews this case and your chat. Included with your case.
-                    </div>
-                  </div>
-                  <Button size="sm" onClick={() => requestLawyer(c.id)}>
-                    Request lawyer
-                  </Button>
-                </div>
+            {latestAnswer && !thinking && lawyerStatus === "none" && (
+              <LawyerSuggestion caseId={c.id} latestAnswerId={latestAnswer.id} />
             )}
             {thinking && (
               <div className="flex gap-3" role="status" aria-label="The assistant is typing">

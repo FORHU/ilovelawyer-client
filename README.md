@@ -35,6 +35,7 @@ Every client account is in the **UK** tenant. The client app is served from one 
 
 - Cases, their documents and the AI chat live in ilovelawyer-api, under `/api/client` (client accounts only). Each case is a normal case in the client's own personal workspace on the UK site, and the chat uses the same legal AI as the lawyer app. Calls are in `src/lib/cases/api.ts`, hooks in `src/lib/cases/queries.ts`.
 - The AI answers in the background. The chat polls the messages every 1.5s while a reply is coming, and a case's documents every 4s while one is still being read.
+- After each AI answer the chat asks the API whether the case has what a lawyer needs (`src/lib/cases/readiness.ts`). Jev checks five points: the problem, where in the UK, the other side, what happened and when, and what the client wants. The chat suggests a lawyer, naming the kind, only once all five are covered. Until then it shows what's still missing. With `USE_JEV_LAWYER_READINESS` off on the API, it offers a lawyer after any answer, as before.
 - Uploads go straight from the browser to S3 on a signed URL, so the S3 bucket's CORS rules must allow this app's origin (`PUT`). Locally that's `http://localhost:3004`.
 
 ## Payments (dummy for now)
