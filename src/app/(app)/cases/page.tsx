@@ -5,13 +5,17 @@ import { useRouter } from "next/navigation";
 import { FolderPlus, Plus } from "lucide-react";
 import { Button, buttonClass } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/misc";
+import { ErrorBox } from "@/components/ui/banner";
+import { useCasesQuery } from "@/lib/cases/queries";
 import { CASE_CREDITS, CASE_PRICE, money } from "@/lib/pricing";
-import { lawyerLabel, useApp } from "@/lib/store";
+import { creditsLeft, lawyerLabel, useApp } from "@/lib/store";
+import { AREA_LABELS } from "@/lib/types";
 
 export default function CasesPage() {
   const router = useRouter();
-  const { cases, lawyer } = useApp();
-  const count = `${cases.length} ${cases.length === 1 ? "case" : "cases"}`;
+  const { data: cases = [], isPending, error } = useCasesQuery();
+  const { lawyer, credits } = useApp();
+  const count = isPending ? "Loading your cases…" : `${cases.length} ${cases.length === 1 ? "case" : "cases"}`;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
@@ -36,11 +40,12 @@ export default function CasesPage() {
           </Link>
         </div>
 
-        {cases.length > 0 ? (
+        {error && <ErrorBox message={error.message} />}
+
+        {isPending ? null : cases.length > 0 ? (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {cases.map((c) => {
               const law = lawyer.caseId === c.id && lawyer.status !== "none";
-              const questions = c.chat.filter((m) => m.role === "user").length;
               return (
                 <Link
                   key={c.id}
@@ -48,15 +53,15 @@ export default function CasesPage() {
                   className="flex flex-col gap-2.5 rounded-card border border-line bg-white p-[18px] text-ink no-underline transition-colors hover:border-line-hover"
                 >
                   <div className="flex items-center justify-between">
-                    <Eyebrow>{c.area}</Eyebrow>
+                    <Eyebrow>{AREA_LABELS[c.area]}</Eyebrow>
                     {law && <span className="text-[11px] text-gold">{lawyerLabel(lawyer.status)}</span>}
                   </div>
                   <div className="font-display text-xl leading-[1.3] tracking-[-0.02em]">
                     {c.title}
                   </div>
                   <div className="text-xs text-muted">
-                    {c.others.length + 1} parties · {c.files.length} documents · {questions}{" "}
-                    questions · {c.credits} credits
+                    {c.others.length + 1} parties · {c.documents.length} documents ·{" "}
+                    {creditsLeft(credits, c.id)} credits
                   </div>
                 </Link>
               );

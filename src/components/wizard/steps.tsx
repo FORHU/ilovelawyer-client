@@ -3,11 +3,20 @@
 import type { ReactNode } from "react";
 import { FileText, Plus, UploadCloud, X } from "lucide-react";
 import { Chip } from "@/components/ui/chip";
+import { FilePicker } from "@/components/ui/file-picker";
 import { inputClass, TextInput, WizardLabel } from "@/components/ui/input";
 import { RadioCard } from "@/components/ui/radio-card";
 import { Eyebrow } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
-import { CASE_AREAS, PARTY_ROLES, sideLabel, type Side } from "@/lib/types";
+import {
+  AREA_LABELS,
+  CASE_AREAS,
+  PARTY_ROLES,
+  UK_JURISDICTIONS,
+  sideLabel,
+  type CaseRegion,
+  type Side,
+} from "@/lib/types";
 import { useWizard } from "@/lib/wizard-store";
 
 function Section({
@@ -41,7 +50,7 @@ function Section({
 }
 
 export function StepDetails() {
-  const { title, where, area, titleErr, set } = useWizard();
+  const { title, region, where, area, titleErr, regionErr, set } = useWizard();
   return (
     <Section
       numeral="I"
@@ -76,26 +85,43 @@ export function StepDetails() {
         <div className="flex flex-wrap gap-1.5">
           {CASE_AREAS.map((a) => (
             <Chip key={a} selected={area === a} onClick={() => set({ area: a })}>
-              {a}
+              {AREA_LABELS[a]}
             </Chip>
           ))}
         </div>
       </div>
+      <div className="flex flex-col gap-2" role="radiogroup" aria-label="Which part of the UK?">
+        <WizardLabel>Which part of the UK? *</WizardLabel>
+        <div className="flex flex-wrap gap-1.5">
+          {REGIONS.map((r) => (
+            <Chip key={r.value} selected={region === r.value} onClick={() => set({ region: r.value })}>
+              {r.label}
+            </Chip>
+          ))}
+        </div>
+        <div className={cn("text-xs", regionErr ? "text-error" : "text-muted")}>
+          {regionErr
+            ? "Please choose where this happened."
+            : "The law is different in each, so this decides the rules we use and, later, the right lawyer."}
+        </div>
+      </div>
       <div className="flex flex-col gap-2">
-        <WizardLabel htmlFor="case-where">Where did this happen?</WizardLabel>
+        <WizardLabel htmlFor="case-where">Town or city</WizardLabel>
         <TextInput
           id="case-where"
           value={where}
-          placeholder="City or province, e.g. Quezon City"
+          placeholder="e.g. Leeds"
           onChange={(e) => set({ where: e.target.value })}
         />
-        <div className="text-xs text-muted">
-          Helps match the right rules and, later, the right lawyer.
-        </div>
       </div>
     </Section>
   );
 }
+
+const REGIONS: { value: CaseRegion; label: string }[] = [
+  ...UK_JURISDICTIONS.map((j) => ({ value: j, label: j })),
+  { value: "OUTSIDE_UK", label: "Outside the UK" },
+];
 
 const SIDES: { value: Side; title: string; desc: string }[] = [
   { value: "CLAIMANT", title: "I'm bringing the complaint", desc: "I'm raising an issue or making a claim." },
@@ -177,7 +203,7 @@ export function StepPeople() {
 }
 
 export function StepDocuments() {
-  const { title, side, others, files, addSampleFile, removeFile } = useWizard();
+  const { title, side, others, files, addFiles, removeFile } = useWizard();
   const named = others.map((o) => o.name.trim()).filter(Boolean);
   return (
     <Section
@@ -202,31 +228,41 @@ export function StepDocuments() {
           <span className="text-right">{named.join(", ") || "None added"}</span>
         </div>
       </div>
-      <button
-        type="button"
-        onClick={addSampleFile}
-        className="flex flex-col items-center gap-2 rounded-input border border-dashed border-line-input bg-subtle px-4 py-8 text-center transition-colors hover:border-line-hover"
-      >
-        <UploadCloud size={26} className="text-muted" />
-        <div className="font-display text-lg tracking-[-0.02em]">Add documents</div>
-        <div className="text-[12.5px] text-muted">
-          Tap to browse, or drag and drop. PDF, DOCX, XLSX, JPG or PNG. Demo: adds a sample
-          file.
-        </div>
-      </button>
+      <FilePicker onPick={addFiles}>
+        {(open) => (
+          <button
+            type="button"
+            onClick={open}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const dropped = Array.from(e.dataTransfer.files);
+              if (dropped.length) addFiles(dropped);
+            }}
+            className="flex flex-col items-center gap-2 rounded-input border border-dashed border-line-input bg-subtle px-4 py-8 text-center transition-colors hover:border-line-hover"
+          >
+            <UploadCloud size={26} className="text-muted" />
+            <div className="font-display text-lg tracking-[-0.02em]">Add documents</div>
+            <div className="text-[12.5px] text-muted">
+              Tap to browse, or drag and drop. PDF, DOCX, XLSX, JPG or PNG. They upload once
+              your case is created.
+            </div>
+          </button>
+        )}
+      </FilePicker>
       {files.length > 0 && (
         <div className="flex flex-col overflow-hidden rounded-input border border-line">
-          {files.map((f) => (
+          {files.map((f, i) => (
             <div
-              key={f}
+              key={`${f.name}-${i}`}
               className="flex items-center gap-3 border-b border-line px-4 py-3 text-[13px] last:border-b-0"
             >
               <FileText size={15} className="text-gold" />
-              <span className="min-w-0 flex-1 truncate">{f}</span>
+              <span className="min-w-0 flex-1 truncate">{f.name}</span>
               <button
                 type="button"
-                aria-label={`Remove ${f}`}
-                onClick={() => removeFile(f)}
+                aria-label={`Remove ${f.name}`}
+                onClick={() => removeFile(i)}
                 className="flex items-center justify-center text-muted"
               >
                 <X size={16} />

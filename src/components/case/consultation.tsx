@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowUpRight, FileText, Paperclip } from "lucide-react";
+import { ArrowUpRight, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ErrorBox } from "@/components/ui/banner";
 import { PromptChip } from "@/components/ui/chip";
+import { FilePicker } from "@/components/ui/file-picker";
 import { AiMark } from "@/components/ui/misc";
-import { mockAiReply } from "@/lib/mock-ai";
+import { useMessagesQuery, useSendMessageMutation, useUploadDocumentsMutation } from "@/lib/cases/queries";
 import { usePayment } from "@/lib/payment-store";
-import { useApp } from "@/lib/store";
+import { creditsLeft, useApp } from "@/lib/store";
 import type { Case } from "@/lib/types";
 
 const PROMPTS = [
@@ -18,46 +20,60 @@ const PROMPTS = [
 ];
 
 export function Consultation({ c }: { c: Case }) {
-  const askAi = useApp((s) => s.askAi);
-  const answerAi = useApp((s) => s.answerAi);
-  const attachToChat = useApp((s) => s.attachToChat);
-  const requestLawyer = useApp((s) => s.requestLawyer);
+  const { spendCredit, refundCredit, requestLawyer } = useApp.getState();
+  const credits = useApp((s) => creditsLeft(s.credits, c.id));
   const lawyerStatus = useApp((s) => s.lawyer.status);
+  const { data, error: loadError } = useMessagesQuery(c.id);
+  const sendMessage = useSendMessageMutation(c.id);
+  const upload = useUploadDocumentsMutation(c.id);
 
   const [input, setInput] = useState("");
-  const [thinking, setThinking] = useState(false);
+  const [notice, setNotice] = useState("");
   const scroller = useRef<HTMLDivElement>(null);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const out = c.credits <= 0;
+  const messages = data?.messages ?? [];
+  const thinking = sendMessage.isPending || !!data?.replying;
+  const out = credits <= 0;
+  const lastFailed = messages.at(-1)?.replyStatus === "FAILED";
+  const hasAnswer = messages.some((m) => m.role === "ai");
 
   useEffect(() => {
     const el = scroller.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [c.chat.length, thinking]);
-
-  useEffect(
-    () => () => {
-      if (timer.current) clearTimeout(timer.current);
-    },
-    [],
-  );
+  }, [messages.length, thinking]);
 
   const send = (raw: string) => {
     const text = raw.trim();
-    if (!text || thinking || !askAi(c.id, text)) return;
+    if (!text || thinking || !spendCredit(c.id)) return;
     setInput("");
-    setThinking(true);
-    // Placeholder latency; the real AI service replaces this call.
-    timer.current = setTimeout(() => {
-      answerAi(c.id, mockAiReply(c, text));
-      setThinking(false);
-    }, 900);
+    setNotice("");
+    sendMessage.mutate(text, {
+      onError: (err) => {
+        refundCredit(c.id);
+        setInput(text);
+        setNotice(err instanceof Error ? err.message : "Couldn't send that. Try again.");
+      },
+    });
+  };
+
+  const attach = (files: File[]) => {
+    setNotice("");
+    upload.mutate(files, {
+      onSuccess: ({ added, failed }) => {
+        const parts: string[] = [];
+        if (added.length) {
+          const one = added.length === 1;
+          parts.push(`Added ${added.map((d) => d.name).join(", ")}. The AI will use ${one ? "it" : "them"} once ${one ? "it's" : "they're"} read.`);
+        }
+        if (failed.length) parts.push(failed.map((f) => f.reason).join(" "));
+        setNotice(parts.join(" "));
+      },
+    });
   };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {c.chat.length === 0 && !thinking ? (
+      {messages.length === 0 && !thinking ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-5 overflow-y-auto px-4 py-6 md:px-12">
           <h2 className="text-balance text-center font-display text-[28px] font-normal tracking-[-0.02em]">
             What would you like to know about this case?
@@ -73,48 +89,31 @@ export function Consultation({ c }: { c: Case }) {
       ) : (
         <div ref={scroller} className="flex-1 overflow-y-auto px-4 pb-3 pt-7 md:px-12">
           <div className="mx-auto flex max-w-[768px] flex-col gap-[22px]">
-            {c.chat.map((m, i) => {
-              if (m.role === "user")
-                return (
-                  <div
-                    key={i}
-                    className="max-w-[80%] self-end rounded-[18px_18px_4px_18px] border border-line bg-bubble px-4 py-3 text-[15px] leading-[1.6]"
-                  >
-                    {m.text}
-                  </div>
-                );
-              if (m.role === "ai")
-                return (
-                  <div key={i} className="flex gap-3">
-                    <AiMark />
-                    <div className="flex min-w-0 flex-col gap-2.5 text-[15px] leading-[1.7]">
-                      <div className="whitespace-pre-line">{m.text}</div>
-                      <div className="text-xs text-muted">General information, not legal advice.</div>
-                    </div>
-                  </div>
-                );
-              if (m.role === "file")
-                return (
-                  <div
-                    key={i}
-                    className="flex items-center gap-3 self-end rounded-input border border-line bg-white px-3.5 py-2.5"
-                  >
-                    <div className="flex size-[34px] shrink-0 items-center justify-center rounded-[10px] bg-chip text-gold">
-                      <FileText size={15} />
-                    </div>
-                    <div>
-                      <div className="text-[13px] font-medium">{m.text}</div>
-                      <div className="text-[11px] text-muted">Added to this case</div>
-                    </div>
-                  </div>
-                );
-              // offer
-              if (lawyerStatus !== "none") return null;
-              return (
+            {messages.map((m) =>
+              m.role === "user" ? (
                 <div
-                  key={i}
-                  className="ml-[38px] flex flex-wrap items-center gap-4 rounded-card border border-line bg-subtle px-[18px] py-4"
+                  key={m.id}
+                  className="max-w-[80%] self-end rounded-[18px_18px_4px_18px] border border-line bg-bubble px-4 py-3 text-[15px] leading-[1.6]"
                 >
+                  {m.text}
+                </div>
+              ) : (
+                <div key={m.id} className="flex gap-3">
+                  <AiMark />
+                  <div className="flex min-w-0 flex-col gap-2.5 text-[15px] leading-[1.7]">
+                    <div className="whitespace-pre-line">{m.text}</div>
+                    <div className="text-xs text-muted">General information, not legal advice.</div>
+                  </div>
+                </div>
+              ),
+            )}
+            {lastFailed && !thinking && (
+              <div className="ml-[38px] text-[13px] text-error">
+                The AI couldn&apos;t answer that one. Try asking again.
+              </div>
+            )}
+            {hasAnswer && !thinking && lawyerStatus === "none" && (
+                <div className="ml-[38px] flex flex-wrap items-center gap-4 rounded-card border border-line bg-subtle px-[18px] py-4">
                   <div className="min-w-[200px] flex-1">
                     <div className="text-sm font-semibold">Want a lawyer to look at this case?</div>
                     <div className="text-[13px] text-ink-2">
@@ -125,8 +124,7 @@ export function Consultation({ c }: { c: Case }) {
                     Request lawyer
                   </Button>
                 </div>
-              );
-            })}
+            )}
             {thinking && (
               <div className="flex gap-3" role="status" aria-label="The assistant is typing">
                 <AiMark />
@@ -147,6 +145,8 @@ export function Consultation({ c }: { c: Case }) {
 
       <div className="shrink-0 px-4 pb-[30px] pt-2 md:px-12 md:pb-[18px]">
         <div className="mx-auto flex max-w-[768px] flex-col gap-2">
+          {loadError && <ErrorBox message={loadError.message} />}
+          {notice && <div className="text-center text-[12.5px] text-ink-2">{notice}</div>}
           {out && (
             <div className="flex flex-wrap items-center gap-3 rounded-card border border-line bg-subtle px-4 py-3">
               <div className="min-w-[180px] flex-1 text-[13px] leading-[1.5]">
@@ -167,17 +167,21 @@ export function Consultation({ c }: { c: Case }) {
             }}
             className={`flex items-center gap-1.5 rounded-composer border border-line bg-subtle p-2 ${out ? "pointer-events-none opacity-50" : ""}`}
           >
-            <button
-              type="button"
-              title="Attach a document"
-              aria-label="Attach a document"
-              disabled={out}
-              onClick={() => attachToChat(c.id)}
-              data-no-tap
-              className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line text-muted"
-            >
-              <Paperclip size={15} />
-            </button>
+            <FilePicker onPick={attach}>
+              {(open) => (
+                <button
+                  type="button"
+                  title="Attach a document"
+                  aria-label="Attach a document"
+                  disabled={out || upload.isPending}
+                  onClick={open}
+                  data-no-tap
+                  className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line text-muted disabled:opacity-60"
+                >
+                  <Paperclip size={15} />
+                </button>
+              )}
+            </FilePicker>
             <input
               value={input}
               disabled={out}
@@ -186,7 +190,9 @@ export function Consultation({ c }: { c: Case }) {
               aria-label="Ask about this case"
               className="min-w-0 flex-1 bg-transparent px-3.5 text-[15px] text-ink outline-none"
             />
-            <span className="whitespace-nowrap text-[11px] text-muted">{c.credits} credits</span>
+            <span className="whitespace-nowrap text-[11px] text-muted">
+              {upload.isPending ? "Uploading…" : `${credits} credits`}
+            </span>
             <button
               type="submit"
               aria-label="Send"

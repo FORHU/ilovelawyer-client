@@ -8,7 +8,7 @@ interface PaymentState {
   open: boolean;
   kind: PaymentKind;
   /** Case receiving the credits when kind === "topup". */
-  caseId: number | null;
+  caseId: string | null;
   pack: PackId;
   method: PayMethod;
   card: { number: string; expiry: string; cvc: string };
@@ -18,7 +18,7 @@ interface PaymentState {
   error: string;
   processing: boolean;
 
-  openFor: (kind: PaymentKind, caseId?: number | null) => void;
+  openFor: (kind: PaymentKind, caseId?: string | null) => void;
   close: () => void;
   setPack: (p: PackId) => void;
   setMethod: (m: PayMethod) => void;
