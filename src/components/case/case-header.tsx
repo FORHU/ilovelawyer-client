@@ -1,17 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Scale, Zap } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowLeft, Zap } from "lucide-react";
+import { GetLawyerAction } from "@/components/case/get-lawyer-action";
 import { AREA_LABELS, type Case } from "@/lib/types";
 import { usePayment } from "@/lib/payment-store";
-import { useApp } from "@/lib/store";
 
 export function CaseHeader({ c }: { c: Case }) {
   const router = useRouter();
-  const status = useApp((s) => s.lawyer.status);
-  const requestLawyer = useApp((s) => s.requestLawyer);
-  const canRequest = status === "none";
 
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2.5 border-b border-line px-4 py-3 md:px-6 md:py-[14px]">
@@ -44,18 +40,7 @@ export function CaseHeader({ c }: { c: Case }) {
           {c.credits} credits
           <span className="font-semibold text-gold">Top up</span>
         </button>
-        {canRequest && (
-          <Button
-            variant="outline"
-            size="md"
-            data-no-tap
-            className="h-11 flex-1 !px-4 md:h-9 md:flex-none"
-            onClick={() => requestLawyer(c.id)}
-          >
-            <Scale size={14} />
-            Request lawyer
-          </Button>
-        )}
+        <GetLawyerAction caseId={c.id} />
       </div>
     </div>
   );
