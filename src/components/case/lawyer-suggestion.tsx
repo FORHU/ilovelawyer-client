@@ -3,7 +3,7 @@
 import { Check, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { lawyerKind, useLawyerReadinessQuery } from "@/lib/cases/readiness";
-import { useApp } from "@/lib/store";
+import { useLawyerRequestForm } from "@/lib/lawyer-requests/api";
 
 const card = "ml-[38px] flex flex-wrap items-center gap-4 rounded-card border border-line bg-subtle px-[18px] py-4";
 
@@ -14,7 +14,7 @@ const card = "ml-[38px] flex flex-wrap items-center gap-4 rounded-card border bo
  * lawyer as before.
  */
 export function LawyerSuggestion({ caseId, latestAnswerId }: { caseId: string; latestAnswerId: string }) {
-  const requestLawyer = useApp((s) => s.requestLawyer);
+  const openForm = () => useLawyerRequestForm.getState().openFor(caseId);
   const { data: r } = useLawyerReadinessQuery(caseId, latestAnswerId);
 
   if (!r || r.unavailable) return null;
@@ -26,7 +26,7 @@ export function LawyerSuggestion({ caseId, latestAnswerId }: { caseId: string; l
           <div className="text-sm font-semibold">Want a lawyer to look at this case?</div>
           <div className="text-[13px] text-ink-2">A verified lawyer reviews this case and your chat. Included with your case.</div>
         </div>
-        <Button size="sm" onClick={() => requestLawyer(caseId)}>
+        <Button size="sm" onClick={openForm}>
           Get a lawyer
         </Button>
       </div>
@@ -52,7 +52,7 @@ export function LawyerSuggestion({ caseId, latestAnswerId }: { caseId: string; l
             We&apos;d look for {lawyerKind(r)}. A verified lawyer reviews this case and your chat.
           </div>
         </div>
-        <Button size="sm" onClick={() => requestLawyer(caseId)}>
+        <Button size="sm" onClick={openForm}>
           Get a lawyer
         </Button>
       </div>

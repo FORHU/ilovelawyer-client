@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, FileText, Paperclip, Radar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import { useWithdrawLawyerRequestMutation } from "@/lib/lawyer-requests/api";
 import { useApp } from "@/lib/store";
 import { AREA_LABELS, type Case, type ThreadMessage } from "@/lib/types";
 
@@ -59,7 +60,16 @@ function Message({ m }: { m: ThreadMessage }) {
 export function LawyerTab({ c }: { c: Case }) {
   const status = useApp((s) => s.lawyer.status);
   const thread = useApp((s) => s.thread);
-  const { sendToLawyer, attachToLawyer, cancelLawyerRequest, markLawyerRead } = useApp.getState();
+  const { sendToLawyer, attachToLawyer, cancelLawyerRequest, markLawyerRead, setBanner } = useApp.getState();
+  const requestId = useApp((s) => s.lawyer.requestId);
+  const withdraw = useWithdrawLawyerRequestMutation(c.id);
+  const cancel = () => {
+    if (!requestId) return cancelLawyerRequest();
+    withdraw.mutate(requestId, {
+      onSuccess: () => cancelLawyerRequest(),
+      onError: (err) => setBanner(err instanceof Error ? err.message : "Couldn't cancel the request. Try again."),
+    });
+  };
   const [input, setInput] = useState("");
   const scroller = useRef<HTMLDivElement>(null);
   const closed = status === "closed";
@@ -90,8 +100,8 @@ export function LawyerTab({ c }: { c: Case }) {
                 Demo: lawyer accepts
               </Button>
             )}
-            <Button variant="ghost" size="sm" onClick={cancelLawyerRequest}>
-              Cancel request
+            <Button variant="ghost" size="sm" onClick={cancel} disabled={withdraw.isPending}>
+              {withdraw.isPending ? "Cancelling…" : "Cancel request"}
             </Button>
           </div>
         </div>
