@@ -45,7 +45,13 @@ Every client account is in the **UK** tenant. The client app is served from one 
 - The API's payment provider is a dummy: it always succeeds, except a card number ending in `0002`, which declines so the failure screen can be seen. The card form never sends card details anywhere. Stripe replaces the dummy later, on the API side.
 - Chat credits are counted on the server. Each AI message uses one, and the chat stops at 0 until the client tops up.
 
-The lawyer request and its thread are still kept in `localStorage` (`ilovelawyer-client`), tied to the signed-in account and cleared on sign-out.
+## Asking for a lawyer
+
+- **Get a lawyer** shows only when the API says the case can have one (`GET /api/client/lawyer-requests/eligibility`): a paid case in the UK that isn't personal injury, with no request already open. Outside the UK it shows **Not available yet**.
+- The request form (`src/components/case/lawyer-request-modal.tsx`) takes a note and the client's agreement to the consent text and the referral-fee disclosure. Both come from the API and are a draft until a solicitor has reviewed them. Sending creates a real request; **Cancel request** withdraws it.
+- What happens after the request (a lawyer accepting, the thread with them) is still mocked.
+
+That mocked part of the lawyer flow is still kept in `localStorage` (`ilovelawyer-client`), tied to the signed-in account and cleared on sign-out.
 
 ## Stack
 

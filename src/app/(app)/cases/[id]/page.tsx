@@ -9,12 +9,14 @@ import { Documents, Overview } from "@/components/case/overview-docs";
 import { Tabs, type TabDef } from "@/components/case/tabs";
 import { ApiError } from "@/lib/api/fetch";
 import { useCaseQuery } from "@/lib/cases/queries";
+import { useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
 import { useApp } from "@/lib/store";
 
 export default function CasePage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const { data: c, error, isPending } = useCaseQuery(id);
+  const { data: openRequest } = useOpenLawyerRequestQuery(id);
   const lawyer = useApp((s) => s.lawyer);
   const unread = useApp((s) => s.lawyerUnread);
   const [tab, setTab] = useState("chat");
@@ -26,6 +28,11 @@ export default function CasePage() {
     setHadLawyerTab(hasLawyerTab);
     setTab(hasLawyerTab ? "lawyer" : "chat");
   }
+
+  // A request made on another device shows here too; one withdrawn elsewhere goes away.
+  useEffect(() => {
+    if (openRequest !== undefined) useApp.getState().syncLawyerRequest(id, openRequest?.id ?? null);
+  }, [id, openRequest]);
 
   const notFound = error instanceof ApiError && error.status === 404;
   useEffect(() => {
