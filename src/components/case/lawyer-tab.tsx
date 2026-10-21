@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowUpRight, FileText, Paperclip, Radar } from "lucide-react";
+import { ArrowUpRight, Clock, FileText, Paperclip, Radar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import { useWithdrawLawyerRequestMutation } from "@/lib/lawyer-requests/api";
+import { useCaseLawyer, useLawyerRequestForm, useWithdrawLawyerRequestMutation } from "@/lib/lawyer-requests/api";
 import { useApp } from "@/lib/store";
 import { AREA_LABELS, type Case, type ThreadMessage } from "@/lib/types";
 
@@ -58,15 +58,14 @@ function Message({ m }: { m: ThreadMessage }) {
 }
 
 export function LawyerTab({ c }: { c: Case }) {
-  const status = useApp((s) => s.lawyer.status);
+  const { phase: status, request } = useCaseLawyer(c.id);
   const thread = useApp((s) => s.thread);
-  const { sendToLawyer, attachToLawyer, cancelLawyerRequest, markLawyerRead, setBanner } = useApp.getState();
-  const requestId = useApp((s) => s.lawyer.requestId);
-  const withdraw = useWithdrawLawyerRequestMutation(c.id);
+  const { sendToLawyer, attachToLawyer, markLawyerRead, setBanner } = useApp.getState();
+  const withdraw = useWithdrawLawyerRequestMutation();
   const cancel = () => {
-    if (!requestId) return cancelLawyerRequest();
-    withdraw.mutate(requestId, {
-      onSuccess: () => cancelLawyerRequest(),
+    if (!request) return;
+    withdraw.mutate(request.id, {
+      onSuccess: () => setBanner("Request cancelled."),
       onError: (err) => setBanner(err instanceof Error ? err.message : "Couldn't cancel the request. Try again."),
     });
   };
@@ -92,17 +91,52 @@ export function LawyerTab({ c }: { c: Case }) {
           </div>
           <div className="font-display text-[22px] tracking-[-0.02em]">Finding your lawyer</div>
           <div className="text-[13px] leading-[1.6] text-ink-2">
-            3 verified lawyers are reviewing your case. Most requests are accepted within an hour.
+            Verified lawyers are reviewing an anonymised summary of your case. You&apos;ll be notified when one takes it on.
           </div>
           <div className="mt-2 flex flex-wrap justify-center gap-2">
             {isDev && (
-              <Button variant="outline" size="sm" onClick={() => useApp.getState().demoLawyerAccept()}>
+              <Button variant="outline" size="sm" onClick={() => useApp.getState().demoLawyerAccept(c.id)}>
                 Demo: lawyer accepts
               </Button>
             )}
             <Button variant="ghost" size="sm" onClick={cancel} disabled={withdraw.isPending}>
               {withdraw.isPending ? "Cancelling…" : "Cancel request"}
             </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === "expired") {
+    return (
+      <div className="flex flex-1 items-center justify-center p-6">
+        <div className="flex max-w-[420px] flex-col items-center gap-2.5 rounded-modal border border-dashed border-line-input px-6 py-8 text-center">
+          <div className="flex size-12 items-center justify-center rounded-full border border-line text-gold">
+            <Clock size={20} />
+          </div>
+          <div className="font-display text-[22px] tracking-[-0.02em]">No lawyer took the case in time</div>
+          <div className="text-[13px] leading-[1.6] text-ink-2">
+            Your request has expired, and nothing was charged. You can send it again.
+          </div>
+          <Button variant="outline" size="sm" className="mt-2" onClick={() => useLawyerRequestForm.getState().openFor(c.id)}>
+            Request again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === "quoted") {
+    return (
+      <div className="flex flex-1 items-center justify-center p-6">
+        <div className="flex max-w-[420px] flex-col items-center gap-2.5 rounded-modal border border-dashed border-line-input px-6 py-8 text-center">
+          <div className="flex size-12 items-center justify-center rounded-full border border-line text-gold">
+            <Radar size={20} />
+          </div>
+          <div className="font-display text-[22px] tracking-[-0.02em]">A lawyer has responded</div>
+          <div className="text-[13px] leading-[1.6] text-ink-2">
+            Reviewing the quote and messaging your lawyer isn&apos;t available in this app yet. We&apos;ll email you when it is.
           </div>
         </div>
       </div>

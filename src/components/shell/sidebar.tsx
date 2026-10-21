@@ -9,6 +9,7 @@ import { useSession } from "@/lib/auth/session";
 import { useCasesQuery } from "@/lib/cases/queries";
 import { cn } from "@/lib/cn";
 import { money, usePricingQuery } from "@/lib/pricing";
+import { useLawyerPhaseOf } from "@/lib/lawyer-requests/api";
 import { lawyerLabel, useApp } from "@/lib/store";
 import { AREA_LABELS } from "@/lib/types";
 
@@ -18,7 +19,8 @@ const railBtn =
 export function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { lawyer, sidebarCollapsed: collapsed, toggleSidebar } = useApp();
+  const { sidebarCollapsed: collapsed, toggleSidebar } = useApp();
+  const phaseOf = useLawyerPhaseOf();
   const { data: cases = [] } = useCasesQuery();
   const { data: pricing } = usePricingQuery();
   const fullName = useSession((s) => s.user?.name ?? "");
@@ -72,7 +74,8 @@ export function Sidebar() {
               All cases
             </Link>
             {cases.map((c) => {
-              const law = lawyer.caseId === c.id && lawyer.status !== "none";
+              const phase = phaseOf(c.id);
+              const law = phase !== "none";
               return (
                 <Link
                   key={c.id}
@@ -84,7 +87,7 @@ export function Sidebar() {
                 >
                   <span className="truncate text-[13px] font-medium text-ink">{c.title}</span>
                   <span className={cn("text-[11px]", law ? "text-gold" : "text-muted")}>
-                    {law ? lawyerLabel(lawyer.status) : AREA_LABELS[c.area]}
+                    {law ? lawyerLabel(phase) : AREA_LABELS[c.area]}
                   </span>
                 </Link>
               );

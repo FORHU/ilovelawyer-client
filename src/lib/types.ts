@@ -66,7 +66,9 @@ export interface ChatMessage {
   createdAt: string;
 }
 
-export type LawyerStatus = "none" | "matching" | "accepted" | "closed";
+/** Where a case stands with a lawyer, as the client sees it. Derived from the API's request status
+ * (see lawyerPhase in lib/lawyer-requests/api.ts); "accepted" and "closed" are still dev-only mocks. */
+export type LawyerStatus = "none" | "matching" | "quoted" | "expired" | "accepted" | "closed";
 
 export interface ThreadMessage {
   role: "user" | "lawyer" | "event";

@@ -5,9 +5,9 @@ import { SAMPLE_FILES } from "./sample-data";
 import type { LawyerStatus, ThreadMessage } from "./types";
 
 // Who is signed in lives in ./auth/session, and cases, documents and the AI chat come from the API
-// (./cases), as do payments and chat credits (./billing) and the lawyer request itself
-// (./lawyer-requests). This store keeps what is still mocked (what happens after the request: a
-// lawyer accepting, and the thread with them) plus UI state, persisted per browser.
+// (./cases), as do payments and chat credits (./billing) and the lawyer request with its status
+// (./lawyer-requests). This store keeps only what is still mocked (a lawyer accepting, and the
+// thread with them; dev builds only) plus UI state, persisted per browser.
 
 interface AppState {
   /** The account the persisted data belongs to, so another account signing in on this browser
@@ -16,30 +16,23 @@ interface AppState {
   /** Dismissible success banner at the top of the app shell. */
   banner: string;
 
-  /** Lawyer request for one case at a time (prototype behaviour). `requestId` is the real request
-   * in the API; what happens after it ("accepted", "closed") is still mocked. */
-  lawyer: { status: LawyerStatus; caseId: string | null; requestId: string | null };
-  /** Messages with the lawyer for the case in `lawyer.caseId`. */
+  /** DEV-ONLY mock of a lawyer taking the case ("accepted", "closed"), for the case in `caseId`.
+   * Applies only while that case has an open request in the API (see lawyerPhase). */
+  lawyer: { status: LawyerStatus; caseId: string | null };
+  /** Mocked messages with the lawyer for the case in `lawyer.caseId`. */
   thread: ThreadMessage[];
   lawyerUnread: boolean;
   sidebarCollapsed: boolean;
 
   setBanner: (message: string) => void;
   toggleSidebar: () => void;
-  /** A request was just made in the API (the request form). */
-  requestLawyer: (caseId: string, requestId: string) => void;
-  /** The request was withdrawn in the API. */
-  cancelLawyerRequest: () => void;
-  /** Lines this browser up with the API: shows a request made on another device, and drops one
-   * withdrawn elsewhere. Leaves the mocked later states ("accepted", "closed") alone. */
-  syncLawyerRequest: (caseId: string, openRequestId: string | null) => void;
   /** Client message (or shared file) in the lawyer thread. */
   sendToLawyer: (text: string, file?: boolean) => void;
   /** Shares a sample document in the lawyer thread. */
   attachToLawyer: () => void;
   markLawyerRead: () => void;
   /** DEMO ONLY (dev builds): stands in for the lawyer app until real matching exists. */
-  demoLawyerAccept: () => void;
+  demoLawyerAccept: (caseId: string) => void;
   demoLawyerResolve: () => void;
   /** Called when an account signs in: keeps this browser's data if it is that account's, else
    * starts it empty. */
@@ -49,7 +42,7 @@ interface AppState {
 }
 
 const EMPTY_USER_DATA = {
-  lawyer: { status: "none" as LawyerStatus, caseId: null, requestId: null },
+  lawyer: { status: "none" as LawyerStatus, caseId: null },
   thread: [] as ThreadMessage[],
   lawyerUnread: false,
   banner: "",
@@ -60,37 +53,13 @@ export const useApp = create<AppState>()(
     (set, get) => ({
       ownerId: null,
       banner: "",
-      lawyer: { status: "none", caseId: null, requestId: null },
+      lawyer: { status: "none", caseId: null },
       thread: [],
       lawyerUnread: false,
       sidebarCollapsed: false,
 
       setBanner: (banner) => set({ banner }),
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
-      requestLawyer: (caseId, requestId) => {
-        if (get().lawyer.status !== "none") return;
-        set({
-          lawyer: { status: "matching", caseId, requestId },
-          thread: [],
-          lawyerUnread: false,
-          banner: "Request sent. Verified lawyers are reviewing your case.",
-        });
-      },
-      cancelLawyerRequest: () =>
-        set({
-          lawyer: { status: "none", caseId: null, requestId: null },
-          thread: [],
-          lawyerUnread: false,
-          banner: "Request cancelled.",
-        }),
-      syncLawyerRequest: (caseId, openRequestId) => {
-        const { lawyer } = get();
-        if (openRequestId && lawyer.status === "none") {
-          set({ lawyer: { status: "matching", caseId, requestId: openRequestId }, thread: [], lawyerUnread: false });
-        } else if (!openRequestId && lawyer.caseId === caseId && lawyer.status === "matching") {
-          set({ lawyer: { status: "none", caseId: null, requestId: null }, thread: [], lawyerUnread: false });
-        }
-      },
       sendToLawyer: (text, file) => {
         const t = text.trim();
         if (!t) return;
@@ -102,10 +71,10 @@ export const useApp = create<AppState>()(
         set((s) => ({ thread: [...s.thread, { role: "user", text: name, file: true }] }));
       },
       markLawyerRead: () => set({ lawyerUnread: false }),
-      demoLawyerAccept: () => {
+      demoLawyerAccept: (caseId) => {
         const first = useSession.getState().user?.name?.split(" ")[0] || "there";
-        set((s) => ({
-          lawyer: { ...s.lawyer, status: "accepted" },
+        set({
+          lawyer: { status: "accepted", caseId },
           lawyerUnread: true,
           thread: [
             { role: "event", text: "Atty. Maria Reyes accepted your request" },
@@ -114,7 +83,7 @@ export const useApp = create<AppState>()(
               text: `Hi ${first}, I've read your case and the documents you attached. Can you tell me in your own words what happened, and when?`,
             },
           ],
-        }));
+        });
       },
       demoLawyerResolve: () =>
         set((s) => ({ lawyer: { ...s.lawyer, status: "closed" }, lawyerUnread: true })),
@@ -127,8 +96,9 @@ export const useApp = create<AppState>()(
     {
       name: "ilovelawyer-client",
       // v1: auth moved to the API. v2: cases moved to the API. v3: credits moved to the API.
-      // v4: lawyer requests are real (requestId). Older local data is dropped.
-      version: 4,
+      // v4: lawyer requests are real (requestId). v5: their status comes from the API too.
+      // Older local data is dropped.
+      version: 5,
       migrate: () => ({ ownerId: null, ...EMPTY_USER_DATA }) as unknown as AppState,
       // Hydrate on the client (see useHydrated) so SSR markup stays stable.
       skipHydration: true,
@@ -143,12 +113,15 @@ export const useApp = create<AppState>()(
   ),
 );
 
+const LAWYER_LABELS: Record<LawyerStatus, string> = {
+  none: "",
+  matching: "Finding a lawyer",
+  quoted: "Lawyer responded",
+  expired: "No lawyer found",
+  accepted: "Lawyer chatting",
+  closed: "Resolved",
+};
+
 export function lawyerLabel(status: LawyerStatus) {
-  return status === "matching"
-    ? "Finding a lawyer"
-    : status === "accepted"
-      ? "Lawyer chatting"
-      : status === "closed"
-        ? "Resolved"
-        : "";
+  return LAWYER_LABELS[status];
 }

@@ -9,30 +9,27 @@ import { Documents, Overview } from "@/components/case/overview-docs";
 import { Tabs, type TabDef } from "@/components/case/tabs";
 import { ApiError } from "@/lib/api/fetch";
 import { useCaseQuery } from "@/lib/cases/queries";
-import { useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
+import { useCaseLawyer } from "@/lib/lawyer-requests/api";
 import { useApp } from "@/lib/store";
 
 export default function CasePage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const { data: c, error, isPending } = useCaseQuery(id);
-  const { data: openRequest } = useOpenLawyerRequestQuery(id);
-  const lawyer = useApp((s) => s.lawyer);
+  const { phase, loaded } = useCaseLawyer(id);
   const unread = useApp((s) => s.lawyerUnread);
   const [tab, setTab] = useState("chat");
 
-  const hasLawyerTab = !!c && lawyer.caseId === c.id && lawyer.status !== "none";
-  // Adjust state while rendering: jump to the Lawyer tab when a request starts.
-  const [hadLawyerTab, setHadLawyerTab] = useState(hasLawyerTab);
-  if (hadLawyerTab !== hasLawyerTab) {
+  const hasLawyerTab = phase !== "none";
+  // Adjust state while rendering: jump to the Lawyer tab when a request starts (not when the
+  // page opens on a case that already has one), and back to the chat when it goes away.
+  const [hadLawyerTab, setHadLawyerTab] = useState<boolean | null>(null);
+  if (loaded && hadLawyerTab === null) {
+    setHadLawyerTab(hasLawyerTab);
+  } else if (hadLawyerTab !== null && hadLawyerTab !== hasLawyerTab) {
     setHadLawyerTab(hasLawyerTab);
     setTab(hasLawyerTab ? "lawyer" : "chat");
   }
-
-  // A request made on another device shows here too; one withdrawn elsewhere goes away.
-  useEffect(() => {
-    if (openRequest !== undefined) useApp.getState().syncLawyerRequest(id, openRequest?.id ?? null);
-  }, [id, openRequest]);
 
   const notFound = error instanceof ApiError && error.status === 404;
   useEffect(() => {

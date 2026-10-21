@@ -38,8 +38,8 @@ function RequestForm({ caseId }: { caseId: string }) {
     create.mutate(
       { note: note.trim(), consentVersion: consent.data.version },
       {
-        onSuccess: (request) => {
-          useApp.getState().requestLawyer(caseId, request.id);
+        onSuccess: () => {
+          useApp.getState().setBanner("Request sent. Verified lawyers are reviewing your case.");
           close();
         },
         onError: (err) => {
