@@ -68,14 +68,6 @@ export interface ChatMessage {
   createdAt: string;
 }
 
-export type LawyerStatus = "none" | "matching" | "accepted" | "closed";
-
-export interface ThreadMessage {
-  role: "user" | "lawyer" | "event";
-  text: string;
-  file?: boolean;
-}
-
 export function sideLabel(side: Side | null) {
   return side === "CLAIMANT"
     ? "Bringing the complaint"
