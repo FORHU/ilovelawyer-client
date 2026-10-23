@@ -4,6 +4,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { PaymentModal } from "@/components/payment/payment-modal";
 import { LawyerRequestModal } from "@/components/case/lawyer-request-modal";
+import { ReplaceRequestModal } from "@/components/case/replace-request-modal";
 import { SignOutButton } from "@/components/shell/sign-out-button";
 import { SuccessBanner } from "@/components/ui/banner";
 import { Avatar, Logo, initialsOf } from "@/components/ui/misc";
@@ -58,6 +59,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
       <PaymentModal />
       <LawyerRequestModal />
+      <ReplaceRequestModal />
     </div>
   );
 }

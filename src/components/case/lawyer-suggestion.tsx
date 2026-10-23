@@ -3,7 +3,7 @@
 import { Check, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { lawyerKind, useLawyerReadinessQuery } from "@/lib/cases/readiness";
-import { useLawyerRequestForm } from "@/lib/lawyer-requests/api";
+import { useStartLawyerRequest } from "@/lib/lawyer-requests/api";
 
 const card = "ml-[38px] flex flex-wrap items-center gap-4 rounded-card border border-line bg-subtle px-[18px] py-4";
 
@@ -14,7 +14,7 @@ const card = "ml-[38px] flex flex-wrap items-center gap-4 rounded-card border bo
  * lawyer as before.
  */
 export function LawyerSuggestion({ caseId, latestAnswerId }: { caseId: string; latestAnswerId: string }) {
-  const openForm = () => useLawyerRequestForm.getState().openFor(caseId);
+  const openForm = useStartLawyerRequest(caseId);
   const { data: r } = useLawyerReadinessQuery(caseId, latestAnswerId);
 
   if (!r || r.unavailable) return null;

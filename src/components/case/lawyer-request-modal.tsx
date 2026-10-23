@@ -11,6 +11,7 @@ import {
   useConsentQuery,
   useCreateLawyerRequestMutation,
   useLawyerRequestForm,
+  useReplacePicker,
 } from "@/lib/lawyer-requests/api";
 import { useApp } from "@/lib/store";
 
@@ -48,6 +49,12 @@ function RequestForm({ caseId }: { caseId: string }) {
             setAgreed(false);
             void consent.refetch();
             setError("The consent wording has just been updated. Please read it again.");
+            return;
+          }
+          if (err instanceof ApiError && err.code === "REQUEST_LIMIT_REACHED") {
+            // The last slot went to another request meanwhile: pick one to replace instead.
+            close();
+            useReplacePicker.getState().openFor(caseId);
             return;
           }
           setError(err instanceof Error ? err.message : "Couldn't send your request. Try again.");

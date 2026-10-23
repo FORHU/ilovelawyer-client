@@ -10,7 +10,7 @@ import { AiMark } from "@/components/ui/misc";
 import { LawyerSuggestion } from "@/components/case/lawyer-suggestion";
 import { useMessagesQuery, useSendMessageMutation, useUploadDocumentsMutation } from "@/lib/cases/queries";
 import { usePayment } from "@/lib/payment-store";
-import { useApp } from "@/lib/store";
+import { useLawyerStatusOf } from "@/lib/store";
 import type { Case } from "@/lib/types";
 
 const PROMPTS = [
@@ -22,7 +22,7 @@ const PROMPTS = [
 
 export function Consultation({ c }: { c: Case }) {
   const credits = c.credits;
-  const lawyerStatus = useApp((s) => s.lawyer.status);
+  const lawyerStatus = useLawyerStatusOf(c.id);
   const { data, error: loadError } = useMessagesQuery(c.id);
   const sendMessage = useSendMessageMutation(c.id);
   const upload = useUploadDocumentsMutation(c.id);

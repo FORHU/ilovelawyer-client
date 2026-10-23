@@ -10,18 +10,18 @@ import { Tabs, type TabDef } from "@/components/case/tabs";
 import { ApiError } from "@/lib/api/fetch";
 import { useCaseQuery } from "@/lib/cases/queries";
 import { useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
-import { useApp } from "@/lib/store";
+import { useApp, useLawyerStatusOf } from "@/lib/store";
 
 export default function CasePage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const { data: c, error, isPending } = useCaseQuery(id);
   const { data: openRequest } = useOpenLawyerRequestQuery(id);
-  const lawyer = useApp((s) => s.lawyer);
-  const unread = useApp((s) => s.lawyerUnread);
+  const lawyerStatus = useLawyerStatusOf(id);
+  const unread = useApp((s) => !!s.lawyerUnread[id]);
   const [tab, setTab] = useState("chat");
 
-  const hasLawyerTab = !!c && lawyer.caseId === c.id && lawyer.status !== "none";
+  const hasLawyerTab = !!c && lawyerStatus !== "none";
   // Adjust state while rendering: jump to the Lawyer tab when a request starts.
   const [hadLawyerTab, setHadLawyerTab] = useState(hasLawyerTab);
   if (hadLawyerTab !== hasLawyerTab) {

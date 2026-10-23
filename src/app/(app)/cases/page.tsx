@@ -8,13 +8,14 @@ import { Eyebrow } from "@/components/ui/misc";
 import { ErrorBox } from "@/components/ui/banner";
 import { useCasesQuery } from "@/lib/cases/queries";
 import { money, usePricingQuery } from "@/lib/pricing";
-import { lawyerLabel, useApp } from "@/lib/store";
+import { useOpenLawyerRequestsQuery } from "@/lib/lawyer-requests/api";
+import { describeStatus } from "@/lib/lawyer-requests/status";
 import { AREA_LABELS } from "@/lib/types";
 
 export default function CasesPage() {
   const router = useRouter();
   const { data: cases = [], isPending, error } = useCasesQuery();
-  const { lawyer } = useApp();
+  const { data: requests } = useOpenLawyerRequestsQuery();
   const { data: pricing } = usePricingQuery();
   const price = pricing ? money(pricing.case.price) : "…";
   const included = pricing?.case.credits ?? "…";
@@ -48,7 +49,7 @@ export default function CasesPage() {
         {isPending ? null : cases.length > 0 ? (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {cases.map((c) => {
-              const law = lawyer.caseId === c.id && lawyer.status !== "none";
+              const law = requests?.[c.id];
               return (
                 <Link
                   key={c.id}
@@ -57,7 +58,7 @@ export default function CasesPage() {
                 >
                   <div className="flex items-center justify-between">
                     <Eyebrow>{AREA_LABELS[c.area]}</Eyebrow>
-                    {law && <span className="text-[11px] text-gold">{lawyerLabel(lawyer.status)}</span>}
+                    {law && <span className="text-[11px] text-gold">{describeStatus(law.status).title}</span>}
                   </div>
                   <div className="font-display text-xl leading-[1.3] tracking-[-0.02em]">
                     {c.title}

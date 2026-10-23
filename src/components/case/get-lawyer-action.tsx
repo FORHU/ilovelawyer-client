@@ -2,8 +2,8 @@
 
 import { Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useEligibilityQuery, useLawyerRequestForm } from "@/lib/lawyer-requests/api";
-import { useApp } from "@/lib/store";
+import { useEligibilityQuery, useStartLawyerRequest } from "@/lib/lawyer-requests/api";
+import { useApp, useLawyerStatusOf } from "@/lib/store";
 
 /** Why there's no lawyer for this case, in words the client can act on. */
 export const NOT_AVAILABLE_TEXT = {
@@ -17,16 +17,20 @@ export const NOT_AVAILABLE_TEXT = {
  * personal injury. Nothing while there's already a request, or before the case is paid for.
  */
 export function GetLawyerAction({ caseId }: { caseId: string }) {
-  const status = useApp((s) => s.lawyer.status);
+  const status = useLawyerStatusOf(caseId);
   const { data } = useEligibilityQuery(caseId);
+  const start = useStartLawyerRequest(caseId);
 
   if (!data || status !== "none") return null;
 
-  if (data.eligible) {
+  // Out of request slots: the same button, which opens the picker for the request to replace.
+  if (data.eligible || data.reason === "REQUEST_LIMIT_REACHED") {
+    const full = data.limit ? `${data.limit.open.length} of ${data.limit.max} lawyer requests in use` : undefined;
     return (
-      <Button variant="outline" size="md" data-no-tap className="h-11 flex-1 !px-4 md:h-9 md:flex-none" onClick={() => useLawyerRequestForm.getState().openFor(caseId)}>
+      <Button variant="outline" size="md" data-no-tap title={full} className="h-11 flex-1 !px-4 md:h-9 md:flex-none" onClick={start}>
         <Scale size={14} />
         Get a lawyer
+        {full && <span className="sr-only">. {full}</span>}
       </Button>
     );
   }

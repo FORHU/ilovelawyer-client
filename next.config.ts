@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  // Dev only: the app is opened through this hosts-file name, which Next would otherwise block for HMR.
+  allowedDevOrigins: ["ilovelawyer.local"],
   experimental: {
     // The (app) shell intentionally renders nothing until the persisted client
     // store has hydrated, so implicit instant-navigation validation would flag

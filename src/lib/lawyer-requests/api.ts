@@ -8,13 +8,25 @@ import { caseKeys } from "@/lib/cases/queries";
 // hand-off). Only client accounts reach these routes.
 
 /** Why a case can't have a lawyer (the API's codes). */
-export type IneligibleReason = "NOT_UK_CASE" | "PERSONAL_INJURY_EXCLUDED" | "CASE_NOT_PAID" | "REQUEST_ALREADY_OPEN";
+export type IneligibleReason = "NOT_UK_CASE" | "PERSONAL_INJURY_EXCLUDED" | "CASE_NOT_PAID" | "REQUEST_ALREADY_OPEN" | "REQUEST_LIMIT_REACHED";
+
+/** A request using one of the client's slots. */
+export interface OpenRequestSlot {
+  requestId: string;
+  caseId: string;
+  caseTitle: string;
+  status: LawyerRequestStatus;
+  /** Not after a lawyer has confirmed: those can't be replaced. */
+  canWithdraw: boolean;
+}
 
 export interface LawyerRequestEligibility {
   eligible: boolean;
   reason: IneligibleReason | null;
   /** Set with REQUEST_ALREADY_OPEN. */
   openRequestId: string | null;
+  /** Set with REQUEST_LIMIT_REACHED: how many requests the client may have open, and which are. */
+  limit?: { max: number; open: OpenRequestSlot[] };
 }
 
 /** What the client agrees to. The wording is a draft until a solicitor has reviewed it. */
@@ -73,11 +85,18 @@ export function listLawyerRequests(caseId: string) {
   return apiFetch<{ total: number; data: LawyerRequest[] }>(`/api/client/lawyer-requests?caseId=${encodeURIComponent(caseId)}&limit=5`);
 }
 
+/** The client's latest requests across all their cases (the lists, which label each case). */
+export function listAllLawyerRequests() {
+  return apiFetch<{ total: number; data: LawyerRequest[] }>("/api/client/lawyer-requests?limit=100");
+}
+
 export function withdrawLawyerRequest(id: string) {
   return post<LawyerRequest>(`/api/client/lawyer-requests/${id}/withdraw`, {});
 }
 
 export const lawyerRequestKeys = {
+  /** Every case's: one request made or withdrawn changes whether the others can ask (the slots). */
+  every: (userId: string | undefined) => [...caseKeys.all(userId), "lawyer-request"] as const,
   all: (userId: string | undefined, caseId: string) => [...caseKeys.all(userId), "lawyer-request", caseId] as const,
   eligibility: (userId: string | undefined, caseId: string) => [...lawyerRequestKeys.all(userId, caseId), "eligibility"] as const,
   open: (userId: string | undefined, caseId: string) => [...lawyerRequestKeys.all(userId, caseId), "open"] as const,
@@ -99,6 +118,28 @@ export function useEligibilityQuery(caseId: string) {
   });
 }
 
+/** How often an open request is re-read, so its status follows what the lawyer does (the tab being
+ * in the background pauses it). */
+const OPEN_REQUEST_POLL_MS = 15_000;
+
+/** Each case's open request by case id, for the lists that label every case with where its request
+ * stands. Read from the API (and kept fresh while any is open), never from this browser's state. */
+export function useOpenLawyerRequestsQuery() {
+  const userId = useUserId();
+  return useQuery({
+    queryKey: [...lawyerRequestKeys.every(userId), "open-all"] as const,
+    queryFn: async () => {
+      const byCase: Record<string, LawyerRequest> = {};
+      // Newest first, so the first open one per case is its current request.
+      for (const r of (await listAllLawyerRequests()).data) if (isOpen(r) && !byCase[r.caseId]) byCase[r.caseId] = r;
+      return byCase;
+    },
+    enabled: !!userId,
+    staleTime: 0,
+    refetchInterval: (q) => (q.state.data && Object.keys(q.state.data).length ? OPEN_REQUEST_POLL_MS : false),
+  });
+}
+
 /** The case's open request, if there is one (made here or on another device). */
 export function useOpenLawyerRequestQuery(caseId: string) {
   const userId = useUserId();
@@ -107,6 +148,19 @@ export function useOpenLawyerRequestQuery(caseId: string) {
     queryFn: async () => (await listLawyerRequests(caseId)).data.find(isOpen) ?? null,
     enabled: !!userId,
     staleTime: 0,
+    refetchInterval: (q) => (q.state.data ? OPEN_REQUEST_POLL_MS : false),
+  });
+}
+
+/** The case's latest request, open or ended (so an expired or withdrawn one can still be explained). */
+export function useLatestLawyerRequestQuery(caseId: string) {
+  const userId = useUserId();
+  return useQuery({
+    queryKey: [...lawyerRequestKeys.all(userId, caseId), "latest"] as const,
+    queryFn: async () => (await listLawyerRequests(caseId)).data[0] ?? null,
+    enabled: !!userId,
+    staleTime: 0,
+    refetchInterval: (q) => (q.state.data && isOpen(q.state.data) ? OPEN_REQUEST_POLL_MS : false),
   });
 }
 
@@ -119,16 +173,16 @@ export function useCreateLawyerRequestMutation(caseId: string) {
   const userId = useUserId();
   return useMutation({
     mutationFn: (input: { note: string; consentVersion: string }) => createLawyerRequest({ caseId, ...input, consentAccepted: true }),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: lawyerRequestKeys.all(userId, caseId) }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: lawyerRequestKeys.every(userId) }),
   });
 }
 
-export function useWithdrawLawyerRequestMutation(caseId: string) {
+export function useWithdrawLawyerRequestMutation() {
   const queryClient = useQueryClient();
   const userId = useUserId();
   return useMutation({
     mutationFn: (id: string) => withdrawLawyerRequest(id),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: lawyerRequestKeys.all(userId, caseId) }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: lawyerRequestKeys.every(userId) }),
   });
 }
 
@@ -138,3 +192,21 @@ export const useLawyerRequestForm = create<{ caseId: string | null; openFor: (ca
   openFor: (caseId) => set({ caseId }),
   close: () => set({ caseId: null }),
 }));
+
+/** Which case the replace picker is open for (null: closed): the case the client asked for a lawyer
+ * on while every request slot was in use. */
+export const useReplacePicker = create<{ caseId: string | null; openFor: (caseId: string) => void; close: () => void }>((set) => ({
+  caseId: null,
+  openFor: (caseId) => set({ caseId }),
+  close: () => set({ caseId: null }),
+}));
+
+/** "Get a lawyer" on a case: the request form, or the replace picker when every request slot is in
+ * use. Decided from the case's eligibility, which is what the buttons that call this already show. */
+export function useStartLawyerRequest(caseId: string) {
+  const { data } = useEligibilityQuery(caseId);
+  return () => {
+    if (data?.reason === "REQUEST_LIMIT_REACHED") useReplacePicker.getState().openFor(caseId);
+    else useLawyerRequestForm.getState().openFor(caseId);
+  };
+}
