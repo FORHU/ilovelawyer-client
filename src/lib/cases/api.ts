@@ -15,7 +15,12 @@ export interface NewCase {
   where: string;
   side: "CLAIMANT" | "RESPONDENT" | null;
   others: Omit<OtherParty, "id">[];
+  /** What happened and what the client wants. Optional. */
+  notes?: string;
 }
+
+/** Any of the case's details; what's left out stays as it is (PATCH /api/client/cases/:id). */
+export type CaseChanges = Partial<Omit<NewCase, "paymentId">>;
 
 export interface CaseMessages {
   /** The AI is still answering the last message. */
@@ -27,8 +32,8 @@ function post<T>(path: string, body: unknown): Promise<T> {
   return apiFetch<T>(path, { method: "POST", body: JSON.stringify(body) });
 }
 
-export function listCases() {
-  return apiFetch<Case[]>("/api/client/cases");
+export function listCases(archived = false) {
+  return apiFetch<Case[]>(`/api/client/cases${archived ? "?archived=true" : ""}`);
 }
 
 export function getCase(id: string) {
@@ -37,6 +42,24 @@ export function getCase(id: string) {
 
 export function createCase(input: NewCase) {
   return post<Case>("/api/client/cases", input);
+}
+
+export function updateCase(id: string, changes: CaseChanges) {
+  return apiFetch<Case>(`/api/client/cases/${id}`, { method: "PATCH", body: JSON.stringify(changes) });
+}
+
+export function archiveCase(id: string) {
+  return apiFetch<void>(`/api/client/cases/${id}/archive`, { method: "POST" });
+}
+
+export function unarchiveCase(id: string) {
+  return apiFetch<Case>(`/api/client/cases/${id}/unarchive`, { method: "POST" });
+}
+
+/** Also ends any open lawyer request on the case. Refused (409 CASE_HAS_ACTIVE_ENGAGEMENT) while a
+ * lawyer is confirmed or engaged. */
+export function deleteCase(id: string) {
+  return apiFetch<void>(`/api/client/cases/${id}`, { method: "DELETE" });
 }
 
 export function listMessages(caseId: string) {

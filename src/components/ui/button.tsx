@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 
-type Variant = "primary" | "outline" | "ghost" | "social" | "dashed";
+type Variant = "primary" | "outline" | "ghost" | "social" | "dashed" | "danger";
 type Size = "sm" | "md" | "lg" | "xl";
 
 const base =
@@ -14,6 +14,7 @@ const variants: Record<Variant, string> = {
   ghost: "text-muted tracking-[1px] hover:text-ink",
   social:
     "w-full border border-line-input bg-white text-ink !normal-case !font-medium !text-[14px] tracking-normal gap-[10px] hover:border-line-hover",
+  danger: "bg-error text-white tracking-[1.2px] hover:bg-error-ink",
   dashed:
     "border border-dashed border-line-input text-ink-2 tracking-[1px] hover:border-line-hover",
 };
