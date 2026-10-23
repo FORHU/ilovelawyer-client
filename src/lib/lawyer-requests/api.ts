@@ -3,9 +3,23 @@ import { create } from "zustand";
 import { apiFetch } from "@/lib/api/fetch";
 import { useSession } from "@/lib/auth/session";
 import { caseKeys } from "@/lib/cases/queries";
+import {
+  clientRequestStage,
+  clientRequestStatusLabel,
+  type ClientRequestStage,
+  type ClientRequestStatus,
+  type LawyerRegulator,
+  type Money,
+  type PracticeArea,
+  type QuoteType,
+  type UkJurisdiction,
+} from "@/lib/client-handoff";
 
 // Asking for a lawyer on a case (ilovelawyer-api /api/client/lawyer-requests, the UK client-to-lawyer
 // hand-off). Only client accounts reach these routes.
+
+export type { ClientRequestStage, ClientRequestStatus };
+export { clientRequestStage, clientRequestStatusLabel };
 
 /** Why a case can't have a lawyer (the API's codes). */
 export type IneligibleReason = "NOT_UK_CASE" | "PERSONAL_INJURY_EXCLUDED" | "CASE_NOT_PAID" | "REQUEST_ALREADY_OPEN";
@@ -25,25 +39,57 @@ export interface LawyerRequestConsent {
   referralDisclosure: string;
 }
 
-export type LawyerRequestStatus =
-  | "REQUESTED"
-  | "ROUTED"
-  | "CLAIMED"
-  | "QUOTED"
-  | "CONFIRMED"
-  | "ENGAGED"
-  | "CLOSED"
-  | "EXPIRED"
-  | "WITHDRAWN";
+/** @deprecated use ClientRequestStatus from "@/lib/client-handoff" */
+export type LawyerRequestStatus = ClientRequestStatus;
 
+/** What the client sees of the claiming lawyer, from QUOTED onwards (LawyerPublicProfile). */
+export interface LawyerPublicProfile {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  /** Null for a solo practitioner's personal workspace. */
+  firmName: string | null;
+  regulator: LawyerRegulator;
+  registrationNumber: string;
+  practiceAreas: PracticeArea[];
+  qualifiedJurisdictions: UkJurisdiction[];
+  languages: string[];
+  bio: string;
+  firstConsultationFee: Money | null;
+  verifiedAt: string;
+}
+
+export interface LawyerQuote {
+  type: QuoteType;
+  /** The lawyer's own fee, paid to them directly. The platform takes no cut. */
+  amount: Money;
+  message: string;
+  sentAt: string;
+}
+
+export interface EngagementFeedback {
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+}
+
+/** LawyerRequestForClient in the contract. */
 export interface LawyerRequest {
   id: string;
   caseId: string;
-  status: LawyerRequestStatus;
+  status: ClientRequestStatus;
   note: string;
   consentVersion: string;
   consentAcceptedAt: string;
   createdAt: string;
+  lawyer: LawyerPublicProfile | null;
+  quote: LawyerQuote | null;
+  /** Shown again on the quote screen; acknowledged to confirm. */
+  referralDisclosure: string | null;
+  engagedAt: string | null;
+  closedAt: string | null;
+  closedBy: "LAWYER" | "CLIENT" | null;
+  feedback: EngagementFeedback | null;
 }
 
 /** Still open: not closed, expired or withdrawn. */
@@ -69,18 +115,40 @@ export function createLawyerRequest(input: { caseId: string; note: string; conse
   return post<LawyerRequest>("/api/client/lawyer-requests", input);
 }
 
-export function listLawyerRequests(caseId: string) {
-  return apiFetch<{ total: number; data: LawyerRequest[] }>(`/api/client/lawyer-requests?caseId=${encodeURIComponent(caseId)}&limit=5`);
+/** All the client's requests, newest first, or just one case's with `caseId`. */
+export function listLawyerRequests(caseId?: string) {
+  const query = caseId ? `?caseId=${encodeURIComponent(caseId)}&limit=5` : "?limit=50";
+  return apiFetch<{ total: number; data: LawyerRequest[] }>(`/api/client/lawyer-requests${query}`);
+}
+
+export function getLawyerRequest(id: string) {
+  return apiFetch<LawyerRequest>(`/api/client/lawyer-requests/${id}`);
 }
 
 export function withdrawLawyerRequest(id: string) {
   return post<LawyerRequest>(`/api/client/lawyer-requests/${id}/withdraw`, {});
 }
 
+export function confirmLawyerRequest(id: string) {
+  return post<LawyerRequest>(`/api/client/lawyer-requests/${id}/confirm`, { disclosureAcknowledged: true });
+}
+
+export function declineLawyerRequest(id: string, reason?: string) {
+  return post<LawyerRequest>(`/api/client/lawyer-requests/${id}/decline`, reason ? { reason } : {});
+}
+
+/** The client's side of closing the engagement — same effect as the lawyer closing it. */
+export function endLawyerRequest(id: string, reason?: string) {
+  return post<LawyerRequest>(`/api/client/lawyer-requests/${id}/end`, reason ? { reason } : {});
+}
+
 export const lawyerRequestKeys = {
   all: (userId: string | undefined, caseId: string) => [...caseKeys.all(userId), "lawyer-request", caseId] as const,
   eligibility: (userId: string | undefined, caseId: string) => [...lawyerRequestKeys.all(userId, caseId), "eligibility"] as const,
   open: (userId: string | undefined, caseId: string) => [...lawyerRequestKeys.all(userId, caseId), "open"] as const,
+  latest: (userId: string | undefined, caseId: string) => [...lawyerRequestKeys.all(userId, caseId), "latest"] as const,
+  detail: (userId: string | undefined, id: string) => [...(userId ? [userId] : []), "lawyer-request", id] as const,
+  openAll: (userId: string | undefined) => [...(userId ? [userId] : []), "lawyer-requests", "open"] as const,
 };
 
 function useUserId() {
@@ -99,13 +167,57 @@ export function useEligibilityQuery(caseId: string) {
   });
 }
 
-/** The case's open request, if there is one (made here or on another device). */
+/** The case's open request, if there is one (made here or on another device). Refetches on an
+ * interval while there's an open request, as a fallback alongside the live socket update
+ * (lib/lawyer-requests/socket.ts). */
 export function useOpenLawyerRequestQuery(caseId: string) {
   const userId = useUserId();
   return useQuery({
     queryKey: lawyerRequestKeys.open(userId, caseId),
     queryFn: async () => (await listLawyerRequests(caseId)).data.find(isOpen) ?? null,
     enabled: !!userId,
+    staleTime: 0,
+    refetchInterval: (query) => (query.state.data && isOpen(query.state.data) ? 30_000 : false),
+  });
+}
+
+/** The case's newest request, whatever its status — unlike useOpenLawyerRequestQuery, this still
+ * returns one that just closed, expired or was withdrawn, so the Lawyer tab can show that final
+ * state (the "No lawyer found" explanation, #19) instead of silently disappearing the moment it
+ * leaves "open". The API already returns newest first. */
+export function useLatestLawyerRequestQuery(caseId: string) {
+  const userId = useUserId();
+  return useQuery({
+    queryKey: lawyerRequestKeys.latest(userId, caseId),
+    queryFn: async () => (await listLawyerRequests(caseId)).data[0] ?? null,
+    enabled: !!userId,
+    staleTime: 0,
+    refetchInterval: (query) => (query.state.data && isOpen(query.state.data) ? 30_000 : false),
+  });
+}
+
+/** Every case's open request at once, by caseId — for a case list or the sidebar, so each row
+ * shows its own status instead of all sharing one. */
+export function useOpenLawyerRequestsQuery() {
+  const userId = useUserId();
+  return useQuery({
+    queryKey: lawyerRequestKeys.openAll(userId),
+    queryFn: async () => {
+      const open = (await listLawyerRequests()).data.filter(isOpen);
+      return new Map(open.map((r) => [r.caseId, r]));
+    },
+    enabled: !!userId,
+    staleTime: 0,
+    refetchInterval: 30_000,
+  });
+}
+
+export function useLawyerRequestQuery(id: string | null) {
+  const userId = useUserId();
+  return useQuery({
+    queryKey: lawyerRequestKeys.detail(userId, id ?? ""),
+    queryFn: () => getLawyerRequest(id!),
+    enabled: !!userId && !!id,
     staleTime: 0,
   });
 }
@@ -114,12 +226,21 @@ export function useConsentQuery(enabled: boolean) {
   return useQuery({ queryKey: ["lawyer-request-consent"], queryFn: getConsent, enabled, staleTime: 1000 * 60 * 10 });
 }
 
+/** Every query a change to one case's request can affect: that case's own keys, plus the
+ * cases-list / sidebar's across-all-cases query. Exported for callers outside a mutation here
+ * too (e.g. RemoveCaseModal, after the API withdraws a case's open request as a side effect of
+ * archiving or deleting it). */
+export function invalidateLawyerRequests(queryClient: ReturnType<typeof useQueryClient>, userId: string | undefined, caseId: string) {
+  queryClient.invalidateQueries({ queryKey: lawyerRequestKeys.all(userId, caseId) });
+  queryClient.invalidateQueries({ queryKey: lawyerRequestKeys.openAll(userId) });
+}
+
 export function useCreateLawyerRequestMutation(caseId: string) {
   const queryClient = useQueryClient();
   const userId = useUserId();
   return useMutation({
     mutationFn: (input: { note: string; consentVersion: string }) => createLawyerRequest({ caseId, ...input, consentAccepted: true }),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: lawyerRequestKeys.all(userId, caseId) }),
+    onSettled: () => invalidateLawyerRequests(queryClient, userId, caseId),
   });
 }
 
@@ -128,7 +249,34 @@ export function useWithdrawLawyerRequestMutation(caseId: string) {
   const userId = useUserId();
   return useMutation({
     mutationFn: (id: string) => withdrawLawyerRequest(id),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: lawyerRequestKeys.all(userId, caseId) }),
+    onSettled: () => invalidateLawyerRequests(queryClient, userId, caseId),
+  });
+}
+
+export function useConfirmLawyerRequestMutation(caseId: string) {
+  const queryClient = useQueryClient();
+  const userId = useUserId();
+  return useMutation({
+    mutationFn: (id: string) => confirmLawyerRequest(id),
+    onSettled: () => invalidateLawyerRequests(queryClient, userId, caseId),
+  });
+}
+
+export function useDeclineLawyerRequestMutation(caseId: string) {
+  const queryClient = useQueryClient();
+  const userId = useUserId();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) => declineLawyerRequest(id, reason),
+    onSettled: () => invalidateLawyerRequests(queryClient, userId, caseId),
+  });
+}
+
+export function useEndLawyerRequestMutation(caseId: string) {
+  const queryClient = useQueryClient();
+  const userId = useUserId();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) => endLawyerRequest(id, reason),
+    onSettled: () => invalidateLawyerRequests(queryClient, userId, caseId),
   });
 }
 
