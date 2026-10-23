@@ -3,6 +3,9 @@ import { API_URL, COOKIE_PATHS } from "./src/lib/api/config";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  // Hosts other than localhost that open the dev server (e.g. ilovelawyer.local from the hosts
+  // file). Without this Next blocks their /_next/hmr connection. Dev only; ignored in production.
+  allowedDevOrigins: ["ilovelawyer.local"],
   cacheComponents: true,
   partialPrefetching: true,
   experimental: {

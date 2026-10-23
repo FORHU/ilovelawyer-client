@@ -1,13 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Zap } from "lucide-react";
+import { Archive, ArrowLeft, Trash2, Zap } from "lucide-react";
+import { ActionMenu } from "@/components/ui/action-menu";
 import { GetLawyerAction } from "@/components/case/get-lawyer-action";
+import { RemoveCaseModal, type RemoveMode } from "@/components/case/remove-case-modal";
 import { AREA_LABELS, type Case } from "@/lib/types";
 import { usePayment } from "@/lib/payment-store";
 
 export function CaseHeader({ c }: { c: Case }) {
   const router = useRouter();
+  const [removing, setRemoving] = useState<RemoveMode | null>(null);
 
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2.5 border-b border-line px-4 py-3 md:px-6 md:py-[14px]">
@@ -41,7 +45,15 @@ export function CaseHeader({ c }: { c: Case }) {
           <span className="font-semibold text-gold">Top up</span>
         </button>
         <GetLawyerAction caseId={c.id} />
+        <ActionMenu
+          label="More actions"
+          items={[
+            { label: "Archive case", icon: <Archive size={14} />, onSelect: () => setRemoving("archive") },
+            { label: "Delete case", icon: <Trash2 size={14} />, onSelect: () => setRemoving("delete"), danger: true },
+          ]}
+        />
       </div>
+      {removing && <RemoveCaseModal c={c} mode={removing} onClose={() => setRemoving(null)} />}
     </div>
   );
 }

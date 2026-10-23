@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StepDetails, StepDocuments, StepPeople } from "@/components/wizard/steps";
+import { useSession } from "@/lib/auth/session";
 import { cn } from "@/lib/cn";
 import { money, usePricingQuery } from "@/lib/pricing";
 import { usePayment } from "@/lib/payment-store";
@@ -24,11 +25,28 @@ export default function NewCasePage() {
   const price = pricing ? money(pricing.case.price) : "…";
   const included = pricing?.case.credits ?? "…";
 
+  const userId = useSession((s) => s.user?.id);
+  const [ready, setReady] = useState(false);
+
+  // Brings back this account's saved draft (the store hydrates lazily, see wizard-store), then starts
+  // at step 1.
   useEffect(() => {
-    useWizard.getState().enter();
-  }, []);
+    if (!userId) return;
+    let live = true;
+    void Promise.resolve(useWizard.persist.rehydrate()).then(() => {
+      if (!live) return;
+      useWizard.getState().claimFor(userId);
+      useWizard.getState().enter();
+      setReady(true);
+    });
+    return () => {
+      live = false;
+    };
+  }, [userId]);
 
   const stepDone = (n: number) => (n === 1 ? !!title.trim() && !!region : n === 2 ? !!side : false);
+
+  if (!ready) return null;
 
   const onNext = () => {
     if (wiz.next()) usePayment.getState().openFor("case");

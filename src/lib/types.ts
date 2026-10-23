@@ -48,6 +48,8 @@ export interface Case {
   area: CaseArea;
   ukJurisdiction: UkJurisdiction | null;
   where: string;
+  /** What happened and what the client wants (lib/cases/notes.ts). Empty when not given. */
+  notes: string;
   side: "CLAIMANT" | "RESPONDENT" | null;
   others: OtherParty[];
   documents: CaseDocument[];

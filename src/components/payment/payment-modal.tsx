@@ -23,6 +23,7 @@ import { useSession } from "@/lib/auth/session";
 import { PROMO_HINT, money, usePricingQuery } from "@/lib/pricing";
 import { usePayment } from "@/lib/payment-store";
 import { useApp } from "@/lib/store";
+import { useFailedUploads } from "@/lib/failed-uploads";
 import { useWizard } from "@/lib/wizard-store";
 
 const isDev = process.env.NODE_ENV !== "production";
@@ -94,10 +95,12 @@ export function PaymentModal() {
     takePaidCasePayment();
     clearCaseDraft(paymentId);
     const notUploaded = await uploadAll(created.id, w.files);
+    // Kept for a retry on the case's Documents tab.
+    useFailedUploads.getState().set(created.id, notUploaded);
     w.reset();
     useApp.getState().setBanner(
       notUploaded.length
-        ? `Your case is created, but ${notUploaded.join(", ")} didn't upload. Add ${notUploaded.length === 1 ? "it" : "them"} again from Documents.`
+        ? `Your case is created, but ${notUploaded.map((f) => f.name).join(", ")} didn't upload. You can try ${notUploaded.length === 1 ? "it" : "them"} again from Documents.`
         : `Payment received. Your case is created with ${created.credits} chat credits.`,
     );
     pay.setProcessing(false);
@@ -147,7 +150,17 @@ export function PaymentModal() {
     if (!started.checkout) return createCaseWith(started.paymentId);
     // Kept in case a payment method has to leave the page and come back to /payments/return.
     const w = useWizard.getState();
-    saveCaseDraft(started.paymentId, { title: w.title, region: w.region, where: w.where, area: w.area, side: w.side, others: w.others, fileCount: w.files.length });
+    saveCaseDraft(started.paymentId, {
+      title: w.title,
+      region: w.region,
+      where: w.where,
+      area: w.area,
+      side: w.side,
+      others: w.others,
+      happened: w.happened,
+      wants: w.wants,
+      fileCount: w.files.length,
+    });
     pay.setOpenPayment({ paymentId: started.paymentId, checkout: started.checkout, submitted: false });
     pay.setProcessing(false);
   };

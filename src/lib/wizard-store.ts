@@ -1,7 +1,13 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import type { CaseArea, CaseRegion, OtherParty, PartyRole, Side } from "./types";
 
+// The draft is kept in this browser (localStorage, per account) so a refresh or a closed tab doesn't
+// lose it. Picked files can't be kept, only the text. It is cleared once the case is made, and on
+// sign-out.
 interface WizardState {
+  /** The account the draft belongs to, so another account on this browser never sees it. */
+  ownerId: string | null;
   step: number;
   maxStep: number;
   titleErr: boolean;
@@ -13,12 +19,17 @@ interface WizardState {
   area: CaseArea;
   side: Side;
   others: OtherParty[];
+  /** Optional: what happened, and what the client wants out of it. Sent as the case's notes. */
+  happened: string;
+  wants: string;
   /** Picked here, uploaded once the case exists (after payment). Kept in memory only. */
   files: File[];
 
+  /** Keeps the draft if it is this account's, otherwise starts it empty. */
+  claimFor: (userId: string) => void;
   /** Reset navigation only (the draft survives leaving and re-entering, like the prototype). */
   enter: () => void;
-  set: (patch: Partial<Pick<WizardState, "title" | "region" | "where" | "area" | "side" | "step">>) => void;
+  set: (patch: Partial<Pick<WizardState, "title" | "region" | "where" | "area" | "side" | "step" | "happened" | "wants">>) => void;
   addOther: () => void;
   updateOther: (id: string, patch: Partial<Pick<OtherParty, "name" | "role">>) => void;
   removeOther: (id: string) => void;
@@ -32,6 +43,7 @@ interface WizardState {
 }
 
 const blank = {
+  ownerId: null as string | null,
   step: 1,
   maxStep: 1,
   titleErr: false,
@@ -42,12 +54,20 @@ const blank = {
   area: "EMPLOYMENT" as CaseArea,
   side: "" as Side,
   others: [] as OtherParty[],
+  happened: "",
+  wants: "",
   files: [] as File[],
 };
 
-export const useWizard = create<WizardState>((set, get) => ({
+export const useWizard = create<WizardState>()(
+  persist(
+    (set, get) => ({
   ...blank,
 
+  claimFor: (userId) => {
+    if (get().ownerId === userId) return;
+    set({ ...blank, ownerId: userId });
+  },
   enter: () => set({ step: 1, maxStep: 1, titleErr: false, regionErr: false }),
   set: (patch) => set({ ...patch, ...(patch.region ? { regionErr: false } : {}) }),
   addOther: () =>
@@ -85,5 +105,25 @@ export const useWizard = create<WizardState>((set, get) => ({
   goTo: (n) => {
     if (n <= get().maxStep) set({ step: n });
   },
-  reset: () => set({ ...blank }),
-}));
+  // Keeps the owner: the draft is for this account, and the next one starts empty.
+  reset: () => set({ ...blank, ownerId: get().ownerId }),
+    }),
+    {
+      name: "ilovelawyer-client-wizard",
+      version: 1,
+      // Hydrated by the new-case page once it is on the client, so server markup stays stable.
+      skipHydration: true,
+      partialize: (s) => ({
+        ownerId: s.ownerId,
+        title: s.title,
+        region: s.region,
+        where: s.where,
+        area: s.area,
+        side: s.side,
+        others: s.others,
+        happened: s.happened,
+        wants: s.wants,
+      }),
+    },
+  ),
+);

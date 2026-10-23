@@ -1,17 +1,31 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Plus } from "lucide-react";
+import { FileText, Pencil, Plus, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FilePicker } from "@/components/ui/file-picker";
 import { KeyValueTable } from "@/components/ui/misc";
+import { EditCaseModal } from "@/components/case/edit-case-modal";
+import { checkFiles, useLimitsQuery } from "@/lib/cases/limits";
+import { parseNotes } from "@/lib/cases/notes";
 import { useUploadDocumentsMutation } from "@/lib/cases/queries";
+import { useFailedUploads, useFailedUploadsOf } from "@/lib/failed-uploads";
 import { AREA_LABELS, regionLabel, sideLabel, type Case, type DocumentStatus } from "@/lib/types";
 
 export function Overview({ c }: { c: Case }) {
+  const [editing, setEditing] = useState(false);
+  const notes = parseNotes(c.notes);
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="mx-auto flex max-w-[720px] flex-col gap-5 px-4 py-7 md:px-10">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[13px] text-ink-2">You can edit these details any time.</p>
+          <Button variant="outline" onClick={() => setEditing(true)}>
+            <Pencil size={14} />
+            Edit
+          </Button>
+        </div>
+        {editing && <EditCaseModal c={c} onClose={() => setEditing(false)} />}
         <KeyValueTable
           rows={[
             { k: "Case title", v: c.title },
@@ -25,6 +39,8 @@ export function Overview({ c }: { c: Case }) {
                 ? c.others.map((o) => `${o.name} (${o.role})`).join(", ")
                 : "None added",
             },
+            { k: "What happened", v: notes.happened || "Not added" },
+            { k: "What you want", v: notes.wants || "Not added" },
             { k: "Documents", v: `${c.documents.length} attached` },
           ]}
         />
@@ -41,11 +57,30 @@ const STATUS_TEXT: Record<DocumentStatus, string> = {
 
 export function Documents({ c }: { c: Case }) {
   const upload = useUploadDocumentsMutation(c.id);
+  const { data: limits } = useLimitsQuery();
   const [failed, setFailed] = useState<string[]>([]);
+  /** Files from the wizard that didn't upload when the case was made (kept in memory only). */
+  const leftOver = useFailedUploadsOf(c.id);
 
-  const add = (files: File[]) => {
+  const add = (picked: File[]) => {
+    const { accepted, rejected } = checkFiles(picked, limits);
+    setFailed(rejected);
+    if (!accepted.length) return;
+    upload.mutate(accepted, { onSuccess: (r) => setFailed((prev) => [...prev, ...r.failed.map((f) => f.reason)]) });
+  };
+
+  const retry = () => {
+    const files = leftOver;
+    useFailedUploads.getState().clear(c.id);
     setFailed([]);
-    upload.mutate(files, { onSuccess: (r) => setFailed(r.failed.map((f) => f.reason)) });
+    upload.mutate(files, {
+      onSuccess: (r) => {
+        setFailed(r.failed.map((f) => f.reason));
+        // Whatever still failed stays available to try again.
+        const stillFailed = files.filter((f) => r.failed.some((x) => x.name === f.name));
+        useFailedUploads.getState().set(c.id, stillFailed);
+      },
+    });
   };
 
   return (
@@ -62,6 +97,18 @@ export function Documents({ c }: { c: Case }) {
             )}
           </FilePicker>
         </div>
+        {leftOver.length > 0 && (
+          <div className="flex flex-wrap items-center gap-3 rounded-card border border-error-line bg-error-bg px-4 py-3">
+            <div className="min-w-[200px] flex-1 text-[13px] leading-[1.5] text-error-ink">
+              {leftOver.length === 1 ? "1 file didn't" : `${leftOver.length} files didn't`} upload when your case was created:{" "}
+              {leftOver.map((f) => f.name).join(", ")}.
+            </div>
+            <Button variant="outline" onClick={retry} disabled={upload.isPending}>
+              <RotateCw size={14} />
+              Try again
+            </Button>
+          </div>
+        )}
         {failed.length > 0 && <div className="text-[13px] text-error">{failed.join(" ")}</div>}
         {c.documents.length === 0 && (
           <div className="text-sm text-ink-2">

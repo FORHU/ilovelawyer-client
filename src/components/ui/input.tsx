@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes, ReactNode } from "react";
+import type { InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 
 export const inputClass =
@@ -47,4 +47,8 @@ export function WizardLabel({
       {children}
     </label>
   );
+}
+
+export function TextArea({ className, ...rest }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return <textarea className={cn(inputClass, "h-auto resize-y py-3 leading-[1.5]", className)} {...rest} />;
 }

@@ -1,4 +1,5 @@
 import type { NewCase } from "@/lib/cases/api";
+import { composeNotes } from "@/lib/cases/notes";
 import type { CaseArea, CaseRegion, OtherParty, Side } from "@/lib/types";
 
 // A few payment methods (some bank payments) leave the page to finish, then come back to
@@ -13,6 +14,9 @@ export interface CaseDraft {
   area: CaseArea;
   side: Side;
   others: OtherParty[];
+  /** Absent in a draft saved before these questions existed. */
+  happened?: string;
+  wants?: string;
   fileCount: number;
 }
 
@@ -82,5 +86,6 @@ export function newCaseFromDraft(paymentId: string, draft: Omit<CaseDraft, "file
     where: draft.where.trim(),
     side: draft.side || null,
     others: draft.others.filter((o) => o.name.trim()).map(({ name, role }) => ({ name: name.trim(), role })),
+    notes: composeNotes({ happened: draft.happened ?? "", wants: draft.wants ?? "" }) || undefined,
   };
 }
