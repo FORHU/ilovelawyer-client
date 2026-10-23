@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useGoogleLogin } from "@react-oauth/google";
 import { Mail } from "lucide-react";
 import { AuthFrame } from "@/components/auth/auth-frame";
 import {
@@ -14,6 +15,7 @@ import {
   primaryButtonClass,
   textButtonClass,
 } from "@/components/auth/form-parts";
+import { GoogleButton, GoogleDivider } from "@/components/auth/google-button";
 import { PasswordRequirements } from "@/components/auth/password-requirements";
 import { TermsReviewDialog } from "@/components/auth/terms-review-dialog";
 import { normalizeEmail } from "@/lib/auth/api";
@@ -22,6 +24,8 @@ import {
   SIGNED_IN_PATH,
   useCancelSignupMutation,
   useForgotPasswordMutation,
+  useGoogleLinkMutation,
+  useGoogleLoginMutation,
   useLoginMutation,
   useRestoreSessionQuery,
   useSendOtpMutation,
@@ -58,6 +62,8 @@ export function UnifiedAuth() {
   const verifyOtpMutation = useVerifyOtpMutation();
   const cancelSignupMutation = useCancelSignupMutation();
   const forgotPasswordMutation = useForgotPasswordMutation();
+  const googleLoginMutation = useGoogleLoginMutation();
+  const googleLinkMutation = useGoogleLinkMutation();
   const { data: sessionStatus } = useRestoreSessionQuery();
 
   const [tab, setTab] = useState<Tab>(() => tabFromParam(searchParams.get("tab")));
@@ -91,6 +97,16 @@ export function UnifiedAuth() {
   const [otpDigits, setOtpDigits] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [resendCooldown, setResendCooldown] = useState(0);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Google sign-in. The popup's onSuccess is a single callback shared by both tabs, so which
+  // remember choice was in effect when it was launched is captured in a ref rather than read
+  // from (possibly stale) state inside the callback.
+  const googleTokenRef = useRef<string | null>(null);
+  const googleRememberRef = useRef(true);
+  // Set by a GOOGLE_LINK_REQUIRED 409 — the existing password account's email, which the
+  // link step asks the password for.
+  const [googleLinkEmail, setGoogleLinkEmail] = useState<string | null>(null);
+  const [linkPassword, setLinkPassword] = useState("");
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -146,6 +162,9 @@ export function UnifiedAuth() {
     setOtpEmail("");
     setOtpDigits(Array(OTP_LENGTH).fill(""));
     setResendCooldown(0);
+    setGoogleLinkEmail(null);
+    setLinkPassword("");
+    googleTokenRef.current = null;
   }
 
   function openOtp(email: string, source: "signup" | "signin") {
@@ -203,6 +222,66 @@ export function UnifiedAuth() {
           fail(err, "signup");
           if (isApiError(err) && err.code === EMAIL_REGISTERED_AS_LAWYER) document.getElementById("signup-email")?.focus();
         },
+      },
+    );
+  }
+
+  function submitGoogle(idToken: string, remember: boolean) {
+    clearMessages();
+    googleLoginMutation.mutate(
+      { idToken, remember },
+      {
+        onSuccess: resetForms,
+        onError: (err) => {
+          // An existing password account owns this email — offer to connect Google to it,
+          // which requires that account's password (AuthSvc.linkGoogle).
+          if (isApiError(err) && err.code === "GOOGLE_LINK_REQUIRED" && typeof err.body?.email === "string") {
+            setLinkPassword("");
+            setGoogleLinkEmail(err.body.email);
+            return;
+          }
+          googleTokenRef.current = null;
+          fail(err, tab === "signup" ? "signup" : "signin");
+        },
+      },
+    );
+  }
+
+  const googleLogin = useGoogleLogin({
+    onSuccess: ({ access_token }) => {
+      googleTokenRef.current = access_token;
+      submitGoogle(access_token, googleRememberRef.current);
+    },
+    onError: () => setError("Couldn't connect to Google. Try again."),
+  });
+
+  function launchGoogle() {
+    clearMessages();
+    googleRememberRef.current = tab === "signin" ? remember : true;
+    googleLogin();
+  }
+
+  function exitGoogleLink() {
+    googleTokenRef.current = null;
+    setGoogleLinkEmail(null);
+    setLinkPassword("");
+    clearMessages();
+  }
+
+  function handleGoogleLink(e: React.SyntheticEvent) {
+    e.preventDefault();
+    const idToken = googleTokenRef.current;
+    if (!idToken || !googleLinkEmail) return;
+    clearMessages();
+    googleLinkMutation.mutate(
+      { idToken, password: linkPassword, remember: googleRememberRef.current },
+      {
+        onSuccess: () => {
+          setGoogleLinkEmail(null);
+          setLinkPassword("");
+          resetForms();
+        },
+        onError: (err) => fail(err, "signin"),
       },
     );
   }
@@ -287,7 +366,9 @@ export function UnifiedAuth() {
 
   const heading = otpStep
     ? "Verify Your Email"
-    : tab === "signup"
+    : googleLinkEmail
+      ? "Connect Google"
+      : tab === "signup"
       ? "Create Your Account"
       : tab === "recover"
         ? recoverSent
@@ -297,6 +378,11 @@ export function UnifiedAuth() {
   const subheading = otpStep ? (
     <>
       Enter the 6-digit code sent to <span className="font-semibold text-ink">{otpEmail}</span>
+    </>
+  ) : googleLinkEmail ? (
+    <>
+      An account already exists for <span className="font-semibold text-ink">{googleLinkEmail}</span>. Enter its
+      password to connect Google.
     </>
   ) : tab === "recover" ? (
     recoverSent ? (
@@ -359,6 +445,28 @@ export function UnifiedAuth() {
             </button>
           </div>
         </div>
+      ) : googleLinkEmail ? (
+        <form onSubmit={handleGoogleLink} className="flex flex-col gap-6">
+          <Field id="google-link-password" label="Password">
+            <PasswordInput
+              id="google-link-password"
+              value={linkPassword}
+              onChange={setLinkPassword}
+              placeholder="Enter the account's password"
+              autoComplete="current-password"
+            />
+          </Field>
+
+          <FormError message={error} lawyerLink={lawyerLink} />
+
+          <button type="submit" disabled={googleLinkMutation.isPending} className={primaryButtonClass}>
+            {googleLinkMutation.isPending ? "Connecting…" : "Connect Google"}
+          </button>
+
+          <button type="button" onClick={exitGoogleLink} className={textButtonClass}>
+            Back to sign in
+          </button>
+        </form>
       ) : (
         <>
           {/* Tab navigation */}
@@ -436,6 +544,9 @@ export function UnifiedAuth() {
               <button type="submit" disabled={loginMutation.isPending} className={primaryButtonClass}>
                 {loginMutation.isPending ? "Signing In…" : "Sign In"}
               </button>
+
+              <GoogleDivider />
+              <GoogleButton onClick={launchGoogle} pending={googleLoginMutation.isPending} />
             </form>
           )}
 
@@ -546,6 +657,9 @@ export function UnifiedAuth() {
               >
                 {signupMutation.isPending ? "Creating Account…" : "Create Account"}
               </button>
+
+              <GoogleDivider />
+              <GoogleButton onClick={launchGoogle} pending={googleLoginMutation.isPending} />
             </form>
           )}
 

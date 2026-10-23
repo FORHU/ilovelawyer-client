@@ -64,6 +64,19 @@ export function login(input: { email: string; password: string; remember: boolea
   return post<AuthResponse>("/api/auth/login", { ...input, email: normalizeEmail(input.email) });
 }
 
+/** `acceptedTerms` is always sent true: this app has no separate Terms step for Google (the
+ * password signup's checkbox already covers it), so a brand-new Google identity is created
+ * straight away instead of the API's 428 TERMS_ACCEPTANCE_REQUIRED round trip. */
+export function googleLogin(idToken: string, remember: boolean) {
+  return post<AuthResponse>("/api/auth/google", { idToken, remember, acceptedTerms: true });
+}
+
+/** The GOOGLE_LINK_REQUIRED follow-up: attaches the Google identity to the existing password
+ * account once its password is confirmed. */
+export function googleLink(idToken: string, password: string, remember: boolean) {
+  return post<AuthResponse>("/api/auth/google/link", { idToken, password, remember });
+}
+
 export function forgotPassword(email: string) {
   return post<{ message: string }>("/api/auth/forgot-password", { email: normalizeEmail(email) });
 }

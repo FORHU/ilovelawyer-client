@@ -5,6 +5,8 @@ import {
   cancelSignup,
   fetchMe,
   forgotPassword,
+  googleLink,
+  googleLogin,
   leaveToLogin,
   login,
   logout,
@@ -72,6 +74,25 @@ export function useLoginMutation() {
   return useMutation({
     mutationFn: login,
     onSuccess: (data) => complete(data, data.deletionCancelled ? DELETION_CANCELLED_BANNER : welcomeBack(data.user.name)),
+  });
+}
+
+export function useGoogleLoginMutation() {
+  const complete = useCompleteSignIn();
+  return useMutation({
+    mutationFn: ({ idToken, remember }: { idToken: string; remember: boolean }) => googleLogin(idToken, remember),
+    onSuccess: (data) => complete(data, data.deletionCancelled ? DELETION_CANCELLED_BANNER : welcomeBack(data.user.name)),
+  });
+}
+
+/** The GOOGLE_LINK_REQUIRED follow-up: same completion as a Google sign-in once the existing
+ * account's password confirms the link. */
+export function useGoogleLinkMutation() {
+  const complete = useCompleteSignIn();
+  return useMutation({
+    mutationFn: ({ idToken, password, remember }: { idToken: string; password: string; remember: boolean }) =>
+      googleLink(idToken, password, remember),
+    onSuccess: (data) => complete(data, welcomeBack(data.user.name)),
   });
 }
 
