@@ -9,8 +9,8 @@ import { FilePicker } from "@/components/ui/file-picker";
 import { AiMark } from "@/components/ui/misc";
 import { LawyerSuggestion } from "@/components/case/lawyer-suggestion";
 import { useMessagesQuery, useSendMessageMutation, useUploadDocumentsMutation } from "@/lib/cases/queries";
-import { useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
 import { usePayment } from "@/lib/payment-store";
+import { useApp } from "@/lib/store";
 import type { Case } from "@/lib/types";
 
 const PROMPTS = [
@@ -22,7 +22,7 @@ const PROMPTS = [
 
 export function Consultation({ c }: { c: Case }) {
   const credits = c.credits;
-  const { data: openRequest } = useOpenLawyerRequestQuery(c.id);
+  const lawyerStatus = useApp((s) => s.lawyer.status);
   const { data, error: loadError } = useMessagesQuery(c.id);
   const sendMessage = useSendMessageMutation(c.id);
   const upload = useUploadDocumentsMutation(c.id);
@@ -111,7 +111,7 @@ export function Consultation({ c }: { c: Case }) {
                 The AI couldn&apos;t answer that one. Try asking again.
               </div>
             )}
-            {latestAnswer && !thinking && !openRequest && (
+            {latestAnswer && !thinking && lawyerStatus === "none" && (
               <LawyerSuggestion caseId={c.id} latestAnswerId={latestAnswer.id} />
             )}
             {thinking && (

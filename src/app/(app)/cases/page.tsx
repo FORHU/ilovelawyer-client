@@ -13,9 +13,8 @@ import { Eyebrow } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { parseNotes } from "@/lib/cases/notes";
 import { useArchivedCasesQuery, useCasesQuery, useUnarchiveCaseMutation } from "@/lib/cases/queries";
-import { clientRequestStatusLabel, useOpenLawyerRequestsQuery } from "@/lib/lawyer-requests/api";
 import { money, usePricingQuery } from "@/lib/pricing";
-import { useApp } from "@/lib/store";
+import { lawyerLabel, useApp } from "@/lib/store";
 import { AREA_LABELS, type Case } from "@/lib/types";
 
 // The cases list follows the lawyer app's case portfolio: one row per case with sortable date
@@ -99,7 +98,8 @@ export default function CasesPage() {
   const active = useCasesQuery();
   const archived = useArchivedCasesQuery(status === "ARCHIVED");
   const list = status === "ACTIVE" ? active : archived;
-  const { data: openRequests } = useOpenLawyerRequestsQuery();
+  // Main keeps one lawyer request at a time in the app store.
+  const { lawyer } = useApp();
   const { data: pricing } = usePricingQuery();
   const restore = useUnarchiveCaseMutation();
 
@@ -250,7 +250,7 @@ export default function CasesPage() {
             </div>
             <div className="md:min-w-[720px]">
               {shown.map((c) => {
-                const openRequest = openRequests?.get(c.id);
+                const law = lawyer.caseId === c.id && lawyer.status !== "none";
                 const note = notesLine(c.notes);
                 const title = (
                   <>
@@ -294,8 +294,8 @@ export default function CasesPage() {
                       </span>
                     </div>
                     <div className="flex items-center justify-between gap-3 md:contents">
-                      <span className={cn("text-[12px] md:text-[13px]", openRequest ? "text-gold" : "text-muted")}>
-                        {openRequest ? clientRequestStatusLabel(openRequest.status) : status === "ACTIVE" ? "No request" : "Archived"}
+                      <span className={cn("text-[12px] md:text-[13px]", law ? "text-gold" : "text-muted")}>
+                        {law ? lawyerLabel(lawyer.status) : status === "ACTIVE" ? "No request" : "Archived"}
                       </span>
                       <ActionMenu label={`Actions for ${c.title}`} items={menuFor(c)} className="justify-self-end" />
                     </div>

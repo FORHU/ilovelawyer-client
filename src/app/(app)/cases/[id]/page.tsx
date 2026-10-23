@@ -9,27 +9,30 @@ import { Documents, Overview } from "@/components/case/overview-docs";
 import { Tabs, type TabDef } from "@/components/case/tabs";
 import { ApiError } from "@/lib/api/fetch";
 import { useCaseQuery } from "@/lib/cases/queries";
-import { clientRequestStage, useLatestLawyerRequestQuery } from "@/lib/lawyer-requests/api";
+import { useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
+import { useApp } from "@/lib/store";
 
 export default function CasePage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const { data: c, error, isPending } = useCaseQuery(id);
-  const { data: latestRequest } = useLatestLawyerRequestQuery(id);
+  const { data: openRequest } = useOpenLawyerRequestQuery(id);
+  const lawyer = useApp((s) => s.lawyer);
+  const unread = useApp((s) => s.lawyerUnread);
   const [tab, setTab] = useState("chat");
 
-  // Withdrawn is the client's own deliberate action, so it drops straight back to the ordinary
-  // case view rather than leaving a banner; every other status, including the terminal ones, gets
-  // a tab (the "No lawyer found" explanation in particular — #19 — is EXPIRED's whole point).
-  const request = latestRequest && clientRequestStage(latestRequest.status) !== "withdrawn" ? latestRequest : null;
-  const hasLawyerTab = !!request;
-  // Adjust state while rendering: jump to the Lawyer tab when a request starts (made here, or on
-  // another device — the open-request query covers both).
+  const hasLawyerTab = !!c && lawyer.caseId === c.id && lawyer.status !== "none";
+  // Adjust state while rendering: jump to the Lawyer tab when a request starts.
   const [hadLawyerTab, setHadLawyerTab] = useState(hasLawyerTab);
   if (hadLawyerTab !== hasLawyerTab) {
     setHadLawyerTab(hasLawyerTab);
     setTab(hasLawyerTab ? "lawyer" : "chat");
   }
+
+  // A request made on another device shows here too; one withdrawn elsewhere goes away.
+  useEffect(() => {
+    if (openRequest !== undefined) useApp.getState().syncLawyerRequest(id, openRequest?.id ?? null);
+  }, [id, openRequest]);
 
   const notFound = error instanceof ApiError && error.status === 404;
   useEffect(() => {
@@ -50,7 +53,7 @@ export default function CasePage() {
     { id: "chat", label: "Consultation" },
     { id: "overview", label: "Overview" },
     { id: "docs", label: "Documents" },
-    ...(request ? [{ id: "lawyer", label: "Lawyer" }] : []),
+    ...(hasLawyerTab ? [{ id: "lawyer", label: "Lawyer", dot: unread && active !== "lawyer" }] : []),
   ];
 
   return (
@@ -60,7 +63,7 @@ export default function CasePage() {
       {active === "chat" && <Consultation c={c} />}
       {active === "overview" && <Overview c={c} />}
       {active === "docs" && <Documents c={c} />}
-      {active === "lawyer" && request && <LawyerTab c={c} request={request} />}
+      {active === "lawyer" && <LawyerTab c={c} />}
     </div>
   );
 }

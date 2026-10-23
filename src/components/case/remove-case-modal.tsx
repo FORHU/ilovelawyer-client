@@ -2,14 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { Modal } from "@/components/ui/modal";
 import { ApiError } from "@/lib/api/fetch";
-import { useSession } from "@/lib/auth/session";
 import { useArchiveCaseMutation, useDeleteCaseMutation } from "@/lib/cases/queries";
-import { invalidateLawyerRequests } from "@/lib/lawyer-requests/api";
 import { useApp } from "@/lib/store";
 import type { Case } from "@/lib/types";
 
@@ -18,8 +15,6 @@ export type RemoveMode = "archive" | "delete";
 /** Setting a case aside, or deleting it, with the consequences said first. Mounted only while open. */
 export function RemoveCaseModal({ c, mode, onClose }: { c: Case; mode: RemoveMode; onClose: () => void }) {
   const router = useRouter();
-  const queryClient = useQueryClient();
-  const userId = useSession((s) => s.user?.id);
   const archive = useArchiveCaseMutation();
   const remove = useDeleteCaseMutation();
   const [error, setError] = useState("");
@@ -32,8 +27,8 @@ export function RemoveCaseModal({ c, mode, onClose }: { c: Case; mode: RemoveMod
     setBlockedByLawyer(false);
     mutation.mutate(c.id, {
       onSuccess: () => {
-        // The API just withdrew any open lawyer request on this case as a side effect.
-        invalidateLawyerRequests(queryClient, userId, c.id);
+        // A request the API just withdrew for this case leaves the Lawyer tab's local state too.
+        useApp.getState().syncLawyerRequest(c.id, null);
         useApp.getState().setBanner(deleting ? "Case deleted." : "Case archived. You can restore it from your cases list.");
         onClose();
         router.push("/cases");

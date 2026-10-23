@@ -8,9 +8,8 @@ import { Avatar, Logo, initialsOf } from "@/components/ui/misc";
 import { useSession } from "@/lib/auth/session";
 import { useCasesQuery } from "@/lib/cases/queries";
 import { cn } from "@/lib/cn";
-import { clientRequestStatusLabel, useOpenLawyerRequestsQuery } from "@/lib/lawyer-requests/api";
 import { money, usePricingQuery } from "@/lib/pricing";
-import { useApp } from "@/lib/store";
+import { lawyerLabel, useApp } from "@/lib/store";
 import { AREA_LABELS } from "@/lib/types";
 
 const railBtn =
@@ -19,9 +18,8 @@ const railBtn =
 export function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { sidebarCollapsed: collapsed, toggleSidebar } = useApp();
+  const { lawyer, sidebarCollapsed: collapsed, toggleSidebar } = useApp();
   const { data: cases = [] } = useCasesQuery();
-  const { data: openRequests } = useOpenLawyerRequestsQuery();
   const { data: pricing } = usePricingQuery();
   const fullName = useSession((s) => s.user?.name ?? "");
   const initials = initialsOf(fullName || "You");
@@ -74,7 +72,7 @@ export function Sidebar() {
               All cases
             </Link>
             {cases.map((c) => {
-              const openRequest = openRequests?.get(c.id);
+              const law = lawyer.caseId === c.id && lawyer.status !== "none";
               return (
                 <Link
                   key={c.id}
@@ -85,8 +83,8 @@ export function Sidebar() {
                   )}
                 >
                   <span className="truncate text-[13px] font-medium text-ink">{c.title}</span>
-                  <span className={cn("text-[11px]", openRequest ? "text-gold" : "text-muted")}>
-                    {openRequest ? clientRequestStatusLabel(openRequest.status) : AREA_LABELS[c.area]}
+                  <span className={cn("text-[11px]", law ? "text-gold" : "text-muted")}>
+                    {law ? lawyerLabel(lawyer.status) : AREA_LABELS[c.area]}
                   </span>
                 </Link>
               );

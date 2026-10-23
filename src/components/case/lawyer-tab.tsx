@@ -1,272 +1,203 @@
 "use client";
 
-import { useState } from "react";
-import { Check, CircleAlert, MessageCircleMore, Radar, Scale } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowUpRight, FileText, Paperclip, Radar } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ErrorBox } from "@/components/ui/banner";
 import { cn } from "@/lib/cn";
-import { CLIENT_REQUEST_STAGES, type ClientRequestStage } from "@/lib/client-handoff";
-import {
-  clientRequestStage,
-  useConfirmLawyerRequestMutation,
-  useDeclineLawyerRequestMutation,
-  useEndLawyerRequestMutation,
-  useWithdrawLawyerRequestMutation,
-  type LawyerRequest,
-} from "@/lib/lawyer-requests/api";
-import { money } from "@/lib/pricing";
-import type { Case } from "@/lib/types";
+import { useWithdrawLawyerRequestMutation } from "@/lib/lawyer-requests/api";
+import { useApp } from "@/lib/store";
+import { AREA_LABELS, type Case, type ThreadMessage } from "@/lib/types";
 
-// The main path's five stages (CLIENT_REQUEST_STAGES also has "expired" and "withdrawn", shown
-// as their own one-off cards below instead of on this line — withdrawn never reaches this tab at
-// all, since [id]/page.tsx drops straight back to the ordinary case view for it).
-const MAIN_STAGES = CLIENT_REQUEST_STAGES.filter((s): s is Exclude<ClientRequestStage, "expired" | "withdrawn"> => s !== "expired" && s !== "withdrawn");
+const QUICK = ["I've added my documents", "Can we schedule a call?", "What should I do next?"];
+const isDev = process.env.NODE_ENV !== "production";
 
-const STAGE_TITLE: Record<(typeof MAIN_STAGES)[number], string> = {
-  waiting: "Finding your lawyer",
-  review: "A lawyer is reviewing your case",
-  accepted: "Quote received",
-  ongoing: "Lawyer confirmed",
-  done: "Closed",
-};
-
-/** The five-stage progress line (#19). Past stages check off; the current one is highlighted;
- * later ones are dimmed. */
-function StageTimeline({ stage }: { stage: (typeof MAIN_STAGES)[number] }) {
-  const current = MAIN_STAGES.indexOf(stage);
+function FileCard({ name, mine }: { name: string; mine: boolean }) {
   return (
-    <div className="flex items-center gap-1.5" role="list" aria-label="Request progress">
-      {MAIN_STAGES.map((s, i) => (
-        <div key={s} className="flex flex-1 items-center gap-1.5" role="listitem">
-          <div
-            className={cn(
-              "flex size-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold",
-              i < current ? "border-ink bg-ink text-white" : i === current ? "border-gold bg-gold text-white" : "border-line text-muted",
-            )}
-            aria-current={i === current ? "step" : undefined}
-          >
-            {i < current ? <Check size={12} /> : i + 1}
-          </div>
-          {i < MAIN_STAGES.length - 1 && <div className={cn("h-px flex-1", i < current ? "bg-ink" : "bg-line")} />}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-const CARD = "flex flex-col gap-3 rounded-modal border border-line p-5";
-const LABEL = "text-[10px] font-semibold uppercase tracking-[1px] text-muted";
-
-function WithdrawButton({ requestId, caseId, disabled }: { requestId: string; caseId: string; disabled?: boolean }) {
-  const withdraw = useWithdrawLawyerRequestMutation(caseId);
-  const [error, setError] = useState("");
-  return (
-    <div className="flex flex-col gap-1.5">
-      {error && <ErrorBox message={error} />}
-      <Button
-        variant="ghost"
-        size="sm"
-        disabled={disabled || withdraw.isPending}
-        onClick={() => {
-          setError("");
-          withdraw.mutate(requestId, { onError: (err) => setError(err instanceof Error ? err.message : "Couldn't withdraw. Try again.") });
-        }}
-      >
-        {withdraw.isPending ? "Withdrawing…" : "Withdraw request"}
-      </Button>
-    </div>
-  );
-}
-
-function LawyerProfileCard({ lawyer }: { lawyer: NonNullable<LawyerRequest["lawyer"]> }) {
-  return (
-    <div className={CARD}>
-      <div className="flex items-center gap-3">
-        <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-ink text-sm font-semibold text-white">
-          {lawyer.name
-            .split(" ")
-            .slice(0, 2)
-            .map((w) => w[0])
-            .join("")
-            .toUpperCase()}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-[15px] font-semibold text-ink">{lawyer.name}</div>
-          <div className="truncate text-xs text-muted">
-            {lawyer.firmName ?? "Solo practitioner"} · {lawyer.regulator} {lawyer.registrationNumber}
-          </div>
-        </div>
-      </div>
-      {lawyer.bio && <p className="text-[13px] leading-[1.6] text-ink-2">{lawyer.bio}</p>}
-      {lawyer.firstConsultationFee && (
-        <div className="text-xs text-muted">First consultation fee: {money(lawyer.firstConsultationFee)}</div>
+    <div
+      className={cn(
+        "flex items-center gap-3 rounded-input border border-line bg-white px-3.5 py-2.5",
+        mine ? "self-end" : "ml-[38px] self-start",
       )}
-    </div>
-  );
-}
-
-function QuoteStage({ c, request }: { c: Case; request: LawyerRequest }) {
-  const confirm = useConfirmLawyerRequestMutation(c.id);
-  const decline = useDeclineLawyerRequestMutation(c.id);
-  const [error, setError] = useState("");
-  const confirmed = request.status === "CONFIRMED";
-
-  return (
-    <div className="flex flex-col gap-4">
-      {request.lawyer && <LawyerProfileCard lawyer={request.lawyer} />}
-
-      {request.quote && (
-        <div className={CARD}>
-          <div className={LABEL}>{request.quote.type === "FIXED_FEE" ? "Fixed fee" : "First consultation"}</div>
-          <div className="font-display text-[22px] tracking-[-0.02em] text-ink">{money(request.quote.amount)}</div>
-          {request.quote.message && <p className="text-[13px] leading-[1.6] text-ink-2">{request.quote.message}</p>}
-        </div>
-      )}
-
-      {request.referralDisclosure && (
-        <div className="rounded-input border border-line bg-subtle px-4 py-3 text-xs leading-[1.6] text-ink-2">
-          {request.referralDisclosure}
-        </div>
-      )}
-
-      {error && <ErrorBox message={error} />}
-
-      {confirmed ? (
-        <div className="flex items-center gap-2 rounded-input border border-line bg-subtle px-4 py-3 text-[13px] text-ink-2">
-          <Check size={14} className="text-success" />
-          Confirmed — paying the lawyer&apos;s introduction fee.
-        </div>
-      ) : (
-        <div className="flex gap-2.5">
-          <Button
-            size="md"
-            className="flex-1"
-            disabled={confirm.isPending || decline.isPending}
-            onClick={() => {
-              setError("");
-              confirm.mutate(request.id, { onError: (err) => setError(err instanceof Error ? err.message : "Couldn't confirm. Try again.") });
-            }}
-          >
-            {confirm.isPending ? "Confirming…" : "Confirm this lawyer"}
-          </Button>
-          <Button
-            variant="outline"
-            size="md"
-            className="flex-1"
-            disabled={confirm.isPending || decline.isPending}
-            onClick={() => {
-              setError("");
-              decline.mutate({ id: request.id }, { onError: (err) => setError(err instanceof Error ? err.message : "Couldn't decline. Try again.") });
-            }}
-          >
-            {decline.isPending ? "Declining…" : "Decline, find another lawyer"}
-          </Button>
-        </div>
-      )}
-      {!confirmed && <WithdrawButton requestId={request.id} caseId={c.id} disabled={confirm.isPending || decline.isPending} />}
-    </div>
-  );
-}
-
-function EngagedStage({ c, request }: { c: Case; request: LawyerRequest }) {
-  const end = useEndLawyerRequestMutation(c.id);
-  const [error, setError] = useState("");
-  return (
-    <div className="flex flex-col gap-4">
-      {request.lawyer && <LawyerProfileCard lawyer={request.lawyer} />}
-      <div className="flex flex-1 flex-col items-center justify-center gap-2.5 rounded-modal border border-dashed border-line-input px-6 py-10 text-center">
-        <MessageCircleMore size={20} className="text-muted" aria-hidden="true" />
-        <div className="text-[13px] leading-[1.6] text-ink-2">
-          Messages with your lawyer are coming soon. They can already see your case and documents.
-        </div>
+    >
+      <div className="flex size-[34px] shrink-0 items-center justify-center rounded-[10px] bg-chip text-gold">
+        <FileText size={15} />
       </div>
-      {error && <ErrorBox message={error} />}
-      <Button
-        variant="ghost"
-        size="sm"
-        disabled={end.isPending}
-        onClick={() => {
-          if (!window.confirm("End this engagement? Your lawyer will lose access to this case.")) return;
-          setError("");
-          end.mutate({ id: request.id }, { onError: (err) => setError(err instanceof Error ? err.message : "Couldn't end the engagement. Try again.") });
-        }}
-      >
-        {end.isPending ? "Ending…" : "End engagement"}
-      </Button>
-    </div>
-  );
-}
-
-function ClosedStage({ request }: { request: LawyerRequest }) {
-  return (
-    <div className={cn(CARD, "flex-row items-center gap-3")}>
-      <Check size={16} className="text-success" aria-hidden="true" />
-      <div className="text-[13px] text-ink-2">
-        {request.closedBy === "LAWYER" ? "Your lawyer closed this engagement." : "You ended this engagement."}
+      <div>
+        <div className="text-[13px] font-medium">{name}</div>
+        <div className="text-[11px] text-muted">Shared document</div>
       </div>
     </div>
   );
 }
 
-function ExpiredStage() {
-  return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-2.5 p-6 text-center">
-      <div className="flex size-12 items-center justify-center rounded-full border border-line text-danger">
-        <CircleAlert size={20} />
+function Message({ m }: { m: ThreadMessage }) {
+  if (m.role === "event")
+    return (
+      <div className="flex items-center gap-2 self-center rounded-input border border-line bg-subtle px-3.5 py-[7px] text-center text-xs text-ink-2">
+        {m.text}
       </div>
-      <div className="font-display text-[22px] tracking-[-0.02em]">No lawyer found</div>
-      <div className="max-w-[420px] text-[13px] leading-[1.6] text-ink-2">
-        No verified lawyer claimed this request in time. You haven&apos;t been charged for it, and any case fee credit stays on your account —
-        you can ask for a lawyer on this case again any time.
+    );
+  const mine = m.role === "user";
+  if (m.file) return <FileCard name={m.text} mine={mine} />;
+  if (mine)
+    return (
+      <div className="max-w-[75%] self-end rounded-[18px_18px_4px_18px] bg-ink px-4 py-3 text-[15px] leading-[1.6] text-white">
+        {m.text}
+      </div>
+    );
+  return (
+    <div className="flex items-end gap-2.5">
+      <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-ink text-[10px] font-semibold text-white">
+        MR
+      </div>
+      <div className="max-w-[75%] rounded-[18px_18px_18px_4px] border border-line bg-subtle px-4 py-3 text-[15px] leading-[1.6]">
+        {m.text}
       </div>
     </div>
   );
 }
 
-export function LawyerTab({ c, request }: { c: Case; request: LawyerRequest }) {
-  const stage = clientRequestStage(request.status);
+export function LawyerTab({ c }: { c: Case }) {
+  const status = useApp((s) => s.lawyer.status);
+  const thread = useApp((s) => s.thread);
+  const { sendToLawyer, attachToLawyer, cancelLawyerRequest, markLawyerRead, setBanner } = useApp.getState();
+  const requestId = useApp((s) => s.lawyer.requestId);
+  const withdraw = useWithdrawLawyerRequestMutation(c.id);
+  const cancel = () => {
+    if (!requestId) return cancelLawyerRequest();
+    withdraw.mutate(requestId, {
+      onSuccess: () => cancelLawyerRequest(),
+      onError: (err) => setBanner(err instanceof Error ? err.message : "Couldn't cancel the request. Try again."),
+    });
+  };
+  const [input, setInput] = useState("");
+  const scroller = useRef<HTMLDivElement>(null);
+  const closed = status === "closed";
 
-  if (stage === "expired") {
+  useEffect(() => {
+    markLawyerRead();
+  }, [markLawyerRead, thread.length, status]);
+
+  useEffect(() => {
+    const el = scroller.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [thread.length, status]);
+
+  if (status === "matching") {
     return (
       <div className="flex flex-1 items-center justify-center p-6">
-        <ExpiredStage />
+        <div className="flex max-w-[420px] flex-col items-center gap-2.5 rounded-modal border border-dashed border-line-input px-6 py-8 text-center">
+          <div className="flex size-12 items-center justify-center rounded-full border border-line text-gold">
+            <Radar size={20} />
+          </div>
+          <div className="font-display text-[22px] tracking-[-0.02em]">Finding your lawyer</div>
+          <div className="text-[13px] leading-[1.6] text-ink-2">
+            3 verified lawyers are reviewing your case. Most requests are accepted within an hour.
+          </div>
+          <div className="mt-2 flex flex-wrap justify-center gap-2">
+            {isDev && (
+              <Button variant="outline" size="sm" onClick={() => useApp.getState().demoLawyerAccept()}>
+                Demo: lawyer accepts
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={cancel} disabled={withdraw.isPending}>
+              {withdraw.isPending ? "Cancelling…" : "Cancel request"}
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
 
-  // [id]/page.tsx filters "withdrawn" out before mounting this tab at all — this is just so the
-  // rest of the function can narrow `stage` to the five main ones without TS complaining.
-  if (stage === "withdrawn") return null;
-
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 py-6 md:px-10">
-      <div className="mx-auto flex w-full max-w-[640px] flex-col gap-5">
-        <StageTimeline stage={stage} />
-        <div className="font-display text-[20px] tracking-[-0.02em] text-ink">{STAGE_TITLE[stage]}</div>
-
-        {stage === "waiting" && (
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2.5 rounded-input border border-line bg-subtle px-4 py-3 text-[13px] text-ink-2">
-              <Radar size={16} className="shrink-0 text-gold" aria-hidden="true" />
-              Verified UK lawyers are reviewing an anonymised summary of your case. Most requests are claimed within a day.
-            </div>
-            <WithdrawButton requestId={request.id} caseId={c.id} />
-          </div>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex shrink-0 items-center gap-3 border-b border-line px-4 py-2.5 md:px-6">
+        <div className="flex size-[34px] items-center justify-center rounded-full bg-ink text-xs font-semibold text-white">
+          MR
+        </div>
+        <div className="flex-1">
+          <div className="text-sm font-semibold">Atty. Maria Reyes</div>
+          <div className="text-xs text-muted">Verified · {AREA_LABELS[c.area]}</div>
+        </div>
+        {isDev && !closed && (
+          <Button variant="ghost" size="sm" data-no-tap onClick={() => useApp.getState().demoLawyerResolve()}>
+            Demo: resolve
+          </Button>
         )}
+        <span
+          className={cn(
+            "text-[11px] font-semibold uppercase tracking-[1px]",
+            closed ? "text-success" : "text-gold",
+          )}
+        >
+          {closed ? "Resolved" : "In consultation"}
+        </span>
+      </div>
 
-        {stage === "review" && (
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2.5 rounded-input border border-line bg-subtle px-4 py-3 text-[13px] text-ink-2">
-              <Scale size={16} className="shrink-0 text-gold" aria-hidden="true" />
-              A lawyer has taken your case for a conflict check and will send a quote shortly.
+      <div ref={scroller} className="flex-1 overflow-y-auto px-4 pb-3 pt-6 md:px-10">
+        <div className="mx-auto flex max-w-[720px] flex-col gap-3.5">
+          {thread.map((m, i) => (
+            <Message key={i} m={m} />
+          ))}
+          {closed && (
+            <div className="self-center rounded-input border border-line bg-subtle px-3.5 py-[7px] text-xs text-ink-2">
+              Consultation closed by Atty. Reyes
             </div>
-            <WithdrawButton requestId={request.id} caseId={c.id} />
-          </div>
-        )}
+          )}
+        </div>
+      </div>
 
-        {stage === "accepted" && <QuoteStage c={c} request={request} />}
-        {stage === "ongoing" && <EngagedStage c={c} request={request} />}
-        {stage === "done" && <ClosedStage request={request} />}
+      <div className="shrink-0 px-4 pb-[30px] pt-2 md:px-10 md:pb-[18px]">
+        <div className="mx-auto flex max-w-[720px] flex-col gap-2.5">
+          {!closed && (
+            <div className="flex flex-wrap gap-2">
+              {QUICK.map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => sendToLawyer(q)}
+                  className="min-h-10 rounded-full border border-line-chip bg-subtle px-3.5 text-[12.5px] font-medium text-ink hover:border-gold"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          )}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              sendToLawyer(input);
+              setInput("");
+            }}
+            className="flex items-center gap-1.5 rounded-composer border border-line bg-subtle p-2"
+          >
+            <button
+              type="button"
+              title="Attach a document"
+              aria-label="Attach a document"
+              onClick={attachToLawyer}
+              data-no-tap
+              className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line text-muted"
+            >
+              <Paperclip size={15} />
+            </button>
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Message Atty. Reyes…"
+              aria-label="Message Atty. Reyes"
+              className="min-w-0 flex-1 bg-transparent px-3.5 text-[15px] text-ink outline-none"
+            />
+            <button
+              type="submit"
+              aria-label="Send"
+              data-no-tap
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gold text-white"
+            >
+              <ArrowUpRight size={14} />
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );
