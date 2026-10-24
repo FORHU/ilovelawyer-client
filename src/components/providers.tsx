@@ -31,9 +31,16 @@ function getQueryClient() {
   return browserQueryClient;
 }
 
+// @react-oauth/google calls Google's own SDK with this clientId unconditionally once its script
+// loads (useGoogleLogin's effect, independent of whether the Google button is ever clicked) — an
+// empty string makes that call throw synchronously ("Missing required parameter client_id."),
+// crashing the whole page rather than just Google sign-in. A placeholder keeps that call valid
+// syntactically; without real credentials the Google button simply fails when clicked instead.
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "not-configured.apps.googleusercontent.com";
+
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ""}>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <QueryClientProvider client={getQueryClient()}>
         {children}
         <ReactQueryDevtools initialIsOpen={false} />

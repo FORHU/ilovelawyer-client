@@ -76,6 +76,68 @@ export interface ThreadMessage {
   file?: boolean;
 }
 
+/** The Overview tab's content and status (GET /api/client/cases/:id/overview). Mirrors
+ * ilovelawyer-api's src/types/client-overview.ts — change both together; the API's contract test
+ * fails on any field added or dropped. Deliberately has no outlook, win likelihood, strategy or
+ * attack/defense fields; those stay in the lawyer app. */
+export type OverviewPane = "strategy" | "findings" | "missingEvidence";
+/** keyDates is only ever READY or EMPTY. */
+export type SectionStatus = "EMPTY" | "RUNNING" | "READY" | "FAILED" | "STALE";
+
+export interface OverviewTimelineEntry {
+  id: string;
+  date: string | null;
+  label: string;
+  /** Both null when the entry has no source document, or it's no longer on the case. */
+  sourceDocumentId: string | null;
+  sourceDocumentName: string | null;
+}
+
+/** A procedural deadline. CONFIRMED once anyone has confirmed it. */
+export interface OverviewKeyDate {
+  id: string;
+  label: string;
+  date: string;
+  status: "CONFIRMED" | "ESTIMATED";
+}
+
+export interface OverviewGatherItem {
+  id: string;
+  title: string;
+  why: string;
+}
+
+/** A point that helps or may hurt the case. */
+export interface OverviewPoint {
+  id: string;
+  title: string;
+  detail: string | null;
+}
+
+export interface CaseOverview {
+  generatedAt: string | null;
+  /** The live job; null when nothing is running. */
+  job: { startedAt: string; panesDone: OverviewPane[] } | null;
+  /** READY documents added or removed since generatedAt; null when nothing changed. */
+  changedSince: { added: number; removed: number } | null;
+  updates: { allowed: boolean; leftToday: number };
+  sections: {
+    summary: SectionStatus;
+    timeline: SectionStatus;
+    /** Absent for a case outside the UK, with keyDates. */
+    keyDates?: SectionStatus;
+    toGather: SectionStatus;
+    helps: SectionStatus;
+    mayHurt: SectionStatus;
+  };
+  summary: string | null;
+  timeline: OverviewTimelineEntry[];
+  keyDates?: OverviewKeyDate[];
+  toGather: OverviewGatherItem[];
+  helps: OverviewPoint[];
+  mayHurt: OverviewPoint[];
+}
+
 export function sideLabel(side: Side | null) {
   return side === "CLAIMANT"
     ? "Bringing the complaint"
