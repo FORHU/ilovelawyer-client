@@ -2,7 +2,7 @@
 
 import { Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useEligibilityQuery, useLawyerRequestForm } from "@/lib/lawyer-requests/api";
+import { useEligibilityQuery, useLawyerRequestForm, useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
 import { useApp } from "@/lib/store";
 
 /** Why there's no lawyer for this case, in words the client can act on. */
@@ -17,10 +17,10 @@ export const NOT_AVAILABLE_TEXT = {
  * personal injury. Nothing while there's already a request, or before the case is paid for.
  */
 export function GetLawyerAction({ caseId }: { caseId: string }) {
-  const status = useApp((s) => s.lawyer.status);
+  const { data: openRequest } = useOpenLawyerRequestQuery(caseId);
   const { data } = useEligibilityQuery(caseId);
 
-  if (!data || status !== "none") return null;
+  if (!data || openRequest) return null;
 
   if (data.eligible) {
     return (
