@@ -1,53 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { FileText, Pencil, Plus, RotateCw } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { FileText, Plus, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FilePicker } from "@/components/ui/file-picker";
-import { KeyValueTable } from "@/components/ui/misc";
-import { EditCaseModal } from "@/components/case/edit-case-modal";
 import { checkFiles, useLimitsQuery } from "@/lib/cases/limits";
-import { parseNotes } from "@/lib/cases/notes";
 import { useUploadDocumentsMutation } from "@/lib/cases/queries";
 import { useFailedUploads, useFailedUploadsOf } from "@/lib/failed-uploads";
-import { AREA_LABELS, regionLabel, sideLabel, type Case, type DocumentStatus } from "@/lib/types";
+import { cn } from "@/lib/cn";
+import type { Case, DocumentStatus } from "@/lib/types";
 
-export function Overview({ c }: { c: Case }) {
-  const [editing, setEditing] = useState(false);
-  const notes = parseNotes(c.notes);
-  return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="mx-auto flex max-w-[720px] flex-col gap-5 px-4 py-7 md:px-10">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-[13px] text-ink-2">You can edit these details any time.</p>
-          <Button variant="outline" onClick={() => setEditing(true)}>
-            <Pencil size={14} />
-            Edit
-          </Button>
-        </div>
-        {editing && <EditCaseModal c={c} onClose={() => setEditing(false)} />}
-        <KeyValueTable
-          rows={[
-            { k: "Case title", v: c.title },
-            { k: "Type of issue", v: AREA_LABELS[c.area] },
-            { k: "Part of the UK", v: regionLabel(c.ukJurisdiction) },
-            { k: "Town or city", v: c.where || "Not set" },
-            { k: "Your side", v: sideLabel(c.side) },
-            {
-              k: "Others involved",
-              v: c.others.length
-                ? c.others.map((o) => `${o.name} (${o.role})`).join(", ")
-                : "None added",
-            },
-            { k: "What happened", v: notes.happened || "Not added" },
-            { k: "What you want", v: notes.wants || "Not added" },
-            { k: "Documents", v: `${c.documents.length} attached` },
-          ]}
-        />
-      </div>
-    </div>
-  );
-}
+// Overview moved to components/case/overview/overview.tsx (#45). This file keeps the Documents
+// tab, which Overview's document links switch to (via focusDocumentId below).
 
 const STATUS_TEXT: Record<DocumentStatus, string> = {
   PENDING: "Reading…",
@@ -55,12 +19,31 @@ const STATUS_TEXT: Record<DocumentStatus, string> = {
   FAILED: "Couldn't read this file",
 };
 
-export function Documents({ c }: { c: Case }) {
+export function Documents({
+  c,
+  focusDocumentId,
+  onFocused,
+}: {
+  c: Case;
+  /** Scrolled into view and briefly highlighted once — a document link from Overview (#45). */
+  focusDocumentId?: string | null;
+  onFocused?: () => void;
+}) {
   const upload = useUploadDocumentsMutation(c.id);
   const { data: limits } = useLimitsQuery();
   const [failed, setFailed] = useState<string[]>([]);
   /** Files from the wizard that didn't upload when the case was made (kept in memory only). */
   const leftOver = useFailedUploadsOf(c.id);
+  const rows = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Highlight follows focusDocumentId directly (no state of its own) — onFocused clears it in
+  // the parent once the highlight has had time to be seen, which ends it here too.
+  useEffect(() => {
+    if (!focusDocumentId) return;
+    rows.current[focusDocumentId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const timer = setTimeout(() => onFocused?.(), 1600);
+    return () => clearTimeout(timer);
+  }, [focusDocumentId, onFocused]);
 
   const add = (picked: File[]) => {
     const { accepted, rejected } = checkFiles(picked, limits);
@@ -120,7 +103,13 @@ export function Documents({ c }: { c: Case }) {
             {c.documents.map((d) => (
               <div
                 key={d.id}
-                className="flex items-center gap-3 border-b border-line px-[18px] py-[14px] text-sm last:border-b-0"
+                ref={(el) => {
+                  rows.current[d.id] = el;
+                }}
+                className={cn(
+                  "flex items-center gap-3 border-b border-line px-[18px] py-[14px] text-sm transition-colors last:border-b-0",
+                  focusDocumentId === d.id && "bg-chip",
+                )}
               >
                 <FileText size={16} className="text-gold" />
                 <span className="min-w-0 flex-1 truncate">{d.name}</span>

@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "@/lib/auth/session";
-import type { Case, CaseDocument } from "@/lib/types";
+import type { Case, CaseDocument, CaseOverview } from "@/lib/types";
 import {
   archiveCase,
   createCase,
   deleteCase,
+  generateOverview,
   getCase,
+  getOverview,
   listCases,
   listMessages,
   sendMessage,
@@ -22,6 +24,8 @@ import {
  * document being read). */
 const BUSY_POLL_MS = 1500;
 const DOCUMENT_POLL_MS = 4000;
+/** While the overview's job is running, how often to check for the next pane finishing. */
+const OVERVIEW_POLL_MS = 3000;
 
 /** Keyed by account as well, so a session that ends without a sign-out (an expired refresh) never
  * shows the next account the previous one's cases. */
@@ -31,6 +35,7 @@ export const caseKeys = {
   archived: (userId: string | undefined) => [...caseKeys.all(userId), "archived"] as const,
   detail: (userId: string | undefined, id: string) => [...caseKeys.all(userId), "detail", id] as const,
   messages: (userId: string | undefined, id: string) => [...caseKeys.all(userId), "messages", id] as const,
+  overview: (userId: string | undefined, id: string) => [...caseKeys.all(userId), "overview", id] as const,
 };
 
 function useUserId() {
@@ -59,6 +64,32 @@ export function useCaseQuery(id: string) {
     enabled: !!userId,
     // Picks up a document once the API has read it.
     refetchInterval: (q) => (stillReading(q.state.data) ? DOCUMENT_POLL_MS : false),
+  });
+}
+
+/** The Overview tab's content and status. Polls while the overview's own job is running, and
+ * while the case has a document still being read — so the automatic first-document run (and any
+ * later STALE once it finishes reading) shows up without the client reloading the page. */
+export function useOverviewQuery(caseId: string, hasPendingDocuments: boolean) {
+  const userId = useUserId();
+  return useQuery({
+    queryKey: caseKeys.overview(userId, caseId),
+    queryFn: () => getOverview(caseId),
+    enabled: !!userId,
+    refetchInterval: (q) => (q.state.data?.job || hasPendingDocuments ? OVERVIEW_POLL_MS : false),
+  });
+}
+
+/** Generate (first run) or Update (after STALE). The response is always the current state —
+ * running right away if this press started the job, or unchanged if one was already running. */
+export function useGenerateOverviewMutation(caseId: string) {
+  const queryClient = useQueryClient();
+  const userId = useUserId();
+  return useMutation({
+    mutationFn: () => generateOverview(caseId),
+    onSuccess: (overview: CaseOverview) => {
+      queryClient.setQueryData(caseKeys.overview(userId, caseId), overview);
+    },
   });
 }
 
@@ -149,6 +180,10 @@ export function useUploadDocumentsMutation(caseId: string) {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: caseKeys.detail(userId, caseId) });
       queryClient.invalidateQueries({ queryKey: caseKeys.list(userId) });
+      // A newly added document can be what the overview's automatic first run was waiting on, or
+      // what makes a generated one STALE — either way the tab's own poll (useOverviewQuery) picks
+      // the rest up once the document finishes reading, this just avoids the wait for that poll.
+      queryClient.invalidateQueries({ queryKey: caseKeys.overview(userId, caseId) });
     },
   });
 }
