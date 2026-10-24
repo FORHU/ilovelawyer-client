@@ -1,7 +1,7 @@
 name: Deploy Dev
 
 # FORHU/ilovelawyer-client → the shared dev host (ap-southeast-1),
-# served at https://dev-app.ilovelawyer.com — the dev copy of what will become
+# served at https://app-dev.ilovelawyer.com — the dev copy of what will become
 # app.ilovelawyer.com. This is the client for USERS; ph.* and uk.* are the
 # lawyer-facing app and stay on the ilovelawyer-app container.
 #
@@ -115,6 +115,7 @@ jobs:
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
             NEXT_PUBLIC_LAWYER_APP_URL_PH=${{ secrets.NEXT_PUBLIC_LAWYER_APP_URL_PH }}
             NEXT_PUBLIC_LAWYER_APP_URL_UK=${{ secrets.NEXT_PUBLIC_LAWYER_APP_URL_UK }}
+            NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
 
       - name: Deploy via SSM
         id: send
