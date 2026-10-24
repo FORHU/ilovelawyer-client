@@ -77,9 +77,11 @@ export function generateOverview(caseId: string) {
   return post<CaseOverview>(`/api/client/cases/${caseId}/overview/generate`, {});
 }
 
-/** The answer is written in the background; listMessages shows it when it's done. */
-export function sendMessage(caseId: string, text: string) {
-  return post<{ messageId: string }>(`/api/client/cases/${caseId}/messages`, { text });
+/** The answer is written in the background; listMessages shows it when it's done. `documentIds`
+ * are the case's documents to send with it (up to 5), each READY: one still being read gets 409
+ * DOCUMENTS_NOT_READY, with a message naming it. */
+export function sendMessage(caseId: string, text: string, documentIds?: string[]) {
+  return post<{ messageId: string }>(`/api/client/cases/${caseId}/messages`, { text, documentIds });
 }
 
 /** Browsers often give no type for .docx and friends; S3 still needs one to sign. */
@@ -96,7 +98,12 @@ export async function uploadDocument(caseId: string, file: File): Promise<CaseDo
     contentType,
     fileSize: file.size,
   });
-  const put = await fetch(uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": contentType } }).catch(() => null);
+  const put = await fetch(uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": contentType } }).catch((err: unknown) => {
+    // A blocked CORS preflight (the bucket not allowing this app's origin) lands here, not as a status.
+    console.error(`Upload of ${file.name} to S3 failed`, err);
+    return null;
+  });
+  if (put && !put.ok) console.error(`Upload of ${file.name} to S3 failed with ${put.status}`);
   if (!put?.ok) throw new Error(`Couldn't upload ${file.name}. Try again.`);
   return post<CaseDocument>(`/api/client/cases/${caseId}/documents`, { key, name: file.name, contentType, fileSize: file.size });
 }
