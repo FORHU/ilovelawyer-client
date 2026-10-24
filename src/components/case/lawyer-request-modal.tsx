@@ -12,7 +12,6 @@ import {
   useCreateLawyerRequestMutation,
   useLawyerRequestForm,
 } from "@/lib/lawyer-requests/api";
-import { useApp } from "@/lib/store";
 
 /** The request form: a note for the lawyer, then the consent (the anonymised summary, names only
  * for the conflict check, the lawyer keeping a copy) and the referral-fee disclosure, which the
@@ -38,8 +37,7 @@ function RequestForm({ caseId }: { caseId: string }) {
     create.mutate(
       { note: note.trim(), consentVersion: consent.data.version },
       {
-        onSuccess: (request) => {
-          useApp.getState().requestLawyer(caseId, request.id);
+        onSuccess: () => {
           close();
         },
         onError: (err) => {

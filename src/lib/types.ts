@@ -68,14 +68,6 @@ export interface ChatMessage {
   createdAt: string;
 }
 
-export type LawyerStatus = "none" | "matching" | "accepted" | "closed";
-
-export interface ThreadMessage {
-  role: "user" | "lawyer" | "event";
-  text: string;
-  file?: boolean;
-}
-
 /** The Overview tab's content and status (GET /api/client/cases/:id/overview). Mirrors
  * ilovelawyer-api's src/types/client-overview.ts — change both together; the API's contract test
  * fails on any field added or dropped. Deliberately has no outlook, win likelihood, strategy or
