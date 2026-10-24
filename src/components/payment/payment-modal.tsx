@@ -20,7 +20,7 @@ import {
 } from "@/lib/billing/pending-case";
 import { caseKeys, uploadAll, useCreateCaseMutation } from "@/lib/cases/queries";
 import { useSession } from "@/lib/auth/session";
-import { PROMO_HINT, money, usePricingQuery } from "@/lib/pricing";
+import { money, usePricingQuery } from "@/lib/pricing";
 import { usePayment } from "@/lib/payment-store";
 import { useApp } from "@/lib/store";
 import { useFailedUploads } from "@/lib/failed-uploads";
@@ -265,7 +265,7 @@ export function PaymentModal() {
             Promo code
           </label>
           <div className="flex gap-2">
-            <TextInput id="promo" placeholder={`Try ${PROMO_HINT}`} value={pay.promoInput} onChange={(e) => pay.setPromoInput(e.target.value)} />
+            <TextInput id="promo" placeholder="Promo code" value={pay.promoInput} onChange={(e) => pay.setPromoInput(e.target.value)} />
             <Button variant="outline" size="lg" className="shrink-0 !px-[18px]" onClick={applyPromo}>
               Apply
             </Button>
