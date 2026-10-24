@@ -10,8 +10,7 @@ import { DocLink } from "@/components/case/overview/doc-link";
 import { ApiError } from "@/lib/api/fetch";
 import { overviewBanner, staleChangeText } from "@/lib/cases/overview-copy";
 import { useGenerateOverviewMutation, useOverviewQuery } from "@/lib/cases/queries";
-import { useEligibilityQuery, useLawyerRequestForm } from "@/lib/lawyer-requests/api";
-import { useApp } from "@/lib/store";
+import { useEligibilityQuery, useLawyerRequestForm, useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
 import type { Case, OverviewPane, OverviewPoint, SectionStatus } from "@/lib/types";
 
 const PANE_LABEL: Record<OverviewPane, string> = {
@@ -277,9 +276,9 @@ function PointsSection({
 }
 
 function Footer({ caseId }: { caseId: string }) {
-  const status = useApp((s) => s.lawyer.status);
+  const { data: openRequest } = useOpenLawyerRequestQuery(caseId);
   const { data } = useEligibilityQuery(caseId);
-  const canAsk = status === "none" && data?.eligible;
+  const canAsk = !openRequest && data?.eligible;
   return (
     <div className="flex flex-col gap-2 border-t border-line pt-3.5 text-xs text-ink-2">
       <span>This is general information to help you understand your case. It isn&apos;t legal advice.</span>
