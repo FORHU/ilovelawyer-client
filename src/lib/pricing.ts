@@ -1,27 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
 import { getPricing, type Money } from "./billing/api";
 
-// Prices come from the API (GET /api/client/pricing); see usePricingQuery. The one exception is
-// the Terms text, which is shown before sign-in and versioned, so it states the price itself.
-// Keep TERMS_CASE_PRICE / TERMS_CASE_CREDITS in step with the API's CLIENT_CASE_PRICE_MINOR /
-// CLIENT_CASE_CREDITS, and bump the Terms version when they change.
-export const TERMS_CASE_PRICE = 9.99;
-export const TERMS_CASE_CREDITS = 50;
+// Prices come from the API (GET /api/client/pricing), where admins set them in ilovelawyer-admin;
+// see usePricingQuery. The Terms don't state a price, so a price change never needs a new Terms
+// version.
 
-/** Shown in the promo box while promos are placeholders. */
-export const PROMO_HINT = "WELCOME5";
-
-/** "$9.99", or "$10" for a whole amount. Accepts a plain number for the Terms text. */
-export function money(value: Money | number) {
-  const { amountMinor, currency } = typeof value === "number" ? { amountMinor: Math.round(value * 100), currency: "USD" } : value;
-  const amount = amountMinor / 100;
+/** "$9.99", or "$10" for a whole amount; "¥500" for a currency without minor units. */
+export function money({ amountMinor, currency }: Money) {
+  const digits = new Intl.NumberFormat("en-US", { style: "currency", currency }).resolvedOptions().maximumFractionDigits ?? 2;
+  const amount = amountMinor / 10 ** digits;
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
-    minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+    minimumFractionDigits: Number.isInteger(amount) ? 0 : digits,
   }).format(amount);
 }
 
+/** Matches the API's own cache, so an admin's price change shows within about two minutes at most.
+ * Checkout always charges the API's current price, whatever this shows. */
 export function usePricingQuery() {
-  return useQuery({ queryKey: ["pricing"], queryFn: getPricing, staleTime: 1000 * 60 * 30 });
+  return useQuery({ queryKey: ["pricing"], queryFn: getPricing, staleTime: 1000 * 60 });
 }
