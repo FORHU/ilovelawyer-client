@@ -59,12 +59,17 @@ export interface Case {
   updatedAt: string;
 }
 
+/** A case document as it shows under the message it was sent with. */
+export type MessageDocument = Pick<CaseDocument, "id" | "name" | "status">;
+
 export interface ChatMessage {
   id: string;
   role: "user" | "ai";
   text: string;
   /** On the client's own messages: whether the AI's answer arrived. */
   replyStatus: "PENDING" | "DONE" | "FAILED" | "CANCELLED" | null;
+  /** The case documents sent with the client's message. Always empty on the AI's. */
+  documents: MessageDocument[];
   createdAt: string;
 }
 
