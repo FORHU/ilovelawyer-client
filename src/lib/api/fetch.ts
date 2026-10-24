@@ -2,12 +2,14 @@ import { useSession } from "@/lib/auth/session";
 import { API_URL, COOKIE_PATHS } from "./config";
 
 /** A failed API call. `status` is 0 when the API couldn't be reached at all. `code` is the API's
- * optional machine-readable reason (e.g. WRONG_APP), absent on most errors. */
+ * optional machine-readable reason (e.g. WRONG_APP), absent on most errors. `body` carries any
+ * extra data an error code sends along, e.g. GOOGLE_LINK_REQUIRED's `email`. */
 export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
     public code?: string,
+    public body?: Record<string, unknown>,
   ) {
     super(message);
     this.name = "ApiError";
@@ -87,9 +89,9 @@ async function send(path: string, options: FetchOptions): Promise<Response> {
 
 async function throwIfNotOk(res: Response): Promise<void> {
   if (res.ok) return;
-  const body = (await res.json().catch(() => ({}))) as { message?: string; code?: string };
+  const body = (await res.json().catch(() => ({}))) as { message?: string; code?: string } & Record<string, unknown>;
   const message = res.status >= 500 ? "Something went wrong on our side. Try again in a moment." : (body.message ?? "Request failed");
-  throw new ApiError(message, res.status, body.code);
+  throw new ApiError(message, res.status, body.code, body);
 }
 
 export async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T> {
