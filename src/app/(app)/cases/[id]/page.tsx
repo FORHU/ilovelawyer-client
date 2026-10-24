@@ -62,9 +62,17 @@ export default function CasePage() {
       <CaseHeader c={c} />
       <Tabs tabs={tabs} active={active} onChange={setTab} />
       {active === "chat" && <Consultation c={c} />}
-      {active === "overview" && <Overview c={c} />}
-      {active === "docs" && <Documents c={c} />}
-      {active === "lawyer" && <LawyerTab c={c} />}
+      {active === "overview" && (
+        <Overview
+          c={c}
+          onOpenDocument={(documentId) => {
+            setFocusDocumentId(documentId);
+            setTab("docs");
+          }}
+        />
+      )}
+      {active === "docs" && <Documents c={c} focusDocumentId={focusDocumentId} onFocused={clearFocusDocument} />}
+      {active === "lawyer" && request && <LawyerTab c={c} request={request} />}
     </div>
   );
 }
