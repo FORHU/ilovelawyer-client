@@ -101,7 +101,7 @@ export function Consultation({ c }: { c: Case }) {
                   <AiMark />
                   <div className="flex min-w-0 flex-col gap-2.5 text-[15px] leading-[1.7]">
                     <div className="whitespace-pre-line">{m.text}</div>
-                    <div className="text-xs text-muted">General information, not legal advice.</div>
+                    <div className="text-xs text-muted">Gathering information for your lawyer, not legal advice.</div>
                   </div>
                 </div>
               ),
