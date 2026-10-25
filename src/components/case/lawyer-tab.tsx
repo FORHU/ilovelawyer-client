@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Check, CircleAlert, MessageCircleMore, Radar, Scale } from "lucide-react";
+import { Check, CircleAlert, Radar, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { cn } from "@/lib/cn";
+import { LawyerMessages } from "@/components/case/lawyer-messages";
 import { CLIENT_REQUEST_STAGES, type ClientRequestStage } from "@/lib/client-handoff";
 import {
   clientRequestStage,
@@ -174,12 +175,7 @@ function EngagedStage({ c, request }: { c: Case; request: LawyerRequest }) {
   return (
     <div className="flex flex-col gap-4">
       {request.lawyer && <LawyerProfileCard lawyer={request.lawyer} />}
-      <div className="flex flex-1 flex-col items-center justify-center gap-2.5 rounded-modal border border-dashed border-line-input px-6 py-10 text-center">
-        <MessageCircleMore size={20} className="text-muted" aria-hidden="true" />
-        <div className="text-[13px] leading-[1.6] text-ink-2">
-          Messages with your lawyer are coming soon. They can already see your case and documents.
-        </div>
-      </div>
+      <LawyerMessages c={c} requestId={request.id} lawyerName={request.lawyer?.name ?? "your lawyer"} closed={false} />
       {error && <ErrorBox message={error} />}
       <Button
         variant="ghost"
@@ -197,13 +193,17 @@ function EngagedStage({ c, request }: { c: Case; request: LawyerRequest }) {
   );
 }
 
-function ClosedStage({ request }: { request: LawyerRequest }) {
+function ClosedStage({ c, request }: { c: Case; request: LawyerRequest }) {
   return (
-    <div className={cn(CARD, "flex-row items-center gap-3")}>
-      <Check size={16} className="text-success" aria-hidden="true" />
-      <div className="text-[13px] text-ink-2">
-        {request.closedBy === "LAWYER" ? "Your lawyer closed this engagement." : "You ended this engagement."}
+    <div className="flex flex-col gap-4">
+      <div className={cn(CARD, "flex-row items-center gap-3")}>
+        <Check size={16} className="text-success" aria-hidden="true" />
+        <div className="text-[13px] text-ink-2">
+          {request.closedBy === "LAWYER" ? "Your lawyer closed this engagement." : "You ended this engagement."}
+        </div>
       </div>
+      {/* The thread stays readable after the engagement ends (ilovelawyer-api#517). */}
+      {request.lawyer && <LawyerMessages c={c} requestId={request.id} lawyerName={request.lawyer.name} closed />}
     </div>
   );
 }
@@ -266,7 +266,7 @@ export function LawyerTab({ c, request }: { c: Case; request: LawyerRequest }) {
 
         {stage === "accepted" && <QuoteStage c={c} request={request} />}
         {stage === "ongoing" && <EngagedStage c={c} request={request} />}
-        {stage === "done" && <ClosedStage request={request} />}
+        {stage === "done" && <ClosedStage c={c} request={request} />}
       </div>
     </div>
   );
