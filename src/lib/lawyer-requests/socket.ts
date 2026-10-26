@@ -54,11 +54,14 @@ export function useLawyerRequestSocket(): void {
     const onConnect = () => invalidateLawyerRequestQueries(queryClient);
 
     sock.on("client-request:updated", onUpdated);
+    // The lawyer posted in the engagement thread (#517): the thread's query is a lawyer-request one too.
+    sock.on("engagement:message", onUpdated);
     sock.on("connect", onConnect);
     sock.connect();
 
     return () => {
       sock.off("client-request:updated", onUpdated);
+      sock.off("engagement:message", onUpdated);
       sock.off("connect", onConnect);
       sock.disconnect();
     };
