@@ -35,6 +35,11 @@
   --color-error-line: #e8b4b0;
   --color-error-ink: #8c1d18;
 
+  /* Needs attention, not wrong — a stale Overview, an unconfirmed deadline. */
+  --color-warn-bg: #fbf5e6;
+  --color-warn-line: #ecd9a8;
+  --color-warn-ink: #6d4d00;
+
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-caslon), Georgia, serif;
 

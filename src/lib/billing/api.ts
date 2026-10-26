@@ -23,7 +23,8 @@ export interface TopUpPack {
 export interface Pricing {
   case: { price: Money; credits: number };
   topUpPacks: TopUpPack[];
-  defaultPackId: string;
+  /** Null when an admin has hidden every pack. */
+  defaultPackId: string | null;
 }
 
 export interface CaseQuote {

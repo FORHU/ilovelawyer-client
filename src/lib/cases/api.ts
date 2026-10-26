@@ -1,5 +1,5 @@
 import { apiFetch } from "@/lib/api/fetch";
-import type { Case, CaseArea, CaseDocument, ChatMessage, OtherParty, UkJurisdiction } from "@/lib/types";
+import type { Case, CaseArea, CaseDocument, CaseOverview, ChatMessage, OtherParty, UkJurisdiction } from "@/lib/types";
 
 // The client app's own routes (/api/client, ilovelawyer-api's client.route.ts). They only answer
 // a client account, and always work in that client's personal workspace, so no organization
@@ -64,6 +64,17 @@ export function deleteCase(id: string) {
 
 export function listMessages(caseId: string) {
   return apiFetch<CaseMessages>(`/api/client/cases/${caseId}/messages`);
+}
+
+/** The Overview tab's content and status — a plain read, no AI call. */
+export function getOverview(caseId: string) {
+  return apiFetch<CaseOverview>(`/api/client/cases/${caseId}/overview`);
+}
+
+/** Generate (first run) or Update (after STALE) the overview. Two quick requests start one job:
+ * the response is always the current state, running or not. */
+export function generateOverview(caseId: string) {
+  return post<CaseOverview>(`/api/client/cases/${caseId}/overview/generate`, {});
 }
 
 /** The answer is written in the background; listMessages shows it when it's done. */

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { CaseHeader } from "@/components/case/case-header";
 import { Consultation } from "@/components/case/consultation";
 import { LawyerTab } from "@/components/case/lawyer-tab";
-import { Documents, Overview } from "@/components/case/overview-docs";
+import { Documents } from "@/components/case/overview-docs";
+import { Overview } from "@/components/case/overview/overview";
 import { Tabs, type TabDef } from "@/components/case/tabs";
 import { ApiError } from "@/lib/api/fetch";
 import { useCaseQuery } from "@/lib/cases/queries";
@@ -17,6 +18,9 @@ export default function CasePage() {
   const { data: c, error, isPending } = useCaseQuery(id);
   const { data: latestRequest } = useLatestLawyerRequestQuery(id);
   const [tab, setTab] = useState("chat");
+  /** A document link from Overview (#45): switches to Documents and scrolls to that file. */
+  const [focusDocumentId, setFocusDocumentId] = useState<string | null>(null);
+  const clearFocusDocument = useCallback(() => setFocusDocumentId(null), []);
 
   // Withdrawn is the client's own deliberate action, so it drops straight back to the ordinary
   // case view rather than leaving a banner; every other status, including the terminal ones, gets
@@ -58,8 +62,16 @@ export default function CasePage() {
       <CaseHeader c={c} />
       <Tabs tabs={tabs} active={active} onChange={setTab} />
       {active === "chat" && <Consultation c={c} />}
-      {active === "overview" && <Overview c={c} />}
-      {active === "docs" && <Documents c={c} />}
+      {active === "overview" && (
+        <Overview
+          c={c}
+          onOpenDocument={(documentId) => {
+            setFocusDocumentId(documentId);
+            setTab("docs");
+          }}
+        />
+      )}
+      {active === "docs" && <Documents c={c} focusDocumentId={focusDocumentId} onFocused={clearFocusDocument} />}
       {active === "lawyer" && request && <LawyerTab c={c} request={request} />}
     </div>
   );
