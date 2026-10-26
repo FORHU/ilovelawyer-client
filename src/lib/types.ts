@@ -77,66 +77,82 @@ export interface ChatMessage {
   createdAt: string;
 }
 
-/** The Overview tab's content and status (GET /api/client/cases/:id/overview). Mirrors
- * ilovelawyer-api's src/types/client-overview.ts — change both together; the API's contract test
- * fails on any field added or dropped. Deliberately has no outlook, win likelihood, strategy or
- * attack/defense fields; those stay in the lawyer app. */
-export type OverviewPane = "strategy" | "findings" | "missingEvidence";
-/** keyDates is only ever READY or EMPTY. */
-export type SectionStatus = "EMPTY" | "RUNNING" | "READY" | "FAILED" | "STALE";
+/** The Overview tab's content and status (GET /api/client/cases/:id/intake). Mirrors
+ * ilovelawyer-api's src/types/client-intake.ts — change both together. Deliberately has no
+ * points that help/hurt the case, no computed deadline, no outlook or win likelihood: this is an
+ * intake record, not a case assessment (docs/adr/0018-client-app-is-intake-not-advice.md, in the
+ * API repo). A deadline here is only ever one the client or a document actually stated. */
+export type IntakeStatus = "EMPTY" | "RUNNING" | "READY" | "FAILED" | "STALE";
 
-export interface OverviewTimelineEntry {
+export type IntakeSourceKind = "CASE_DETAILS" | "CLIENT" | "DOCUMENT";
+
+export interface IntakeSource {
+  kind: IntakeSourceKind;
+  /** Set for CLIENT: the chat message this came from. */
+  messageId: string | null;
+  /** Set for DOCUMENT: which file, and the page when known. */
+  documentId: string | null;
+  documentName: string | null;
+  page: number | null;
+}
+
+export interface IntakeItem {
   id: string;
+  text: string;
+  sources: IntakeSource[];
+}
+
+export interface IntakeEvent extends IntakeItem {
   date: string | null;
-  label: string;
-  /** Both null when the entry has no source document, or it's no longer on the case. */
-  sourceDocumentId: string | null;
-  sourceDocumentName: string | null;
+  datePrecision: "DAY" | "MONTH" | "YEAR" | "UNKNOWN";
 }
 
-/** A procedural deadline. CONFIRMED once anyone has confirmed it. */
-export interface OverviewKeyDate {
-  id: string;
-  label: string;
-  date: string;
-  status: "CONFIRMED" | "ESTIMATED";
+export interface IntakePerson extends IntakeItem {
+  name: string;
+  /** How they're involved, e.g. "the employer", "a witness". */
+  role: string;
 }
 
-export interface OverviewGatherItem {
+/** A deadline, hearing date or time limit exactly as stated — never computed. */
+export interface IntakeDeadline extends IntakeItem {
+  date: string | null;
+}
+
+export interface IntakeGap {
   id: string;
-  title: string;
+  question: string;
   why: string;
 }
 
-/** A point that helps or may hurt the case. */
-export interface OverviewPoint {
+/** Two or more sources disagreeing on a fact, date or detail. */
+export interface IntakeConflict {
   id: string;
-  title: string;
-  detail: string | null;
+  description: string;
+  sources: IntakeSource[];
 }
 
-export interface CaseOverview {
+export interface IntakeCompleteness {
+  criteria: { key: string; label: string; met: boolean }[];
+  ready: boolean;
+}
+
+export interface CaseIntake {
   generatedAt: string | null;
-  /** The live job; null when nothing is running. */
-  job: { startedAt: string; panesDone: OverviewPane[] } | null;
-  /** READY documents added or removed since generatedAt; null when nothing changed. */
-  changedSince: { added: number; removed: number } | null;
+  status: IntakeStatus;
   updates: { allowed: boolean; leftToday: number };
-  sections: {
-    summary: SectionStatus;
-    timeline: SectionStatus;
-    /** Absent for a case outside the UK, with keyDates. */
-    keyDates?: SectionStatus;
-    toGather: SectionStatus;
-    helps: SectionStatus;
-    mayHurt: SectionStatus;
-  };
+  /** AI-written, neutral — always shown labelled as an AI summary, never as settled fact. */
   summary: string | null;
-  timeline: OverviewTimelineEntry[];
-  keyDates?: OverviewKeyDate[];
-  toGather: OverviewGatherItem[];
-  helps: OverviewPoint[];
-  mayHurt: OverviewPoint[];
+  people: IntakePerson[];
+  timeline: IntakeEvent[];
+  facts: IntakeItem[];
+  goals: IntakeItem[];
+  concerns: IntakeItem[];
+  questionsForLawyer: IntakeItem[];
+  deadlines: IntakeDeadline[];
+  missing: IntakeGap[];
+  conflicts: IntakeConflict[];
+  /** From Lawyer Readiness when that check is enabled; null when it's off or hasn't run. */
+  completeness: IntakeCompleteness | null;
 }
 
 export function sideLabel(side: Side | null) {

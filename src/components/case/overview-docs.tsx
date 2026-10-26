@@ -1,17 +1,31 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FilePicker } from "@/components/ui/file-picker";
 import { checkFiles, useLimitsQuery } from "@/lib/cases/limits";
-import { useUploadDocumentsMutation, useUploadingFiles } from "@/lib/cases/queries";
+import { useIntakeQuery, useUploadDocumentsMutation, useUploadingFiles } from "@/lib/cases/queries";
 import { useFailedUploads, useFailedUploadsOf } from "@/lib/failed-uploads";
 import type { Case } from "@/lib/types";
 import { DocumentRow, UploadingRow } from "./document-row";
 
 // Overview moved to components/case/overview/overview.tsx (#45). This file keeps the Documents
 // tab, which Overview's document links switch to (via focusDocumentId below).
+
+/** How many overview items cite each document, from every sourced list in the intake. */
+function usageCounts(itemLists: { sources: { kind: string; documentId: string | null }[] }[][]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const list of itemLists) {
+    for (const item of list) {
+      for (const s of item.sources) {
+        if (s.kind !== "DOCUMENT" || !s.documentId) continue;
+        counts.set(s.documentId, (counts.get(s.documentId) ?? 0) + 1);
+      }
+    }
+  }
+  return counts;
+}
 
 export function Documents({
   c,
@@ -25,7 +39,17 @@ export function Documents({
 }) {
   const upload = useUploadDocumentsMutation(c.id);
   const { data: limits } = useLimitsQuery();
+  const { data: intake } = useIntakeQuery(c.id, c.documents.some((d) => d.status === "PENDING"));
   const [failed, setFailed] = useState<string[]>([]);
+  const usedIn = useMemo(
+    () =>
+      usageCounts(
+        intake
+          ? [intake.people, intake.timeline, intake.facts, intake.goals, intake.concerns, intake.questionsForLawyer, intake.deadlines, intake.conflicts]
+          : [],
+      ),
+    [intake],
+  );
   /** Files from the wizard that didn't upload when the case was made (kept in memory only). */
   const leftOver = useFailedUploadsOf(c.id);
   const rows = useRef<Record<string, HTMLDivElement | null>>({});
@@ -106,6 +130,7 @@ export function Documents({
                 focused={focusDocumentId === d.id}
                 confirming={confirmingId === d.id}
                 onConfirmChange={(on) => setConfirmingId(on ? d.id : null)}
+                usedIn={usedIn.get(d.id) ?? 0}
                 rowRef={(el) => {
                   rows.current[d.id] = el;
                 }}

@@ -51,7 +51,7 @@ export default function CasePage() {
 
   const active = tab === "lawyer" && !hasLawyerTab ? "chat" : tab;
   const tabs: TabDef[] = [
-    { id: "chat", label: "Consultation" },
+    { id: "chat", label: "Interview" },
     { id: "overview", label: "Overview" },
     { id: "docs", label: "Documents" },
     ...(request ? [{ id: "lawyer", label: "Lawyer" }] : []),
@@ -69,6 +69,8 @@ export default function CasePage() {
             setFocusDocumentId(documentId);
             setTab("docs");
           }}
+          // The Interview tab has no per-message anchor yet, so "You said" just switches to it.
+          onOpenChat={() => setTab("chat")}
         />
       )}
       {active === "docs" && <Documents c={c} focusDocumentId={focusDocumentId} onFocused={clearFocusDocument} />}

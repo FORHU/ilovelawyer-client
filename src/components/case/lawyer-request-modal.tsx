@@ -60,7 +60,7 @@ function RequestForm({ caseId }: { caseId: string }) {
       onClose={close}
       locked={create.isPending}
       title="Get a lawyer"
-      subtitle="Verified UK lawyers see an anonymised summary of this case and can offer to take it on."
+      subtitle="Verified UK lawyers see an anonymised version of your overview — your timeline, goals and questions — and can offer to take your case on."
     >
       <div className="flex flex-col gap-1.5">
         <label htmlFor="lawyer-note" className="text-xs font-semibold text-ink-2">

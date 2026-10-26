@@ -1,17 +1,17 @@
 import { useMutation, useMutationState, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "@/lib/auth/session";
-import type { Case, CaseDocument, CaseOverview } from "@/lib/types";
+import type { Case, CaseDocument, CaseIntake } from "@/lib/types";
 import {
   archiveCase,
   createCase,
   deleteCase,
   deleteDocument,
-  generateOverview,
-  getDocumentUrl,
   getCase,
-  getOverview,
+  getDocumentUrl,
+  getIntake,
   listCases,
   listMessages,
+  refreshIntake,
   retryDocument,
   sendMessage,
   unarchiveCase,
@@ -27,8 +27,8 @@ import {
  * document being read). */
 const BUSY_POLL_MS = 1500;
 const DOCUMENT_POLL_MS = 4000;
-/** While the overview's job is running, how often to check for the next pane finishing. */
-const OVERVIEW_POLL_MS = 3000;
+/** While the intake's job is running, how often to check for it to finish. */
+const INTAKE_POLL_MS = 3000;
 
 /** Keyed by account as well, so a session that ends without a sign-out (an expired refresh) never
  * shows the next account the previous one's cases. */
@@ -38,7 +38,7 @@ export const caseKeys = {
   archived: (userId: string | undefined) => [...caseKeys.all(userId), "archived"] as const,
   detail: (userId: string | undefined, id: string) => [...caseKeys.all(userId), "detail", id] as const,
   messages: (userId: string | undefined, id: string) => [...caseKeys.all(userId), "messages", id] as const,
-  overview: (userId: string | undefined, id: string) => [...caseKeys.all(userId), "overview", id] as const,
+  intake: (userId: string | undefined, id: string) => [...caseKeys.all(userId), "intake", id] as const,
 };
 
 function useUserId() {
@@ -70,28 +70,28 @@ export function useCaseQuery(id: string) {
   });
 }
 
-/** The Overview tab's content and status. Polls while the overview's own job is running, and
- * while the case has a document still being read — so the automatic first-document run (and any
- * later STALE once it finishes reading) shows up without the client reloading the page. */
-export function useOverviewQuery(caseId: string, hasPendingDocuments: boolean) {
+/** The Overview tab's content and status. Polls while the intake's own job is running, and while
+ * the case has a document still being read — so the automatic triggers (after a chat reply, a
+ * document finishing, or a case-details edit) show up without the client reloading the page. */
+export function useIntakeQuery(caseId: string, hasPendingDocuments: boolean) {
   const userId = useUserId();
   return useQuery({
-    queryKey: caseKeys.overview(userId, caseId),
-    queryFn: () => getOverview(caseId),
+    queryKey: caseKeys.intake(userId, caseId),
+    queryFn: () => getIntake(caseId),
     enabled: !!userId,
-    refetchInterval: (q) => (q.state.data?.job || hasPendingDocuments ? OVERVIEW_POLL_MS : false),
+    refetchInterval: (q) => (q.state.data?.status === "RUNNING" || hasPendingDocuments ? INTAKE_POLL_MS : false),
   });
 }
 
-/** Generate (first run) or Update (after STALE). The response is always the current state —
- * running right away if this press started the job, or unchanged if one was already running. */
-export function useGenerateOverviewMutation(caseId: string) {
+/** The Update button. The response is always the current state — running right away if this
+ * press started the job, or unchanged if one was already running. */
+export function useRefreshIntakeMutation(caseId: string) {
   const queryClient = useQueryClient();
   const userId = useUserId();
   return useMutation({
-    mutationFn: () => generateOverview(caseId),
-    onSuccess: (overview: CaseOverview) => {
-      queryClient.setQueryData(caseKeys.overview(userId, caseId), overview);
+    mutationFn: () => refreshIntake(caseId),
+    onSuccess: (intake: CaseIntake) => {
+      queryClient.setQueryData(caseKeys.intake(userId, caseId), intake);
     },
   });
 }
@@ -156,7 +156,7 @@ export function useSendMessageMutation(caseId: string) {
   const queryClient = useQueryClient();
   const userId = useUserId();
   return useMutation({
-    mutationFn: (text: string) => sendMessage(caseId, text),
+    mutationFn: ({ text, documentIds }: { text: string; documentIds?: string[] }) => sendMessage(caseId, text, documentIds),
     // The case too: sending used a credit.
     onSettled: () => queryClient.invalidateQueries({ queryKey: caseKeys.all(userId) }),
   });
@@ -199,16 +199,16 @@ export function useUploadDocumentsMutation(caseId: string) {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: caseKeys.detail(userId, caseId) });
       queryClient.invalidateQueries({ queryKey: caseKeys.list(userId) });
-      // A newly added document can be what the overview's automatic first run was waiting on, or
-      // what makes a generated one STALE — either way the tab's own poll (useOverviewQuery) picks
+      // A newly added document can be what the intake's automatic refresh was waiting on, or
+      // what makes a generated one STALE — either way the tab's own poll (useIntakeQuery) picks
       // the rest up once the document finishes reading, this just avoids the wait for that poll.
-      queryClient.invalidateQueries({ queryKey: caseKeys.overview(userId, caseId) });
+      queryClient.invalidateQueries({ queryKey: caseKeys.intake(userId, caseId) });
     },
   });
 }
 
-/** Removing a document changes the case, its row in the list, and the overview: its "based on"
- * links go at once (DocLink looks the document up on the case), and the overview turns STALE. */
+/** Removing a document changes the case, its row in the list, and the overview: its source
+ * links go at once (SourceBadge looks the document up on the case), and the intake turns STALE. */
 export function useDeleteDocumentMutation(caseId: string) {
   const queryClient = useQueryClient();
   const userId = useUserId();
@@ -217,7 +217,7 @@ export function useDeleteDocumentMutation(caseId: string) {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: caseKeys.detail(userId, caseId) });
       queryClient.invalidateQueries({ queryKey: caseKeys.list(userId) });
-      queryClient.invalidateQueries({ queryKey: caseKeys.overview(userId, caseId) });
+      queryClient.invalidateQueries({ queryKey: caseKeys.intake(userId, caseId) });
     },
   });
 }
@@ -230,7 +230,7 @@ export function useRetryDocumentMutation(caseId: string) {
     mutationFn: (documentId: string) => retryDocument(caseId, documentId),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: caseKeys.detail(userId, caseId) });
-      queryClient.invalidateQueries({ queryKey: caseKeys.overview(userId, caseId) });
+      queryClient.invalidateQueries({ queryKey: caseKeys.intake(userId, caseId) });
     },
   });
 }

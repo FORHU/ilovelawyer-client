@@ -1,5 +1,5 @@
 import { apiFetch } from "@/lib/api/fetch";
-import type { Case, CaseArea, CaseDocument, CaseOverview, ChatMessage, OtherParty, UkJurisdiction } from "@/lib/types";
+import type { Case, CaseArea, CaseDocument, CaseIntake, ChatMessage, OtherParty, UkJurisdiction } from "@/lib/types";
 
 // The client app's own routes (/api/client, ilovelawyer-api's client.route.ts). They only answer
 // a client account, and always work in that client's personal workspace, so no organization
@@ -67,14 +67,16 @@ export function listMessages(caseId: string) {
 }
 
 /** The Overview tab's content and status — a plain read, no AI call. */
-export function getOverview(caseId: string) {
-  return apiFetch<CaseOverview>(`/api/client/cases/${caseId}/overview`);
+export function getIntake(caseId: string) {
+  return apiFetch<CaseIntake>(`/api/client/cases/${caseId}/intake`);
 }
 
-/** Generate (first run) or Update (after STALE) the overview. Two quick requests start one job:
- * the response is always the current state, running or not. */
-export function generateOverview(caseId: string) {
-  return post<CaseOverview>(`/api/client/cases/${caseId}/overview/generate`, {});
+/** Update the intake by hand. Two quick requests start one job: the response is always the
+ * current state, running or not. The intake also refreshes on its own — after a chat reply,
+ * a document finishing, or an edit to the case details — so this is only for "I just told it
+ * something and want the overview caught up right now". */
+export function refreshIntake(caseId: string) {
+  return post<CaseIntake>(`/api/client/cases/${caseId}/intake/refresh`, {});
 }
 
 /** The answer is written in the background; listMessages shows it when it's done. `documentIds`

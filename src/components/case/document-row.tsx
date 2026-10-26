@@ -12,7 +12,7 @@ import type { CaseDocument, DocumentStatus } from "@/lib/types";
 const STATUS_TEXT: Record<DocumentStatus, string> = {
   PENDING: "Reading…",
   READY: "Ready",
-  FAILED: "Couldn't read this file",
+  FAILED: "We couldn't read this file. Try a PDF or a clearer scan — your lawyer can still see it.",
 };
 
 /** 44px to tap on a phone, the usual 36px from md up (as get-lawyer-action.tsx). */
@@ -26,6 +26,7 @@ export function DocumentRow({
   focused,
   confirming,
   onConfirmChange,
+  usedIn = 0,
   rowRef,
 }: {
   caseId: string;
@@ -35,6 +36,8 @@ export function DocumentRow({
   /** This row is asking whether to remove the document. One row at a time (Documents keeps which). */
   confirming: boolean;
   onConfirmChange: (confirming: boolean) => void;
+  /** How many overview items cite this document (Overview's intake sources). 0 shows nothing. */
+  usedIn?: number;
   rowRef: Ref<HTMLDivElement>;
 }) {
   const remove = useDeleteDocumentMutation(caseId);
@@ -84,6 +87,9 @@ export function DocumentRow({
             <div className="text-xs text-muted">
               {meta} · <span className={d.status === "FAILED" ? "text-error" : undefined}>{STATUS_TEXT[d.status]}</span>
             </div>
+            {d.status === "READY" && usedIn > 0 && (
+              <div className="text-xs text-muted">Used in {usedIn} overview item{usedIn === 1 ? "" : "s"}</div>
+            )}
           </div>
         </div>
         {confirming ? (
