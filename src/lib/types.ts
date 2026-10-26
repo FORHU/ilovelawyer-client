@@ -38,6 +38,10 @@ export interface CaseDocument {
   id: string;
   name: string;
   status: DocumentStatus;
+  /** Bytes. Null when the upload didn't say. */
+  size: number | null;
+  uploadedAt: string;
+  /** Same as uploadedAt; the API keeps it for older apps. */
   createdAt: string;
 }
 

@@ -1,15 +1,18 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useMutationState, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "@/lib/auth/session";
 import type { Case, CaseDocument, CaseOverview } from "@/lib/types";
 import {
   archiveCase,
   createCase,
   deleteCase,
+  deleteDocument,
   generateOverview,
+  getDocumentUrl,
   getCase,
   getOverview,
   listCases,
   listMessages,
+  retryDocument,
   sendMessage,
   unarchiveCase,
   updateCase,
@@ -159,12 +162,28 @@ export function useSendMessageMutation(caseId: string) {
   });
 }
 
+/** Every upload to the case still going, by its mutation key: the Documents tab lists their files
+ * as rows while they upload (useMutationState). */
+export function uploadDocumentsKey(userId: string | undefined, caseId: string) {
+  return [...caseKeys.all(userId), "upload-documents", caseId] as const;
+}
+
+/** The files of every upload to the case still going, from here or from the chat. */
+export function useUploadingFiles(caseId: string): File[] {
+  const userId = useUserId();
+  return useMutationState({
+    filters: { mutationKey: uploadDocumentsKey(userId, caseId), status: "pending" },
+    select: (m) => (m.state.variables as File[] | undefined) ?? [],
+  }).flat();
+}
+
 /** Uploads files one after another. Resolves with what went in and what didn't, rather than
  * failing the whole batch for one bad file. */
 export function useUploadDocumentsMutation(caseId: string) {
   const queryClient = useQueryClient();
   const userId = useUserId();
   return useMutation({
+    mutationKey: uploadDocumentsKey(userId, caseId),
     mutationFn: async (files: File[]) => {
       const added: CaseDocument[] = [];
       const failed: { name: string; reason: string }[] = [];
@@ -186,6 +205,39 @@ export function useUploadDocumentsMutation(caseId: string) {
       queryClient.invalidateQueries({ queryKey: caseKeys.overview(userId, caseId) });
     },
   });
+}
+
+/** Removing a document changes the case, its row in the list, and the overview: its "based on"
+ * links go at once (DocLink looks the document up on the case), and the overview turns STALE. */
+export function useDeleteDocumentMutation(caseId: string) {
+  const queryClient = useQueryClient();
+  const userId = useUserId();
+  return useMutation({
+    mutationFn: (documentId: string) => deleteDocument(caseId, documentId),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: caseKeys.detail(userId, caseId) });
+      queryClient.invalidateQueries({ queryKey: caseKeys.list(userId) });
+      queryClient.invalidateQueries({ queryKey: caseKeys.overview(userId, caseId) });
+    },
+  });
+}
+
+/** The document goes back to PENDING, so useCaseQuery polls again until it's read. */
+export function useRetryDocumentMutation(caseId: string) {
+  const queryClient = useQueryClient();
+  const userId = useUserId();
+  return useMutation({
+    mutationFn: (documentId: string) => retryDocument(caseId, documentId),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: caseKeys.detail(userId, caseId) });
+      queryClient.invalidateQueries({ queryKey: caseKeys.overview(userId, caseId) });
+    },
+  });
+}
+
+/** Fetched on each View rather than cached: the link only lives a few minutes. */
+export function useDocumentUrlMutation(caseId: string) {
+  return useMutation({ mutationFn: (documentId: string) => getDocumentUrl(caseId, documentId) });
 }
 
 /** For uploading right after creating a case, before any component for it is mounted. Returns the

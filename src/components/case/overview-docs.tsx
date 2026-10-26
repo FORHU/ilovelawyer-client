@@ -1,23 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FileText, Plus, RotateCw } from "lucide-react";
+import { Plus, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FilePicker } from "@/components/ui/file-picker";
 import { checkFiles, useLimitsQuery } from "@/lib/cases/limits";
-import { useUploadDocumentsMutation } from "@/lib/cases/queries";
+import { useUploadDocumentsMutation, useUploadingFiles } from "@/lib/cases/queries";
 import { useFailedUploads, useFailedUploadsOf } from "@/lib/failed-uploads";
-import { cn } from "@/lib/cn";
-import type { Case, DocumentStatus } from "@/lib/types";
+import type { Case } from "@/lib/types";
+import { DocumentRow, UploadingRow } from "./document-row";
 
 // Overview moved to components/case/overview/overview.tsx (#45). This file keeps the Documents
 // tab, which Overview's document links switch to (via focusDocumentId below).
-
-const STATUS_TEXT: Record<DocumentStatus, string> = {
-  PENDING: "Reading…",
-  READY: "Ready",
-  FAILED: "Couldn't read this file",
-};
 
 export function Documents({
   c,
@@ -35,6 +29,10 @@ export function Documents({
   /** Files from the wizard that didn't upload when the case was made (kept in memory only). */
   const leftOver = useFailedUploadsOf(c.id);
   const rows = useRef<Record<string, HTMLDivElement | null>>({});
+  /** Files still uploading, here or from the chat: listed as rows until they're on the case. */
+  const uploading = useUploadingFiles(c.id);
+  /** The row asking whether to remove its document, if any. */
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   // Highlight follows focusDocumentId directly (no state of its own) — onFocused clears it in
   // the parent once the highlight has had time to be seen, which ends it here too.
@@ -73,9 +71,9 @@ export function Documents({
           <h2 className="font-display text-xl font-normal tracking-[-0.02em]">Documents</h2>
           <FilePicker onPick={add}>
             {(open) => (
-              <Button variant="outline" onClick={open} disabled={upload.isPending}>
+              <Button variant="outline" onClick={open}>
                 <Plus size={14} />
-                {upload.isPending ? "Uploading…" : "Add"}
+                Add
               </Button>
             )}
           </FilePicker>
@@ -93,30 +91,28 @@ export function Documents({
           </div>
         )}
         {failed.length > 0 && <div className="text-[13px] text-error">{failed.join(" ")}</div>}
-        {c.documents.length === 0 && (
+        {c.documents.length === 0 && uploading.length === 0 && (
           <div className="text-sm text-ink-2">
             No documents yet. Add contracts, messages or notices so the AI can use them.
           </div>
         )}
-        {c.documents.length > 0 && (
+        {(c.documents.length > 0 || uploading.length > 0) && (
           <div className="flex flex-col overflow-hidden rounded-card border border-line">
             {c.documents.map((d) => (
-              <div
+              <DocumentRow
                 key={d.id}
-                ref={(el) => {
+                caseId={c.id}
+                d={d}
+                focused={focusDocumentId === d.id}
+                confirming={confirmingId === d.id}
+                onConfirmChange={(on) => setConfirmingId(on ? d.id : null)}
+                rowRef={(el) => {
                   rows.current[d.id] = el;
                 }}
-                className={cn(
-                  "flex items-center gap-3 border-b border-line px-[18px] py-[14px] text-sm transition-colors last:border-b-0",
-                  focusDocumentId === d.id && "bg-chip",
-                )}
-              >
-                <FileText size={16} className="text-gold" />
-                <span className="min-w-0 flex-1 truncate">{d.name}</span>
-                <span className={d.status === "FAILED" ? "text-xs text-error" : "text-xs text-muted"}>
-                  {STATUS_TEXT[d.status]}
-                </span>
-              </div>
+              />
+            ))}
+            {uploading.map((file, i) => (
+              <UploadingRow key={`${file.name}-${i}`} file={file} />
             ))}
           </div>
         )}

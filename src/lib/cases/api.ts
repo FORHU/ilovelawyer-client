@@ -84,6 +84,22 @@ export function sendMessage(caseId: string, text: string, documentIds?: string[]
   return post<{ messageId: string }>(`/api/client/cases/${caseId}/messages`, { text, documentIds });
 }
 
+/** Removes the document from the case for good. If it was READY, the overview turns STALE. */
+export function deleteDocument(caseId: string, documentId: string) {
+  return apiFetch<void>(`/api/client/cases/${caseId}/documents/${documentId}`, { method: "DELETE" });
+}
+
+/** A same-origin /files/<token> link that opens the document, good for a few minutes. Ask for a
+ * new one each time it's opened. */
+export function getDocumentUrl(caseId: string, documentId: string) {
+  return apiFetch<{ url: string; expiresAt: string }>(`/api/client/cases/${caseId}/documents/${documentId}/url`);
+}
+
+/** Reads a document that couldn't be read (FAILED) again. Anything else gets 409 NOT_FAILED. */
+export function retryDocument(caseId: string, documentId: string) {
+  return post<CaseDocument>(`/api/client/cases/${caseId}/documents/${documentId}/retry`, {});
+}
+
 /** Browsers often give no type for .docx and friends; S3 still needs one to sign. */
 function contentTypeOf(file: File) {
   return file.type || "application/octet-stream";
