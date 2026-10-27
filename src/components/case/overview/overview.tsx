@@ -99,8 +99,8 @@ export function Overview({
 
           <OverviewSection title="People involved" status={status(intake.people.length > 0)} empty={<>Anyone else involved — an employer, a landlord, a witness — will show up here as you mention them.</>}>
             <ul className="flex flex-col gap-2.5">
-              {intake.people.map((p) => (
-                <li key={p.id} className="flex flex-col gap-0.5 rounded-card border border-line bg-subtle px-3.5 py-3">
+              {intake.people.map((p, i) => (
+                <li key={`${p.id}-${i}`} className="flex flex-col gap-0.5 rounded-card border border-line bg-subtle px-3.5 py-3">
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="font-medium">{p.name}</span>
                     <span className="text-[12px] text-ink-2">{p.role}</span>
@@ -113,8 +113,8 @@ export function Overview({
 
           <OverviewSection title="Timeline" status={status(intake.timeline.length > 0)} empty={<>As you tell us what happened and when, we&apos;ll put together a timeline here.</>}>
             <ol className="flex flex-col gap-4 border-l border-line pl-4">
-              {intake.timeline.map((t) => (
-                <li key={t.id} className="relative flex min-w-0 flex-col gap-0.5">
+              {intake.timeline.map((t, i) => (
+                <li key={`${t.id}-${i}`} className="relative flex min-w-0 flex-col gap-0.5">
                   <span className="absolute -left-[21px] top-[6px] h-2 w-2 rounded-full border-2 border-gold bg-white" />
                   {t.date && <span className="text-xs text-ink-2">{fmtDate(t.date)}</span>}
                   <span>{t.text}</span>
@@ -145,8 +145,8 @@ export function Overview({
 
           <OverviewSection title="Questions for your lawyer" status={status(intake.questionsForLawyer.length > 0)} empty={<>Ask the AI anything you&apos;d like a lawyer&apos;s view on — we can&apos;t answer it ourselves, but we&apos;ll save it here for them.</>}>
             <ul className="flex flex-col gap-2.5">
-              {intake.questionsForLawyer.map((q) => (
-                <li key={q.id} className="flex flex-col gap-0.5 rounded-card border border-dashed border-line px-3.5 py-3">
+              {intake.questionsForLawyer.map((q, i) => (
+                <li key={`${q.id}-${i}`} className="flex flex-col gap-0.5 rounded-card border border-dashed border-line px-3.5 py-3">
                   <span>{q.text}</span>
                   <SourceBadge sources={q.sources} {...sourceProps} />
                 </li>
@@ -156,12 +156,12 @@ export function Overview({
 
           <OverviewSection title="Deadlines you've mentioned" status={status(intake.deadlines.length > 0)} empty={<>A deadline, hearing date or time limit you or a document mentions will show up here — exactly as stated, never worked out for you.</>}>
             <ul className="flex flex-col gap-2.5">
-              {intake.deadlines.map((d) => {
+              {intake.deadlines.map((d, i) => {
                 const days = d.date ? daysUntil(d.date) : null;
                 const urgent = days !== null && days <= URGENT_WITHIN_DAYS;
                 return (
                   <li
-                    key={d.id}
+                    key={`${d.id}-${i}`}
                     className={`flex flex-col gap-0.5 rounded-card border px-3.5 py-3 ${urgent ? "border-error-line bg-error-bg" : "border-line bg-subtle"}`}
                   >
                     <div className="flex items-baseline justify-between gap-2">
@@ -178,8 +178,8 @@ export function Overview({
 
           <OverviewSection title="Still needed" status={status(intake.missing.length > 0)} empty={<>Nothing obvious is missing yet.</>}>
             <ul className="flex flex-col gap-2">
-              {intake.missing.map((g) => (
-                <li key={g.id} className="flex items-start gap-2.5 rounded-card bg-subtle px-3.5 py-3">
+              {intake.missing.map((g, i) => (
+                <li key={`${g.id}-${i}`} className="flex items-start gap-2.5 rounded-card bg-subtle px-3.5 py-3">
                   <span aria-hidden className="mt-0.5 h-4 w-4 shrink-0 rounded border border-line-input" />
                   <div className="flex min-w-0 flex-col gap-0.5">
                     <span>{g.question}</span>
@@ -192,8 +192,8 @@ export function Overview({
 
           <OverviewSection title="Things to double-check" status={status(intake.conflicts.length > 0)} empty={<>If something you&apos;ve said doesn&apos;t match a document — or two documents disagree — we&apos;ll flag it here rather than guess which is right.</>}>
             <ul className="flex flex-col gap-2.5">
-              {intake.conflicts.map((cf) => (
-                <li key={cf.id} className="flex flex-col gap-1 rounded-card border border-warn-line bg-warn-bg px-3.5 py-3">
+              {intake.conflicts.map((cf, i) => (
+                <li key={`${cf.id}-${i}`} className="flex flex-col gap-1 rounded-card border border-warn-line bg-warn-bg px-3.5 py-3">
                   <span className="text-warn-ink">{cf.description}</span>
                   <SourceBadge sources={cf.sources} {...sourceProps} />
                 </li>
@@ -224,8 +224,8 @@ export function Overview({
 function ItemList({ items, sourceProps }: { items: IntakeItem[]; sourceProps: { onOpenChat: () => void; onOpenDocument: (id: string) => void } }) {
   return (
     <ul className="flex flex-col gap-2">
-      {items.map((it) => (
-        <li key={it.id} className="flex flex-col gap-0.5 rounded-card bg-subtle px-3.5 py-3">
+      {items.map((it, i) => (
+        <li key={`${it.id}-${i}`} className="flex flex-col gap-0.5 rounded-card bg-subtle px-3.5 py-3">
           <span>{it.text}</span>
           <SourceBadge sources={it.sources} {...sourceProps} />
         </li>
