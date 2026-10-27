@@ -1,5 +1,5 @@
 import { apiFetch } from "@/lib/api/fetch";
-import type { Case, CaseArea, CaseDocument, CaseOverview, ChatMessage, OtherParty, UkJurisdiction } from "@/lib/types";
+import type { Case, CaseArea, CaseDocument, CaseIntake, ChatMessage, OtherParty, UkJurisdiction } from "@/lib/types";
 
 // The client app's own routes (/api/client, ilovelawyer-api's client.route.ts). They only answer
 // a client account, and always work in that client's personal workspace, so no organization
@@ -67,19 +67,39 @@ export function listMessages(caseId: string) {
 }
 
 /** The Overview tab's content and status — a plain read, no AI call. */
-export function getOverview(caseId: string) {
-  return apiFetch<CaseOverview>(`/api/client/cases/${caseId}/overview`);
+export function getIntake(caseId: string) {
+  return apiFetch<CaseIntake>(`/api/client/cases/${caseId}/intake`);
 }
 
-/** Generate (first run) or Update (after STALE) the overview. Two quick requests start one job:
- * the response is always the current state, running or not. */
-export function generateOverview(caseId: string) {
-  return post<CaseOverview>(`/api/client/cases/${caseId}/overview/generate`, {});
+/** Update the intake by hand. Two quick requests start one job: the response is always the
+ * current state, running or not. The intake also refreshes on its own — after a chat reply,
+ * a document finishing, or an edit to the case details — so this is only for "I just told it
+ * something and want the overview caught up right now". */
+export function refreshIntake(caseId: string) {
+  return post<CaseIntake>(`/api/client/cases/${caseId}/intake/refresh`, {});
 }
 
-/** The answer is written in the background; listMessages shows it when it's done. */
-export function sendMessage(caseId: string, text: string) {
-  return post<{ messageId: string }>(`/api/client/cases/${caseId}/messages`, { text });
+/** The answer is written in the background; listMessages shows it when it's done. `documentIds`
+ * are the case's documents to send with it (up to 5), each READY: one still being read gets 409
+ * DOCUMENTS_NOT_READY, with a message naming it. */
+export function sendMessage(caseId: string, text: string, documentIds?: string[]) {
+  return post<{ messageId: string }>(`/api/client/cases/${caseId}/messages`, { text, documentIds });
+}
+
+/** Removes the document from the case for good. If it was READY, the overview turns STALE. */
+export function deleteDocument(caseId: string, documentId: string) {
+  return apiFetch<void>(`/api/client/cases/${caseId}/documents/${documentId}`, { method: "DELETE" });
+}
+
+/** A same-origin /files/<token> link that opens the document, good for a few minutes. Ask for a
+ * new one each time it's opened. */
+export function getDocumentUrl(caseId: string, documentId: string) {
+  return apiFetch<{ url: string; expiresAt: string }>(`/api/client/cases/${caseId}/documents/${documentId}/url`);
+}
+
+/** Reads a document that couldn't be read (FAILED) again. Anything else gets 409 NOT_FAILED. */
+export function retryDocument(caseId: string, documentId: string) {
+  return post<CaseDocument>(`/api/client/cases/${caseId}/documents/${documentId}/retry`, {});
 }
 
 /** Browsers often give no type for .docx and friends; S3 still needs one to sign. */
@@ -96,7 +116,12 @@ export async function uploadDocument(caseId: string, file: File): Promise<CaseDo
     contentType,
     fileSize: file.size,
   });
-  const put = await fetch(uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": contentType } }).catch(() => null);
+  const put = await fetch(uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": contentType } }).catch((err: unknown) => {
+    // A blocked CORS preflight (the bucket not allowing this app's origin) lands here, not as a status.
+    console.error(`Upload of ${file.name} to S3 failed`, err);
+    return null;
+  });
+  if (put && !put.ok) console.error(`Upload of ${file.name} to S3 failed with ${put.status}`);
   if (!put?.ok) throw new Error(`Couldn't upload ${file.name}. Try again.`);
   return post<CaseDocument>(`/api/client/cases/${caseId}/documents`, { key, name: file.name, contentType, fileSize: file.size });
 }
