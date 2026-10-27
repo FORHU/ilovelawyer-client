@@ -10,7 +10,6 @@ import {
   type ClientRequestStatus,
   type LawyerRegulator,
   type Money,
-  type PracticeArea,
   type QuoteType,
   type UkJurisdiction,
 } from "@/lib/client-handoff";
@@ -51,7 +50,8 @@ export interface LawyerPublicProfile {
   firmName: string | null;
   regulator: LawyerRegulator;
   registrationNumber: string;
-  practiceAreas: PracticeArea[];
+  /** Names from the lawyer's site's list, which admins edit. */
+  practiceAreas: string[];
   qualifiedJurisdictions: UkJurisdiction[];
   languages: string[];
   bio: string;

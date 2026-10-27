@@ -11,7 +11,9 @@ export interface LawyerReadiness {
   enabled: boolean;
   ready: boolean;
   criteria: { key: string; label: string; met: boolean; confidence: number }[];
-  practiceArea: { value: CaseArea | "PERSONAL_INJURY"; confidence: number } | null;
+  /** The case areas Jev is sure the problem falls under. Once ready, they're the case's. Empty
+   * before Jev has looked, or when it's sure of none. */
+  caseAreas: (CaseArea & { confidence: number })[];
   ukJurisdiction: string | null;
   blockedBy: "OUTSIDE_UK" | "PERSONAL_INJURY" | null;
   /** The check couldn't run this time. Show nothing rather than guess. */
@@ -37,14 +39,11 @@ export function useLawyerReadinessQuery(caseId: string, latestAnswerId: string |
   });
 }
 
-/** "an employment lawyer in England and Wales" */
-export function lawyerKind(r: Pick<LawyerReadiness, "practiceArea" | "ukJurisdiction">) {
-  const area: Record<string, string> = {
-    EMPLOYMENT: "an employment lawyer",
-    PROPERTY: "a property lawyer",
-    FAMILY: "a family lawyer",
-    CONSUMER: "a consumer lawyer",
-  };
-  const who = (r.practiceArea && area[r.practiceArea.value]) || "a lawyer";
+/** "a lawyer for Employment and Consumer in England and Wales". Other says nothing more than "a
+ * lawyer". The names are admins' (case areas), so they're used as written. */
+export function lawyerKind(r: Pick<LawyerReadiness, "caseAreas" | "ukJurisdiction">) {
+  const names = (r.caseAreas ?? []).filter((a) => a.code !== "OTHER").map((a) => a.name);
+  const list = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0];
+  const who = list ? `a lawyer for ${list}` : "a lawyer";
   return r.ukJurisdiction ? `${who} in ${r.ukJurisdiction}` : who;
 }

@@ -16,7 +16,7 @@ import { useArchivedCasesQuery, useCasesQuery, useUnarchiveCaseMutation } from "
 import { clientRequestStatusLabel, useOpenLawyerRequestsQuery } from "@/lib/lawyer-requests/api";
 import { money, usePricingQuery } from "@/lib/pricing";
 import { useApp } from "@/lib/store";
-import { AREA_LABELS, type Case } from "@/lib/types";
+import { areasLabel, type Case } from "@/lib/types";
 
 // The cases list follows the lawyer app's case portfolio: one row per case with sortable date
 // columns, search, an Active / Archived switch, a notes line, a row menu and pages of ten. The API
@@ -114,7 +114,7 @@ export default function CasesPage() {
     const matches = (list.data ?? []).filter(
       (c) =>
         !q ||
-        [c.title, AREA_LABELS[c.area], c.where, notesLine(c.notes), ...c.others.map((o) => o.name)].some((text) => text.toLowerCase().includes(q)),
+        [c.title, areasLabel(c.areas), c.where, notesLine(c.notes), ...c.others.map((o) => o.name)].some((text) => text.toLowerCase().includes(q)),
     );
     const direction = sort.order === "asc" ? 1 : -1;
     return matches.sort((a, b) => direction * (Date.parse(a[key]) - Date.parse(b[key])));
@@ -264,7 +264,7 @@ export default function CasesPage() {
                       </span>
                     )}
                     <span className="text-[11px] text-muted">
-                      {AREA_LABELS[c.area]} · {c.documents.length} {c.documents.length === 1 ? "document" : "documents"} · {c.credits} credits
+                      {areasLabel(c.areas)} · {c.documents.length} {c.documents.length === 1 ? "document" : "documents"} · {c.credits} credits
                     </span>
                   </>
                 );

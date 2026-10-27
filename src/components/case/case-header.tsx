@@ -7,7 +7,7 @@ import { ActionMenu } from "@/components/ui/action-menu";
 import { ProgressBar, type ProgressTone } from "@/components/ui/progress-bar";
 import { GetLawyerAction } from "@/components/case/get-lawyer-action";
 import { RemoveCaseModal, type RemoveMode } from "@/components/case/remove-case-modal";
-import { AREA_LABELS, type Case } from "@/lib/types";
+import { areasLabel, type Case } from "@/lib/types";
 import { usePayment } from "@/lib/payment-store";
 import { usePricingQuery } from "@/lib/pricing";
 import { creditsStatus, creditsUsedPercent } from "@/lib/cases/credit-usage";
@@ -47,7 +47,7 @@ export function CaseHeader({ c }: { c: Case }) {
       </button>
       <div className="min-w-0 flex-1">
         <div className="text-[10px] font-semibold uppercase tracking-[1px] text-gold">
-          {AREA_LABELS[c.area]}
+          {areasLabel(c.areas)}
           {` · ${c.where || c.ukJurisdiction || "Outside the UK"}`}
         </div>
         <div className="font-display text-xl leading-[1.25] tracking-[-0.02em] md:truncate">

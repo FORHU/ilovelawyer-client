@@ -10,9 +10,8 @@ import { Eyebrow } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { checkFiles, describeLimits, useLimitsQuery } from "@/lib/cases/limits";
 import { NOTES_FIELD_MAX } from "@/lib/cases/notes";
+import { useCaseAreasQuery } from "@/lib/cases/case-areas";
 import {
-  AREA_LABELS,
-  CASE_AREAS,
   PARTY_ROLES,
   UK_JURISDICTIONS,
   sideLabel,
@@ -63,16 +62,55 @@ const REGIONS: { value: CaseRegion; label: string }[] = [
   { value: "OUTSIDE_UK", label: "Outside the UK" },
 ];
 
-export function AreaField({ value, onChange, disabled }: { value: CaseArea; onChange: (a: CaseArea) => void; disabled?: boolean }) {
+/**
+ * The types of issue, from the list admins manage: as many as fit. `held` are the case's saved
+ * areas, so one an admin has since switched off still shows: it can be dropped but not picked again.
+ */
+export function AreaField({
+  value,
+  onChange,
+  held = [],
+  error,
+  disabled,
+}: {
+  value: string[];
+  onChange: (codes: string[]) => void;
+  held?: CaseArea[];
+  error?: boolean;
+  disabled?: boolean;
+}) {
+  const areas = useCaseAreasQuery();
+  const retired = held.filter((a) => !areas.data?.some((o) => o.code === a.code));
+  const toggle = (code: string) => onChange(value.includes(code) ? value.filter((c) => c !== code) : [...value, code]);
   return (
-    <div className="flex flex-col gap-2">
-      <WizardLabel>Type of issue</WizardLabel>
+    <div className="flex flex-col gap-2" role="group" aria-label="Type of issue">
+      <WizardLabel>Type of issue *</WizardLabel>
       <div className="flex flex-wrap gap-1.5">
-        {CASE_AREAS.map((a) => (
-          <Chip key={a} selected={value === a} disabled={disabled} onClick={() => onChange(a)}>
-            {AREA_LABELS[a]}
+        {areas.data?.map((a) => (
+          <Chip key={a.code} selected={value.includes(a.code)} disabled={disabled} onClick={() => toggle(a.code)}>
+            {a.name}
           </Chip>
         ))}
+        {retired.map((a) => (
+          <Chip
+            key={a.code}
+            selected={value.includes(a.code)}
+            disabled={disabled || !value.includes(a.code)}
+            onClick={() => toggle(a.code)}
+            title="No longer offered. You can keep it or remove it, but not add it back."
+          >
+            {a.name}
+          </Chip>
+        ))}
+      </div>
+      <div className={cn("text-xs", error || areas.isError ? "text-error" : "text-muted")}>
+        {areas.isError
+          ? "Couldn't load the types of issue. Refresh to try again."
+          : error
+            ? "Please choose at least one type of issue."
+            : areas.isLoading
+              ? "Loading…"
+              : "Pick every one that fits. We'll use them to find the right lawyer."}
       </div>
     </div>
   );
@@ -232,7 +270,7 @@ export function IntakeNotesField({
 }
 
 export function StepDetails() {
-  const { title, region, where, area, happened, wants, titleErr, regionErr, set } = useWizard();
+  const { title, region, where, areas, happened, wants, titleErr, regionErr, areasErr, set } = useWizard();
   return (
     <Section
       numeral="I"
@@ -262,7 +300,7 @@ export function StepDetails() {
           <span>{title.length}/150</span>
         </div>
       </div>
-      <AreaField value={area} onChange={(a) => set({ area: a })} />
+      <AreaField value={areas} onChange={(codes) => set({ areas: codes })} error={areasErr} />
       <RegionField value={region} onChange={(r) => set({ region: r })} error={regionErr} />
       <div className="flex flex-col gap-2">
         <WizardLabel htmlFor="case-where">Town or city</WizardLabel>

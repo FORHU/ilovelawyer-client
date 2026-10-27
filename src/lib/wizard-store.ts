@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { CaseArea, CaseRegion, OtherParty, PartyRole, Side } from "./types";
+import type { CaseRegion, OtherParty, PartyRole, Side } from "./types";
 
 // The draft is kept in this browser (localStorage, per account) so a refresh or a closed tab doesn't
 // lose it. Picked files can't be kept, only the text. It is cleared once the case is made, and on
@@ -12,11 +12,13 @@ interface WizardState {
   maxStep: number;
   titleErr: boolean;
   regionErr: boolean;
+  areasErr: boolean;
   title: string;
   /** Which part of the UK, or outside it. Needed to find the right lawyer later. */
   region: CaseRegion | "";
   where: string;
-  area: CaseArea;
+  /** Case area codes, one or more. */
+  areas: string[];
   side: Side;
   others: OtherParty[];
   /** Optional: what happened, and what the client wants out of it. Sent as the case's notes. */
@@ -29,7 +31,7 @@ interface WizardState {
   claimFor: (userId: string) => void;
   /** Reset navigation only (the draft survives leaving and re-entering, like the prototype). */
   enter: () => void;
-  set: (patch: Partial<Pick<WizardState, "title" | "region" | "where" | "area" | "side" | "step" | "happened" | "wants">>) => void;
+  set: (patch: Partial<Pick<WizardState, "title" | "region" | "where" | "areas" | "side" | "step" | "happened" | "wants">>) => void;
   addOther: () => void;
   updateOther: (id: string, patch: Partial<Pick<OtherParty, "name" | "role">>) => void;
   removeOther: (id: string) => void;
@@ -42,16 +44,20 @@ interface WizardState {
   reset: () => void;
 }
 
+/** What's kept in localStorage (partialize below). */
+type PersistedDraft = Pick<WizardState, "ownerId" | "title" | "region" | "where" | "areas" | "side" | "others" | "happened" | "wants">;
+
 const blank = {
   ownerId: null as string | null,
   step: 1,
   maxStep: 1,
   titleErr: false,
   regionErr: false,
+  areasErr: false,
   title: "",
   region: "" as CaseRegion | "",
   where: "",
-  area: "EMPLOYMENT" as CaseArea,
+  areas: [] as string[],
   side: "" as Side,
   others: [] as OtherParty[],
   happened: "",
@@ -68,8 +74,8 @@ export const useWizard = create<WizardState>()(
     if (get().ownerId === userId) return;
     set({ ...blank, ownerId: userId });
   },
-  enter: () => set({ step: 1, maxStep: 1, titleErr: false, regionErr: false }),
-  set: (patch) => set({ ...patch, ...(patch.region ? { regionErr: false } : {}) }),
+  enter: () => set({ step: 1, maxStep: 1, titleErr: false, regionErr: false, areasErr: false }),
+  set: (patch) => set({ ...patch, ...(patch.region ? { regionErr: false } : {}), ...(patch.areas?.length ? { areasErr: false } : {}) }),
   addOther: () =>
     set((s) => ({
       others: [
@@ -83,13 +89,13 @@ export const useWizard = create<WizardState>()(
   addFiles: (files) => set((s) => ({ files: [...s.files, ...files] })),
   removeFile: (index) => set((s) => ({ files: s.files.filter((_, i) => i !== index) })),
   next: () => {
-    const { step, title, region, maxStep } = get();
-    if (step === 1 && (!title.trim() || !region)) {
-      set({ titleErr: !title.trim(), regionErr: !region });
+    const { step, title, region, areas, maxStep } = get();
+    if (step === 1 && (!title.trim() || !region || areas.length === 0)) {
+      set({ titleErr: !title.trim(), regionErr: !region, areasErr: areas.length === 0 });
       return false;
     }
     if (step < 3) {
-      set({ step: step + 1, maxStep: Math.max(maxStep, step + 1), titleErr: false, regionErr: false });
+      set({ step: step + 1, maxStep: Math.max(maxStep, step + 1), titleErr: false, regionErr: false, areasErr: false });
       return false;
     }
     return true;
@@ -110,7 +116,12 @@ export const useWizard = create<WizardState>()(
     }),
     {
       name: "ilovelawyer-client-wizard",
-      version: 1,
+      // 2: a case can have several areas (`areas`), where version 1 kept one (`area`).
+      version: 2,
+      migrate: (persisted, version) => {
+        const { area, ...draft } = persisted as PersistedDraft & { area?: string };
+        return version < 2 && area ? { ...draft, areas: [area] } : draft;
+      },
       // Hydrated by the new-case page once it is on the client, so server markup stays stable.
       skipHydration: true,
       partialize: (s) => ({
@@ -118,7 +129,7 @@ export const useWizard = create<WizardState>()(
         title: s.title,
         region: s.region,
         where: s.where,
-        area: s.area,
+        areas: s.areas,
         side: s.side,
         others: s.others,
         happened: s.happened,

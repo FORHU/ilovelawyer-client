@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ChevronRight, Pencil } from "lucide-react";
 import { EditCaseModal } from "@/components/case/edit-case-modal";
 import { parseNotes } from "@/lib/cases/notes";
-import { AREA_LABELS, regionLabel, sideLabel, type Case } from "@/lib/types";
+import { areasLabel, regionLabel, sideLabel, type Case } from "@/lib/types";
 
 /** The intake form's own answers, as a collapsible block (A2's Edit action is unchanged) — kept
  * out of the way once there's an overview to read, open by default before there is one. */
@@ -15,7 +15,7 @@ export function CaseDetails({ c, defaultOpen }: { c: Case; defaultOpen: boolean 
 
   const rows: { k: string; v: string }[] = [
     { k: "Case title", v: c.title },
-    { k: "Type of issue", v: AREA_LABELS[c.area] },
+    { k: "Type of issue", v: areasLabel(c.areas) },
     { k: "Part of the UK", v: regionLabel(c.ukJurisdiction) },
     { k: "Town or city", v: c.where || "Not set" },
     { k: "Your side", v: sideLabel(c.side) },
