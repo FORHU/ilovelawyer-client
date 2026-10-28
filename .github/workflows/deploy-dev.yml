@@ -66,7 +66,10 @@ jobs:
     # amd64, pulls cleanly, then dies with "exec format error". Do not
     # cross-build under QEMU — Node builds take hours and look hung.
     runs-on: ubuntu-24.04-arm
-    environment: staging
+    # No `environment:` on purpose: an environment with Required reviewers parks
+    # the run. The four NEXT_PUBLIC_* secrets below must therefore exist at
+    # REPOSITORY level — an environment-scoped one resolves to an empty string,
+    # which `next build` inlines without complaint. The guard below catches that.
 
     permissions:
       id-token: write
@@ -97,6 +100,26 @@ jobs:
           aws ecr get-login-password --region "${{ env.AWS_REGION }}" \
             | docker login --username AWS --password-stdin "${{ steps.tag.outputs.registry }}"
 
+      # An empty NEXT_PUBLIC_* value builds, pushes and deploys, then fails in
+      # the browser: sign-in silently does nothing and every API call goes to "".
+      # Fail here instead, where the cause is in the log.
+      - name: Check build-time env is populated
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_LAWYER_APP_URL_PH: ${{ secrets.NEXT_PUBLIC_LAWYER_APP_URL_PH }}
+          NEXT_PUBLIC_LAWYER_APP_URL_UK: ${{ secrets.NEXT_PUBLIC_LAWYER_APP_URL_UK }}
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+        run: |
+          missing=0
+          for k in NEXT_PUBLIC_API_URL NEXT_PUBLIC_LAWYER_APP_URL_PH \
+                   NEXT_PUBLIC_LAWYER_APP_URL_UK NEXT_PUBLIC_GOOGLE_CLIENT_ID; do
+            if [ -z "${!k:-}" ]; then
+              echo "::error::$k is empty. It must be a REPOSITORY secret: this job declares no environment, so a secret scoped to 'staging' is invisible here."
+              missing=1
+            fi
+          done
+          [ "$missing" = 0 ]
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -110,7 +133,7 @@ jobs:
           provenance: false
           tags: ${{ steps.tag.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.tag.outputs.tag }}
           # NEXT_PUBLIC_* are inlined by `next build`, so they are build args, not
-          # runtime variables. Values come from the "staging" environment secrets.
+          # runtime variables. Values come from REPOSITORY secrets (see the guard above).
           build-args: |
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
             NEXT_PUBLIC_LAWYER_APP_URL_PH=${{ secrets.NEXT_PUBLIC_LAWYER_APP_URL_PH }}
