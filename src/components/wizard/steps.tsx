@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { FileText, Plus, UploadCloud, X } from "lucide-react";
 import { Chip } from "@/components/ui/chip";
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { FilePicker } from "@/components/ui/file-picker";
 import { inputClass, TextArea, TextInput, WizardLabel } from "@/components/ui/input";
 import { RadioCard } from "@/components/ui/radio-card";
@@ -10,9 +11,8 @@ import { Eyebrow } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { checkFiles, describeLimits, useLimitsQuery } from "@/lib/cases/limits";
 import { NOTES_FIELD_MAX } from "@/lib/cases/notes";
+import { useCaseAreasQuery } from "@/lib/cases/case-areas";
 import {
-  AREA_LABELS,
-  CASE_AREAS,
   PARTY_ROLES,
   UK_JURISDICTIONS,
   sideLabel,
@@ -63,16 +63,81 @@ const REGIONS: { value: CaseRegion; label: string }[] = [
   { value: "OUTSIDE_UK", label: "Outside the UK" },
 ];
 
-export function AreaField({ value, onChange, disabled }: { value: CaseArea; onChange: (a: CaseArea) => void; disabled?: boolean }) {
+/**
+ * The types of issue, from the list admins manage: as many as fit. `held` are the case's saved
+ * areas, so one an admin has since switched off still shows: it can be dropped but not picked again.
+ */
+export function AreaField({
+  value,
+  onChange,
+  held = [],
+  error,
+  disabled,
+}: {
+  value: string[];
+  onChange: (codes: string[]) => void;
+  held?: CaseArea[];
+  error?: boolean;
+  disabled?: boolean;
+}) {
+  const areas = useCaseAreasQuery();
+  const offered = areas.data ?? [];
+  const retired = held.filter((a) => !offered.some((o) => o.code === a.code));
+  const byCode = new Map([...offered, ...retired].map((a) => [a.code, a]));
+  // In the order picked, so a new pick lands at the end.
+  const chosen = value.map((code) => byCode.get(code)).filter((a) => a !== undefined);
+  const toggle = (code: string) => onChange(value.includes(code) ? value.filter((c) => c !== code) : [...value, code]);
   return (
-    <div className="flex flex-col gap-2">
-      <WizardLabel>Type of issue</WizardLabel>
-      <div className="flex flex-wrap gap-1.5">
-        {CASE_AREAS.map((a) => (
-          <Chip key={a} selected={value === a} disabled={disabled} onClick={() => onChange(a)}>
-            {AREA_LABELS[a]}
-          </Chip>
-        ))}
+    <div className="flex flex-col gap-2" role="group" aria-label="Type of issue">
+      <WizardLabel>Type of issue *</WizardLabel>
+      {chosen.length > 0 && (
+        <ul className="flex flex-wrap gap-1.5" aria-label="Picked types of issue">
+          {chosen.map((a) => {
+            const isRetired = !offered.some((o) => o.code === a.code);
+            return (
+              <li
+                key={a.code}
+                className={cn("inline-flex min-h-[34px] items-center gap-1 rounded-full bg-chip pl-3.5 pr-1 text-[13px] font-medium text-ink", isRetired && "opacity-60")}
+                title={isRetired ? "No longer offered. You can keep it or remove it, but not add it back." : undefined}
+              >
+                {a.name}
+                <button
+                  type="button"
+                  onClick={() => toggle(a.code)}
+                  disabled={disabled}
+                  aria-label={`Remove ${a.name}`}
+                  className="rounded-full p-1.5 text-ink-2 transition-colors hover:bg-ink/10 hover:text-ink disabled:opacity-40"
+                >
+                  <X className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {/* Names are unique per site, so they double as cmdk's values (what the search matches). Enter
+          toggles the highlighted type rather than submitting the form. */}
+      <Command className={cn((error || areas.isError) && "border-error-field")}>
+        <CommandInput placeholder="Search types of issue" disabled={disabled || !areas.data} />
+        <CommandList className="max-h-60" aria-label="Types of issue">
+          {areas.isLoading && <div className="py-6 text-center text-[13px] text-muted">Loading…</div>}
+          {areas.data && <CommandEmpty>No type of issue matches that. Try another word, or pick Other.</CommandEmpty>}
+          {offered.map((a) => {
+            const picked = value.includes(a.code);
+            return (
+              <CommandItem key={a.code} value={a.name} data-checked={picked} aria-checked={picked} disabled={disabled} onSelect={() => toggle(a.code)}>
+                {a.name}
+              </CommandItem>
+            );
+          })}
+        </CommandList>
+      </Command>
+      <div className={cn("text-xs", error || areas.isError ? "text-error" : "text-muted")}>
+        {areas.isError
+          ? "Couldn't load the types of issue. Refresh to try again."
+          : error
+            ? "Please choose at least one type of issue."
+            : "Pick every one that fits. We'll use them to find the right lawyer."}
       </div>
     </div>
   );
@@ -232,7 +297,7 @@ export function IntakeNotesField({
 }
 
 export function StepDetails() {
-  const { title, region, where, area, happened, wants, titleErr, regionErr, set } = useWizard();
+  const { title, region, where, areas, happened, wants, titleErr, regionErr, areasErr, set } = useWizard();
   return (
     <Section
       numeral="I"
@@ -262,7 +327,7 @@ export function StepDetails() {
           <span>{title.length}/150</span>
         </div>
       </div>
-      <AreaField value={area} onChange={(a) => set({ area: a })} />
+      <AreaField value={areas} onChange={(codes) => set({ areas: codes })} error={areasErr} />
       <RegionField value={region} onChange={(r) => set({ region: r })} error={regionErr} />
       <div className="flex flex-col gap-2">
         <WizardLabel htmlFor="case-where">Town or city</WizardLabel>

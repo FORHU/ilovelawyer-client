@@ -154,7 +154,7 @@ export function PaymentModal() {
       title: w.title,
       region: w.region,
       where: w.where,
-      area: w.area,
+      areas: w.areas,
       side: w.side,
       others: w.others,
       happened: w.happened,

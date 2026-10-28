@@ -1,5 +1,5 @@
 import { apiFetch } from "@/lib/api/fetch";
-import type { Case, CaseArea, CaseDocument, CaseIntake, ChatMessage, OtherParty, UkJurisdiction } from "@/lib/types";
+import type { Case, CaseDocument, CaseIntake, ChatMessage, OtherParty, UkJurisdiction } from "@/lib/types";
 
 // The client app's own routes (/api/client, ilovelawyer-api's client.route.ts). They only answer
 // a client account, and always work in that client's personal workspace, so no organization
@@ -9,7 +9,8 @@ export interface NewCase {
   /** The case payment this case uses up (POST /api/client/payments/case). */
   paymentId: string;
   title: string;
-  area: CaseArea;
+  /** Case area codes, one or more. */
+  areas: string[];
   /** null: it happened outside the UK. */
   ukJurisdiction: UkJurisdiction | null;
   where: string;

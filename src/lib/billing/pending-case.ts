@@ -1,6 +1,6 @@
 import type { NewCase } from "@/lib/cases/api";
 import { composeNotes } from "@/lib/cases/notes";
-import type { CaseArea, CaseRegion, OtherParty, Side } from "@/lib/types";
+import type { CaseRegion, OtherParty, Side } from "@/lib/types";
 
 // A few payment methods (some bank payments) leave the page to finish, then come back to
 // /payments/return. The new-case wizard only lives in memory, so its draft is kept here, per
@@ -11,7 +11,9 @@ export interface CaseDraft {
   title: string;
   region: CaseRegion | "";
   where: string;
-  area: CaseArea;
+  /** Case area codes. A draft saved before a case could have several has `area` instead. */
+  areas?: string[];
+  area?: string;
   side: Side;
   others: OtherParty[];
   /** Absent in a draft saved before these questions existed. */
@@ -81,7 +83,7 @@ export function newCaseFromDraft(paymentId: string, draft: Omit<CaseDraft, "file
   return {
     paymentId,
     title: draft.title.trim(),
-    area: draft.area,
+    areas: draft.areas ?? (draft.area ? [draft.area] : []),
     ukJurisdiction: draft.region === "OUTSIDE_UK" || !draft.region ? null : draft.region,
     where: draft.where.trim(),
     side: draft.side || null,

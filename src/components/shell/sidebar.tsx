@@ -11,7 +11,7 @@ import { cn } from "@/lib/cn";
 import { clientRequestStatusLabel, useOpenLawyerRequestsQuery } from "@/lib/lawyer-requests/api";
 import { money, usePricingQuery } from "@/lib/pricing";
 import { useApp } from "@/lib/store";
-import { AREA_LABELS } from "@/lib/types";
+import { areasLabel } from "@/lib/types";
 
 const railBtn =
   "flex size-[34px] shrink-0 items-center justify-center rounded-full border bg-white text-ink";
@@ -86,7 +86,7 @@ export function Sidebar() {
                 >
                   <span className="truncate text-[13px] font-medium text-ink">{c.title}</span>
                   <span className={cn("text-[11px]", openRequest ? "text-gold" : "text-muted")}>
-                    {openRequest ? clientRequestStatusLabel(openRequest.status) : AREA_LABELS[c.area]}
+                    {openRequest ? clientRequestStatusLabel(openRequest.status) : areasLabel(c.areas)}
                   </span>
                 </Link>
               );

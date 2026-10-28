@@ -11,7 +11,7 @@ import { useUpdateCaseMutation } from "@/lib/cases/queries";
 import { useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
 import { useApp } from "@/lib/store";
 import { cn } from "@/lib/cn";
-import type { Case, CaseArea, CaseRegion, OtherParty, Side } from "@/lib/types";
+import type { Case, CaseRegion, OtherParty, Side } from "@/lib/types";
 
 /** Once a lawyer holds the request their conflict check and quote rest on these, so the API fixes
  * the type of issue, the part of the UK and the people (409 CASE_LOCKED_BY_REQUEST). */
@@ -28,7 +28,7 @@ export function EditCaseModal({ c, onClose }: { c: Case; onClose: () => void }) 
   const notes = parseNotes(c.notes);
 
   const [title, setTitle] = useState(c.title);
-  const [area, setArea] = useState<CaseArea>(c.area);
+  const [areas, setAreas] = useState<string[]>(c.areas.map((a) => a.code));
   const [region, setRegion] = useState<CaseRegion>(c.ukJurisdiction ?? "OUTSIDE_UK");
   const [where, setWhere] = useState(c.where);
   const [side, setSide] = useState<Side>(c.side ?? "");
@@ -36,15 +36,20 @@ export function EditCaseModal({ c, onClose }: { c: Case; onClose: () => void }) 
   const [happened, setHappened] = useState(notes.happened);
   const [wants, setWants] = useState(notes.wants);
   const [titleErr, setTitleErr] = useState(false);
+  const [areasErr, setAreasErr] = useState(false);
   const [error, setError] = useState("");
 
   const save = () => {
-    if (!title.trim()) return setTitleErr(true);
+    if (!title.trim() || areas.length === 0) {
+      setTitleErr(!title.trim());
+      setAreasErr(areas.length === 0);
+      return;
+    }
     setError("");
     update.mutate(
       {
         title: title.trim(),
-        area,
+        areas,
         ukJurisdiction: region === "OUTSIDE_UK" ? null : region,
         where: where.trim(),
         side: side || null,
@@ -83,7 +88,16 @@ export function EditCaseModal({ c, onClose }: { c: Case; onClose: () => void }) 
         />
         {titleErr && <div className="text-xs text-error">Please give your case a title.</div>}
       </div>
-      <AreaField value={area} onChange={setArea} disabled={locked} />
+      <AreaField
+        value={areas}
+        onChange={(codes) => {
+          setAreas(codes);
+          setAreasErr(false);
+        }}
+        held={c.areas}
+        error={areasErr}
+        disabled={locked}
+      />
       <RegionField
         value={region}
         onChange={setRegion}

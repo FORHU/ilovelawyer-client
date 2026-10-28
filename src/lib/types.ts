@@ -1,14 +1,15 @@
-/** The kinds of problem a case can be about. The values are the API's (Case.practiceArea), and
+/** A kind of problem a case can be about ("Type of issue"). Admins manage the list
+ * (GET /api/client/case-areas, lib/cases/case-areas.ts); a case has one or more, by code, and
  * lawyer matching uses them later. */
-export type CaseArea = "EMPLOYMENT" | "PROPERTY" | "FAMILY" | "CONSUMER" | "OTHER";
-export const CASE_AREAS: CaseArea[] = ["EMPLOYMENT", "PROPERTY", "FAMILY", "CONSUMER", "OTHER"];
-export const AREA_LABELS: Record<CaseArea, string> = {
-  EMPLOYMENT: "Employment",
-  PROPERTY: "Property",
-  FAMILY: "Family",
-  CONSUMER: "Consumer",
-  OTHER: "Other",
-};
+export interface CaseArea {
+  code: string;
+  name: string;
+}
+
+/** "Employment, Consumer" */
+export function areasLabel(areas: CaseArea[]) {
+  return areas.map((a) => a.name).join(", ");
+}
 
 /** The three UK legal systems. A lawyer is qualified in one or more of them. */
 export type UkJurisdiction = "England and Wales" | "Scotland" | "Northern Ireland";
@@ -49,7 +50,8 @@ export interface CaseDocument {
 export interface Case {
   id: string;
   title: string;
-  area: CaseArea;
+  /** One or more, in the list's order. May include one an admin has since switched off. */
+  areas: CaseArea[];
   ukJurisdiction: UkJurisdiction | null;
   where: string;
   /** What happened and what the client wants (lib/cases/notes.ts). Empty when not given. */
