@@ -17,6 +17,7 @@ import { clientRequestStatusLabel, useOpenLawyerRequestsQuery } from "@/lib/lawy
 import { usePricingQuery } from "@/lib/pricing";
 import { useApp } from "@/lib/store";
 import { areasLabel, type Case } from "@/lib/types";
+import { startNewCase } from "@/lib/wizard-store";
 
 // The cases list follows the lawyer app's case portfolio: one row per case with sortable date
 // columns, search, an Active / Archived switch, a notes line, a row menu and pages of ten. The API
@@ -89,6 +90,11 @@ function ListSkeleton() {
 
 export default function CasesPage() {
   const router = useRouter();
+  // A fresh draft each time: a refresh of New case keeps what's typed, a new visit doesn't.
+  const newCase = () => {
+    startNewCase();
+    router.push("/cases/new");
+  };
   const [status, setStatus] = useState<"ACTIVE" | "ARCHIVED">("ACTIVE");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<{ field: SortField; order: SortOrder }>({ field: "updated", order: "desc" });
@@ -163,7 +169,7 @@ export default function CasesPage() {
               {count}. Each case is free and includes {included} chat credits.
             </div>
           </div>
-          <Link href="/cases/new" className={buttonClass("primary", "md", "max-md:hidden no-underline text-white hover:text-white")}>
+          <Link href="/cases/new" onClick={startNewCase} className={buttonClass("primary", "md", "max-md:hidden no-underline text-white hover:text-white")}>
             <Plus size={15} />
             New case
           </Link>
@@ -329,7 +335,7 @@ export default function CasesPage() {
               Each case keeps your details, documents and AI consultation in one place. Free to create, with {included} chat credits
               included.
             </div>
-            <Button className="mt-1.5" onClick={() => router.push("/cases/new")}>
+            <Button className="mt-1.5" onClick={newCase}>
               New case
             </Button>
           </div>
@@ -344,7 +350,7 @@ export default function CasesPage() {
 
         {/* Phone: sticky bottom CTA */}
         <div className="sticky bottom-0 z-[2] -mx-4 mt-auto border-t border-line bg-white px-4 pb-[30px] pt-3 md:hidden">
-          <Button size="xl" className="w-full" onClick={() => router.push("/cases/new")}>
+          <Button size="xl" className="w-full" onClick={newCase}>
             <Plus size={16} />
             New case
           </Button>

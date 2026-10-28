@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronRight, Pencil } from "lucide-react";
 import { EditCaseModal } from "@/components/case/edit-case-modal";
+import { formatBudget } from "@/lib/cases/budget";
 import { parseNotes } from "@/lib/cases/notes";
 import { areasLabel, regionLabel, sideLabel, type Case } from "@/lib/types";
 
@@ -22,6 +23,7 @@ export function CaseDetails({ c, defaultOpen }: { c: Case; defaultOpen: boolean 
     { k: "Others involved", v: c.others.length ? c.others.map((o) => `${o.name} (${o.role})`).join(", ") : "None added" },
     { k: "What happened", v: notes.happened || "Not added" },
     { k: "What you want", v: notes.wants || "Not added" },
+    { k: "Budget", v: formatBudget(c.budget ?? null) },
     { k: "Documents", v: `${c.documents.length} attached` },
   ];
 

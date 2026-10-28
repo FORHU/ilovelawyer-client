@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { inputClass, TextInput, WizardLabel } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
-import { AreaField, IntakeNotesField, OthersField, RegionField, SideField } from "@/components/wizard/steps";
+import { AreaField, BudgetField, IntakeNotesField, OthersField, RegionField, SideField } from "@/components/wizard/steps";
+import { budgetFromDraft, draftFromBudget, ownAmountError, type BudgetDraft } from "@/lib/cases/budget";
 import { composeNotes, parseNotes } from "@/lib/cases/notes";
 import { useUpdateCaseMutation } from "@/lib/cases/queries";
 import { useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
@@ -35,14 +36,17 @@ export function EditCaseModal({ c, onClose }: { c: Case; onClose: () => void }) 
   const [others, setOthers] = useState<OtherParty[]>(c.others);
   const [happened, setHappened] = useState(notes.happened);
   const [wants, setWants] = useState(notes.wants);
+  const [budget, setBudget] = useState<BudgetDraft>(draftFromBudget(c.budget));
   const [titleErr, setTitleErr] = useState(false);
   const [areasErr, setAreasErr] = useState(false);
+  const [budgetErr, setBudgetErr] = useState(false);
   const [error, setError] = useState("");
 
   const save = () => {
-    if (!title.trim() || areas.length === 0) {
+    if (!title.trim() || areas.length === 0 || ownAmountError(budget)) {
       setTitleErr(!title.trim());
       setAreasErr(areas.length === 0);
+      setBudgetErr(!!ownAmountError(budget));
       return;
     }
     setError("");
@@ -55,6 +59,7 @@ export function EditCaseModal({ c, onClose }: { c: Case; onClose: () => void }) 
         side: side || null,
         others: others.filter((o) => o.name.trim()).map(({ name, role }) => ({ name: name.trim(), role })),
         notes: composeNotes({ happened, wants }),
+        budget: budgetFromDraft(budget),
       },
       {
         onSuccess: () => {
@@ -123,6 +128,15 @@ export function EditCaseModal({ c, onClose }: { c: Case; onClose: () => void }) 
           if (p.happened !== undefined) setHappened(p.happened);
           if (p.wants !== undefined) setWants(p.wants);
         }}
+      />
+      {/* Not fixed by a lawyer's hold: the client can change it until they hire. */}
+      <BudgetField
+        value={budget}
+        onChange={(p) => {
+          setBudget((b) => ({ ...b, ...p }));
+          setBudgetErr(false);
+        }}
+        error={budgetErr}
       />
       {error && <ErrorBox message={error} />}
       <div className="flex justify-end gap-2.5">

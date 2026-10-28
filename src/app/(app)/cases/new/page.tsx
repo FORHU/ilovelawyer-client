@@ -5,23 +5,24 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
-import { StepDetails, StepDocuments, StepPeople } from "@/components/wizard/steps";
+import { StepBudget, StepDetails, StepDocuments, StepPeople } from "@/components/wizard/steps";
 import { useSession } from "@/lib/auth/session";
 import { useCreateCaseFromWizard } from "@/lib/cases/new-case";
 import { cn } from "@/lib/cn";
 import { usePricingQuery } from "@/lib/pricing";
-import { useWizard } from "@/lib/wizard-store";
+import { WIZARD_STEPS, useWizard } from "@/lib/wizard-store";
 
 const STEPS = [
   { numeral: "I", title: "Case details", hint: "Title and place" },
   { numeral: "II", title: "People involved", hint: "Your side and the others" },
-  { numeral: "III", title: "Documents", hint: "Files for the AI to read" },
+  { numeral: "III", title: "Budget", hint: "What you can spend. Optional" },
+  { numeral: "IV", title: "Documents", hint: "Files for the AI to read" },
 ];
 
 export default function NewCasePage() {
   const router = useRouter();
   const wiz = useWizard();
-  const { step, maxStep, title, region, side } = wiz;
+  const { step, maxStep, title, region, side, budget } = wiz;
   const { data: pricing } = usePricingQuery();
   const included = pricing?.case.credits ?? "…";
   const { create, creating, error } = useCreateCaseFromWizard();
@@ -45,7 +46,7 @@ export default function NewCasePage() {
     };
   }, [userId]);
 
-  const stepDone = (n: number) => (n === 1 ? !!title.trim() && !!region : n === 2 ? !!side : false);
+  const stepDone = (n: number) => (n === 1 ? !!title.trim() && !!region : n === 2 ? !!side : n === 3 ? !!budget.choice || !!budget.fee : false);
 
   if (!ready) return null;
 
@@ -74,7 +75,7 @@ export default function NewCasePage() {
               New case
             </h1>
             <p className="text-[13px] leading-[1.6] text-ink-2">
-              Tell us what happened, who is involved, and add your documents. You can edit
+              Tell us what happened, who is involved, what you can spend, and add your documents. You can edit
               everything later. A case is free and includes {included} chat credits.
             </p>
           </div>
@@ -128,7 +129,8 @@ export default function NewCasePage() {
         <div className="flex min-w-0 flex-col gap-4">
           {step === 1 && <StepDetails />}
           {step === 2 && <StepPeople />}
-          {step === 3 && <StepDocuments />}
+          {step === 3 && <StepBudget />}
+          {step === 4 && <StepDocuments />}
           {error && <ErrorBox message={error} />}
 
           <div className="sticky bottom-0 z-[2] -mx-4 flex items-center justify-between gap-2.5 border-t border-line bg-white px-4 pb-[30px] pt-3 md:static md:mx-0 md:border-t-0 md:bg-transparent md:p-0">
@@ -140,7 +142,7 @@ export default function NewCasePage() {
                 Free · includes {included} chat credits
               </div>
               <Button className="px-[26px] disabled:!opacity-60" onClick={onNext} disabled={creating}>
-                {step < 3 ? "Continue" : creating ? "Creating…" : "Create case"}
+                {step < WIZARD_STEPS ? "Continue" : creating ? "Creating…" : "Create case"}
               </Button>
             </div>
           </div>

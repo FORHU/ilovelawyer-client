@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { NewCase } from "@/lib/cases/api";
+import { budgetFromDraft, type BudgetDraft } from "@/lib/cases/budget";
 import { composeNotes } from "@/lib/cases/notes";
 import { uploadAll, useCreateCaseMutation } from "@/lib/cases/queries";
 import { useFailedUploads } from "@/lib/failed-uploads";
@@ -21,6 +22,7 @@ export interface CaseDraft {
   others: OtherParty[];
   happened: string;
   wants: string;
+  budget: BudgetDraft;
 }
 
 /** What POST /api/client/cases needs, from the wizard's answers. */
@@ -33,6 +35,7 @@ export function newCaseFromDraft(draft: CaseDraft): NewCase {
     side: draft.side || null,
     others: draft.others.filter((o) => o.name.trim()).map(({ name, role }) => ({ name: name.trim(), role })),
     notes: composeNotes({ happened: draft.happened, wants: draft.wants }) || undefined,
+    budget: budgetFromDraft(draft.budget),
   };
 }
 
