@@ -10,7 +10,9 @@ import { Avatar, Logo, initialsOf } from "@/components/ui/misc";
 import { leaveToLogin } from "@/lib/auth/api";
 import { useRestoreSessionQuery } from "@/lib/auth/mutations";
 import { useSession } from "@/lib/auth/session";
+import { useChatSocket } from "@/lib/cases/chat-socket";
 import { useLawyerRequestSocket } from "@/lib/lawyer-requests/socket";
+import { useAppSocket } from "@/lib/socket";
 import { useApp } from "@/lib/store";
 import { useHydrated } from "@/lib/use-hydrated";
 import { Sidebar } from "./sidebar";
@@ -24,8 +26,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   // A reload starts with no access token in memory: resume from the refresh cookie, if any.
   useRestoreSessionQuery();
-  // Live status for the signed-in account's own lawyer requests (lib/lawyer-requests/socket.ts).
+  // The one socket connection (lib/socket.ts), then what listens on it: the signed-in account's
+  // own lawyer requests, and AI chat replies (the chat never polls for them).
+  useAppSocket();
   useLawyerRequestSocket();
+  useChatSocket();
 
   // Never signed in on this page load: a plain navigation. Signed out mid-session (the session
   // expired): a full load, so nothing of the account stays in memory (see leaveToLogin).

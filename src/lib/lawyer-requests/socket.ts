@@ -2,31 +2,13 @@
 
 import { useEffect } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { io, type Socket } from "socket.io-client";
-import { API_URL } from "@/lib/api/config";
-import { useSession } from "@/lib/auth/session";
+import { getAppSocket } from "@/lib/socket";
 
-// Live status for a client's own lawyer requests (ilovelawyer-api's Socket.IO, same connection
-// and auth as the lawyer app's lib/notifications/socket.ts): a claim, quote, confirmation,
-// decline, engagement or close pushes client-request:updated here. The REST routes
-// (lib/lawyer-requests/api.ts) stay the source of truth — this is only a prompt to refetch, so a
-// missed or dropped event is never fatal. useOpenLawyerRequestQuery's refetchInterval is the
-// fallback for a connection that never reconnects.
-
-let socket: Socket | null = null;
-
-/** One socket for the whole app, lazily created. `auth` is a callback so it reads the current
- * access token on every (re)connection attempt, not just the one at creation time — the token
- * rotates on refresh (lib/api/fetch.ts), same reasoning as the lawyer app's socket. */
-function getHandoffSocket(): Socket {
-  if (socket) return socket;
-  socket = io(API_URL, {
-    autoConnect: false,
-    withCredentials: true,
-    auth: (cb) => cb({ token: useSession.getState().accessToken }),
-  });
-  return socket;
-}
+// Live status for a client's own lawyer requests, on the app's shared socket (lib/socket.ts): a
+// claim, quote, confirmation, decline, engagement or close pushes client-request:updated here.
+// The REST routes (lib/lawyer-requests/api.ts) stay the source of truth — this is only a prompt
+// to refetch, so a missed or dropped event is never fatal. useOpenLawyerRequestQuery's
+// refetchInterval is the fallback for a connection that never reconnects.
 
 function isLawyerRequestKey(key: readonly unknown[]): boolean {
   return key.some((k) => typeof k === "string" && k.startsWith("lawyer-request"));
@@ -39,15 +21,12 @@ function invalidateLawyerRequestQueries(queryClient: QueryClient) {
   queryClient.invalidateQueries({ predicate: (query) => isLawyerRequestKey(query.queryKey) });
 }
 
-/** Mounted once in AppShell. Connects while signed in, reconnects on a fresh token, and
- * disconnects on sign-out. */
+/** Mounted once in AppShell, after useAppSocket (which connects and disconnects the socket). */
 export function useLawyerRequestSocket(): void {
-  const accessToken = useSession((s) => s.accessToken);
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!accessToken) return;
-    const sock = getHandoffSocket();
+    const sock = getAppSocket();
 
     const onUpdated = () => invalidateLawyerRequestQueries(queryClient);
     // A reconnect may have missed events while disconnected; refetching everything open catches up.
@@ -57,13 +36,11 @@ export function useLawyerRequestSocket(): void {
     // The lawyer posted in the engagement thread (#517): the thread's query is a lawyer-request one too.
     sock.on("engagement:message", onUpdated);
     sock.on("connect", onConnect);
-    sock.connect();
 
     return () => {
       sock.off("client-request:updated", onUpdated);
       sock.off("engagement:message", onUpdated);
       sock.off("connect", onConnect);
-      sock.disconnect();
     };
-  }, [accessToken, queryClient]);
+  }, [queryClient]);
 }
