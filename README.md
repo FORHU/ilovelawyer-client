@@ -1,6 +1,6 @@
 # ilovelawyer-client
 
-Consumer web app for ilovelawyer: pay per case ($9.99, 50 chat credits), AI consultation inside each case, and a free optional lawyer request.
+Consumer web app for ilovelawyer: free cases with starting chat credits, paid credit top-ups, AI consultation inside each case, and a free optional lawyer request.
 
 Sign up, sign in, cases, documents and the AI consultation are real, against ilovelawyer-api (accounts with `role = USER`). Payments and chat credits are recorded by the API, but the payment itself is a dummy for now (see below). Lawyer matching is still mocked in the client store.
 
@@ -40,8 +40,8 @@ Every client account is in the **UK** tenant. The client app is served from one 
 
 ## Payments (dummy for now)
 
-- Prices, credits per case, top-up packs and promo codes come from the API (`GET /api/client/pricing`). The numbers are placeholders.
-- A new case is paid first (`POST /api/client/payments/case`), then created with that payment. A payment creates one case only.
+- The credits a new case starts with, top-up packs and promo codes (which come off a top-up) come from the API (`GET /api/client/pricing`). The numbers are placeholders.
+- Creating a case is free (`POST /api/client/cases`, no payment). The only payment is a chat-credit top-up (`POST /api/client/cases/:id/top-ups`), optionally with a promo code.
 - The API's payment provider is a dummy: it always succeeds, except a card number ending in `0002`, which declines so the failure screen can be seen. The card form never sends card details anywhere. Stripe replaces the dummy later, on the API side.
 - Chat credits are counted on the server. Each AI message uses one, and the chat stops at 0 until the client tops up.
 

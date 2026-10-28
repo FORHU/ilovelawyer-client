@@ -4,7 +4,7 @@ import type { TenantCode } from "@/lib/tenant/client-tenant";
 // DRAFT pending legal review. Whenever this text materially changes, bump CLIENT_TERMS_VERSION in
 // ilovelawyer-api/src/constants/auth.constants.ts (and the copy below): the API records which
 // version each client account agreed to at signup.
-export const CLIENT_TERMS_VERSION = "client-2026-10.2";
+export const CLIENT_TERMS_VERSION = "client-2026-10.3";
 
 export interface TermsSection {
   number: string;
@@ -74,7 +74,7 @@ const BASE_SECTIONS: TermsSection[] = [
     number: "Section 04",
     title: "Cases, Payment and Credits",
     paragraphs: [
-      "Each case has a price and includes a number of chat credits, both shown before you pay. Each question you ask the AI uses one credit. You can buy more credits for a case at any time. Prices may change, but never for a payment you have already made.",
+      "Creating a case is free, and each new case includes a number of chat credits, shown before you create it. Each question you ask the AI uses one credit. You can buy more credits for a case at any time, at the price shown before you pay. Prices may change, but never for a payment you have already made.",
       "Credits belong to the case they were bought for and can't be moved to another case or exchanged for cash. Attaching documents and requesting a lawyer don't use credits.",
       "Refunds follow the refund policy shown at checkout and any rights you have under consumer law.",
     ],
