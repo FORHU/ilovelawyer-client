@@ -18,7 +18,7 @@ const caslon = Libre_Caslon_Text({
 export const metadata: Metadata = {
   title: "ilovelawyer",
   description:
-    "One case, one clear price. Chat with the AI, bring in a lawyer when it matters.",
+    "Free cases, pay only for the chat credits you use. Chat with the AI, bring in a lawyer when it matters.",
   icons: { icon: "/brand/mark-light.png" },
 };
 

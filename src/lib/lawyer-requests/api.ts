@@ -21,7 +21,7 @@ export type { ClientRequestStage, ClientRequestStatus };
 export { clientRequestStage, clientRequestStatusLabel };
 
 /** Why a case can't have a lawyer (the API's codes). */
-export type IneligibleReason = "NOT_UK_CASE" | "PERSONAL_INJURY_EXCLUDED" | "CASE_NOT_PAID" | "REQUEST_ALREADY_OPEN";
+export type IneligibleReason = "NOT_UK_CASE" | "PERSONAL_INJURY_EXCLUDED" | "REQUEST_ALREADY_OPEN";
 
 export interface LawyerRequestEligibility {
   eligible: boolean;

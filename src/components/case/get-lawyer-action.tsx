@@ -13,8 +13,8 @@ export const NOT_AVAILABLE_TEXT = {
 
 /**
  * The case header's lawyer button, decided by the API (GET /api/client/lawyer-requests/eligibility):
- * "Get a lawyer" on a paid UK case, "Not available yet" outside the UK, and a short explanation for
- * personal injury. Nothing while there's already a request, or before the case is paid for.
+ * "Get a lawyer" on a UK case, "Not available yet" outside the UK, and a short explanation for
+ * personal injury. Nothing while there's already a request.
  */
 export function GetLawyerAction({ caseId }: { caseId: string }) {
   const { data: openRequest } = useOpenLawyerRequestQuery(caseId);

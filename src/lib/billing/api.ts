@@ -1,6 +1,7 @@
 import { apiFetch } from "@/lib/api/fetch";
 
-// Paying for cases and credits (ilovelawyer-api /api/client/pricing, /payments, /top-ups).
+// Paying for chat credits (ilovelawyer-api /api/client/pricing, /payments, /top-ups). Cases
+// themselves are free and start with `Pricing.case.credits`.
 //
 // The API picks the payment provider. With the dummy (local and dev until Stripe keys are set) a
 // payment settles at once and `checkout` is null. With Stripe it starts PENDING and `checkout` has
@@ -21,16 +22,19 @@ export interface TopUpPack {
 }
 
 export interface Pricing {
-  case: { price: Money; credits: number };
+  /** What a new (free) case starts with. */
+  case: { credits: number };
   topUpPacks: TopUpPack[];
   /** Null when an admin has hidden every pack. */
   defaultPackId: string | null;
 }
 
-export interface CaseQuote {
+export interface TopUpQuote {
+  packId: string;
   price: Money;
   discount: Money;
   total: Money;
+  credits: number;
   /** Null when no code was given. */
   promo: { code: string; applied: boolean; message: string } | null;
 }
@@ -44,15 +48,6 @@ export interface StripeCheckout {
   publishableKey: string;
 }
 
-export interface CasePaymentStarted {
-  paymentId: string;
-  status: PaymentStatusValue;
-  amount: Money;
-  credits: number;
-  /** Null when the payment already settled (the dummy). */
-  checkout: StripeCheckout | null;
-}
-
 export interface TopUpStarted {
   paymentId: string;
   status: PaymentStatusValue;
@@ -60,19 +55,19 @@ export interface TopUpStarted {
   credits: number;
   added: number;
   amount: Money;
+  /** Null when the payment already settled (the dummy, or a promo that made it free). */
   checkout: StripeCheckout | null;
 }
 
 export interface PaymentStatus {
   paymentId: string;
+  /** CASE only on a payment from before cases were free. */
   kind: "CASE" | "TOP_UP";
   status: PaymentStatusValue;
   amount: Money;
   credits: number;
   caseId: string | null;
   failureReason: string | null;
-  /** A case payment that can still create its case. */
-  usable: boolean;
 }
 
 /** "decline" makes the dummy provider decline, to test the failure screen. Stripe ignores it: use
@@ -87,16 +82,13 @@ export function getPricing() {
   return apiFetch<Pricing>("/api/client/pricing");
 }
 
-export function quoteCase(promoCode: string) {
-  return post<CaseQuote>("/api/client/payments/case/quote", { promoCode });
+/** What a pack costs with a promo code, if it applies. */
+export function quoteTopUp(packId: string, promoCode: string) {
+  return post<TopUpQuote>("/api/client/payments/top-up/quote", { packId, promoCode });
 }
 
-/** Pays for a new case. Once SUCCEEDED, the paymentId is spent creating it (POST /api/client/cases). */
-export function payForCase(input: { promoCode?: string; testOutcome?: TestOutcome }) {
-  return post<CasePaymentStarted>("/api/client/payments/case", input);
-}
-
-export function topUp(caseId: string, input: { packId: string; testOutcome?: TestOutcome }) {
+/** `promoCode` only when the last quote applied it: a code that doesn't apply is refused (400). */
+export function topUp(caseId: string, input: { packId: string; promoCode?: string; testOutcome?: TestOutcome }) {
   return post<TopUpStarted>(`/api/client/cases/${caseId}/top-ups`, input);
 }
 

@@ -9,7 +9,7 @@ import { useSession } from "@/lib/auth/session";
 import { useCasesQuery } from "@/lib/cases/queries";
 import { cn } from "@/lib/cn";
 import { clientRequestStatusLabel, useOpenLawyerRequestsQuery } from "@/lib/lawyer-requests/api";
-import { money, usePricingQuery } from "@/lib/pricing";
+import { usePricingQuery } from "@/lib/pricing";
 import { useApp } from "@/lib/store";
 import { areasLabel } from "@/lib/types";
 
@@ -93,11 +93,11 @@ export function Sidebar() {
             })}
           </div>
           <div className="flex flex-col gap-1 rounded-input border border-line bg-white px-3.5 py-3">
-            <div className="text-[13px] font-semibold">Pay per case</div>
+            <div className="text-[13px] font-semibold">Free cases</div>
             <div className="text-xs leading-[1.5] text-ink-2">
               {pricing
-                ? `${money(pricing.case.price)} per case, with ${pricing.case.credits} chat credits included. Top up any time.`
-                : "Pay once per case. Top up any time."}
+                ? `Every case is free, with ${pricing.case.credits} chat credits included. Top up any time.`
+                : "Every case is free. Top up chat credits any time."}
             </div>
           </div>
           <div className="flex items-center gap-2.5 border-t border-line px-2.5 pb-0.5 pt-3">

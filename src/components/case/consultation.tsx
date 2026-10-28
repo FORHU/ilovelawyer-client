@@ -182,7 +182,7 @@ export function Consultation({ c }: { c: Case }) {
               </div>
               <Button
                 variant="outline"
-                onClick={() => usePayment.getState().openFor("topup", c.id)}
+                onClick={() => usePayment.getState().openFor(c.id)}
               >
                 Top up
               </Button>

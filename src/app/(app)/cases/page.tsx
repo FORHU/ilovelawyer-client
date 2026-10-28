@@ -14,7 +14,7 @@ import { cn } from "@/lib/cn";
 import { parseNotes } from "@/lib/cases/notes";
 import { useArchivedCasesQuery, useCasesQuery, useUnarchiveCaseMutation } from "@/lib/cases/queries";
 import { clientRequestStatusLabel, useOpenLawyerRequestsQuery } from "@/lib/lawyer-requests/api";
-import { money, usePricingQuery } from "@/lib/pricing";
+import { usePricingQuery } from "@/lib/pricing";
 import { useApp } from "@/lib/store";
 import { areasLabel, type Case } from "@/lib/types";
 
@@ -103,7 +103,6 @@ export default function CasesPage() {
   const { data: pricing } = usePricingQuery();
   const restore = useUnarchiveCaseMutation();
 
-  const price = pricing ? money(pricing.case.price) : "…";
   const included = pricing?.case.credits ?? "…";
   const total = active.data?.length ?? 0;
   const count = active.isPending ? "Loading your cases…" : `${total} ${total === 1 ? "case" : "cases"}`;
@@ -161,7 +160,7 @@ export default function CasesPage() {
             <Eyebrow>Case portfolio</Eyebrow>
             <h1 className="font-display text-[32px] font-normal tracking-[-0.02em]">Your cases</h1>
             <div className="text-sm text-ink-2">
-              {count}. Each case is {price} and includes {included} chat credits.
+              {count}. Each case is free and includes {included} chat credits.
             </div>
           </div>
           <Link href="/cases/new" className={buttonClass("primary", "md", "max-md:hidden no-underline text-white hover:text-white")}>
@@ -327,7 +326,7 @@ export default function CasesPage() {
             </div>
             <div className="font-display text-2xl tracking-[-0.02em]">Create your first case</div>
             <div className="max-w-[380px] text-sm leading-[1.6] text-ink-2">
-              Each case keeps your details, documents and AI consultation in one place. {price} per case, with {included} chat credits
+              Each case keeps your details, documents and AI consultation in one place. Free to create, with {included} chat credits
               included.
             </div>
             <Button className="mt-1.5" onClick={() => router.push("/cases/new")}>
@@ -347,7 +346,7 @@ export default function CasesPage() {
         <div className="sticky bottom-0 z-[2] -mx-4 mt-auto border-t border-line bg-white px-4 pb-[30px] pt-3 md:hidden">
           <Button size="xl" className="w-full" onClick={() => router.push("/cases/new")}>
             <Plus size={16} />
-            New case · {price}
+            New case
           </Button>
         </div>
       </div>

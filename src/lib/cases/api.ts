@@ -5,9 +5,8 @@ import type { Case, CaseDocument, CaseIntake, ChatMessage, OtherParty, UkJurisdi
 // a client account, and always work in that client's personal workspace, so no organization
 // header is needed.
 
+/** A new case is free: it starts with the chat credits GET /api/client/pricing names. */
 export interface NewCase {
-  /** The case payment this case uses up (POST /api/client/payments/case). */
-  paymentId: string;
   title: string;
   /** Case area codes, one or more. */
   areas: string[];
@@ -21,7 +20,7 @@ export interface NewCase {
 }
 
 /** Any of the case's details; what's left out stays as it is (PATCH /api/client/cases/:id). */
-export type CaseChanges = Partial<Omit<NewCase, "paymentId">>;
+export type CaseChanges = Partial<NewCase>;
 
 export interface CaseMessages {
   /** The AI is still answering the last message. */

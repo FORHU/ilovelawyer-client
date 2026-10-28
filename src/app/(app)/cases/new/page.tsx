@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ErrorBox } from "@/components/ui/banner";
 import { StepDetails, StepDocuments, StepPeople } from "@/components/wizard/steps";
 import { useSession } from "@/lib/auth/session";
+import { useCreateCaseFromWizard } from "@/lib/cases/new-case";
 import { cn } from "@/lib/cn";
-import { money, usePricingQuery } from "@/lib/pricing";
-import { usePayment } from "@/lib/payment-store";
+import { usePricingQuery } from "@/lib/pricing";
 import { useWizard } from "@/lib/wizard-store";
 
 const STEPS = [
@@ -22,8 +23,8 @@ export default function NewCasePage() {
   const wiz = useWizard();
   const { step, maxStep, title, region, side } = wiz;
   const { data: pricing } = usePricingQuery();
-  const price = pricing ? money(pricing.case.price) : "…";
   const included = pricing?.case.credits ?? "…";
+  const { create, creating, error } = useCreateCaseFromWizard();
 
   const userId = useSession((s) => s.user?.id);
   const [ready, setReady] = useState(false);
@@ -49,7 +50,7 @@ export default function NewCasePage() {
   if (!ready) return null;
 
   const onNext = () => {
-    if (wiz.next()) usePayment.getState().openFor("case");
+    if (wiz.next()) void create();
   };
   const onBack = () => {
     if (wiz.back()) router.push("/cases");
@@ -74,8 +75,7 @@ export default function NewCasePage() {
             </h1>
             <p className="text-[13px] leading-[1.6] text-ink-2">
               Tell us what happened, who is involved, and add your documents. You can edit
-              everything later. A case costs {price} and includes {included} chat
-              credits.
+              everything later. A case is free and includes {included} chat credits.
             </p>
           </div>
           <ol className="flex flex-row justify-between gap-1 md:flex-col">
@@ -129,6 +129,7 @@ export default function NewCasePage() {
           {step === 1 && <StepDetails />}
           {step === 2 && <StepPeople />}
           {step === 3 && <StepDocuments />}
+          {error && <ErrorBox message={error} />}
 
           <div className="sticky bottom-0 z-[2] -mx-4 flex items-center justify-between gap-2.5 border-t border-line bg-white px-4 pb-[30px] pt-3 md:static md:mx-0 md:border-t-0 md:bg-transparent md:p-0">
             <Button variant="outline" onClick={onBack}>
@@ -136,10 +137,10 @@ export default function NewCasePage() {
             </Button>
             <div className="flex items-center gap-3.5">
               <div className="hidden text-xs text-muted md:block">
-                {price} · includes {included} chat credits
+                Free · includes {included} chat credits
               </div>
-              <Button className="px-[26px]" onClick={onNext}>
-                {step < 3 ? "Continue" : "Continue to payment"}
+              <Button className="px-[26px] disabled:!opacity-60" onClick={onNext} disabled={creating}>
+                {step < 3 ? "Continue" : creating ? "Creating…" : "Create case"}
               </Button>
             </div>
           </div>

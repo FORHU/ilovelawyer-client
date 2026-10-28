@@ -57,7 +57,7 @@ export function CaseHeader({ c }: { c: Case }) {
       <div className="flex w-full shrink-0 gap-2 md:w-auto">
         <button
           type="button"
-          onClick={() => usePayment.getState().openFor("topup", c.id)}
+          onClick={() => usePayment.getState().openFor(c.id)}
           data-no-tap
           className="flex flex-1 shrink-0 flex-col gap-1.5 rounded-card border border-line bg-subtle px-3.5 py-2 text-[12.5px] font-medium text-ink md:w-[230px] md:flex-none"
         >
