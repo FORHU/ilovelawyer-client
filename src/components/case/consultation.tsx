@@ -50,10 +50,15 @@ export function Consultation({ c }: { c: Case }) {
   const latestAnswer = messages.findLast((m) => m.role === "ai");
   const missing = intake?.missing.length ?? 0;
   // A just-dropped/pasted file is attached right away but may still be reading; sending before
-  // that finishes would just bounce off the API's READY check. A FAILED document is not pending —
-  // it will never become READY, so it's dropped from attachedIds entirely below instead of
-  // blocking Send forever.
+  // that finishes would just bounce off the API's READY check.
   const attachmentPending = attachedIds.some((id) => documentById.get(id)?.status === "PENDING");
+  // A document whose extraction ends FAILED can never become READY — excluded from what's
+  // actually sent (rather than blocking Send and "Uploading…" forever), but still shown as its
+  // own removable chip so it isn't just silently dropped with no explanation. Derived at render
+  // time, not synced into state via an effect, so a chip disappears the moment its status changes
+  // instead of waiting a tick.
+  const failedAttachedIds = attachedIds.filter((id) => documentById.get(id)?.status === "FAILED");
+  const sendableAttachedIds = attachedIds.filter((id) => !failedAttachedIds.includes(id));
 
   useEffect(() => {
     const el = scroller.current;
@@ -69,22 +74,15 @@ export function Consultation({ c }: { c: Case }) {
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
   }, [input]);
 
-  // A document whose extraction ends FAILED can never become READY — drop it from attachedIds
-  // (rather than leave Send disabled and "Uploading…" stuck forever) and say so.
-  useEffect(() => {
-    const failed = attachedIds.filter((id) => documentById.get(id)?.status === "FAILED");
-    if (!failed.length) return;
-    setAttachedIds((prev) => prev.filter((id) => !failed.includes(id)));
-    const names = failed.map((id) => documentById.get(id)?.name ?? "Document").join(", ");
-    setNotice(`Couldn't read ${names}, so it wasn't attached. Try a different file.`);
-  }, [attachedIds, c.documents]);
-
   const removeAttached = (id: string) => setAttachedIds((prev) => prev.filter((x) => x !== id));
 
   const send = (raw: string) => {
     const text = raw.trim();
-    if ((!text && attachedIds.length === 0) || thinking || credits <= 0 || attachmentPending) return;
-    const documentIds = attachedIds;
+    if ((!text && sendableAttachedIds.length === 0) || thinking || credits <= 0 || attachmentPending) return;
+    const documentIds = sendableAttachedIds;
+    // Restored in full on error below, including a failed attachment that was still showing as
+    // its own chip — not just what was actually sendable.
+    const allAttachedIds = attachedIds;
     // Dropping/pasting a file in with nothing typed still needs something for the API to accept
     // (it requires non-empty text) and for the AI to read. This must not read as something the
     // client said — it ends up verbatim in the transcript, the lawyer brief and the intake
@@ -103,7 +101,7 @@ export function Consultation({ c }: { c: Case }) {
       {
         onError: (err) => {
           setInput(text);
-          setAttachedIds(documentIds);
+          setAttachedIds(allAttachedIds);
           setNotice(err instanceof Error ? err.message : "Couldn't send that. Try again.");
         },
       },
@@ -275,10 +273,16 @@ export function Consultation({ c }: { c: Case }) {
             <div className="flex flex-wrap items-center gap-1.5">
               {attachedIds.map((id) => {
                 const d = documentById.get(id);
+                const failed = failedAttachedIds.includes(id);
                 return (
-                  <span key={id} className="inline-flex items-center gap-1.5 rounded-full border border-ink bg-ink px-3 py-1.5 text-[12.5px] font-medium text-white">
+                  <span
+                    key={id}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium ${
+                      failed ? "border-error/40 bg-error/10 text-error" : "border-ink bg-ink text-white"
+                    }`}
+                  >
                     <FileText size={12} />
-                    {d?.name ?? "Document"}
+                    {failed ? `Couldn't read ${d?.name ?? "document"}` : (d?.name ?? "Document")}
                     <button
                       type="button"
                       aria-label={`Remove ${d?.name ?? "document"}`}
@@ -340,7 +344,7 @@ export function Consultation({ c }: { c: Case }) {
             <button
               type="submit"
               aria-label="Send"
-              disabled={out || thinking || attachmentPending || (!input.trim() && attachedIds.length === 0)}
+              disabled={out || thinking || attachmentPending || (!input.trim() && sendableAttachedIds.length === 0)}
               data-no-tap
               className="flex size-9 shrink-0 items-center justify-center self-end rounded-full bg-gold text-white disabled:opacity-60"
             >
