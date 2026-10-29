@@ -24,8 +24,9 @@ export function ReadinessBanner({
   onUpdate: () => void;
   onContinue: () => void;
 }) {
-  const fromApi = !!intake.completeness;
-  const criteria = intake.completeness?.criteria ?? caseBasics(c, intake);
+  // An empty list from the API is as good as none: there is nothing to count.
+  const fromApi = !!intake.completeness && intake.completeness.criteria.length > 0;
+  const criteria = fromApi ? intake.completeness!.criteria : caseBasics(c, intake);
   const met = criteria.filter((cr) => cr.met).length;
   const left = criteria.length - met;
   const canUpdate = intake.updates.allowed && intake.updates.leftToday > 0;
@@ -38,7 +39,7 @@ export function ReadinessBanner({
       <div className="flex min-w-0 flex-[999_1_420px] flex-col gap-3">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <span className="text-[10px] font-semibold uppercase tracking-[1px] text-ink-2">
-            {fromApi ? "Ready for a lawyer" : "Your case so far"}
+            {!fromApi ? "Your case so far" : left === 0 ? "Ready for a lawyer" : "Lawyer readiness"}
           </span>
           <span className="font-display text-[22px] tracking-[-0.02em]">
             {met} of {criteria.length} {fromApi ? "things a lawyer needs" : "basics covered"}
