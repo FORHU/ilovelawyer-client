@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type Ref } from "react";
+import { useEffect, useRef, useState, type Ref } from "react";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { ActionMenu } from "@/components/ui/action-menu";
@@ -63,10 +63,14 @@ export function KindBadge({ name, size = "md" }: { name: string; size?: "md" | "
   );
 }
 
-/** Opens a document in a new tab (a short-lived link from the API). */
+/** Opens a document in a new tab (a short-lived link from the API). One at a time: while a link is
+ * being fetched, a second click does nothing, and it says which document is opening or failed. */
 export function useOpenDocument(caseId: string) {
   const link = useDocumentUrlMutation(caseId);
+  const [failure, setFailure] = useState<{ id: string; message: string } | null>(null);
   const open = (id: string) => {
+    if (link.isPending) return;
+    setFailure(null);
     // Opened now, while this is still the click: a tab opened after the request comes back counts
     // as a popup, and iOS Safari blocks it.
     const tab = window.open("", "_blank");
@@ -78,10 +82,17 @@ export function useOpenDocument(caseId: string) {
         if (tab) tab.location.href = href;
         else window.location.assign(href);
       },
-      onError: () => tab?.close(),
+      onError: (err) => {
+        tab?.close();
+        setFailure({ id, message: err.message });
+      },
     });
   };
-  return { open, pending: link.isPending, error: link.error };
+  return {
+    open,
+    openingId: link.isPending ? (link.variables ?? null) : null,
+    errorFor: (id: string) => (failure?.id === id ? failure.message : undefined),
+  };
 }
 
 /** "182 KB · 12 Oct 2026" */
@@ -164,8 +175,8 @@ export function DocumentRow({
           label={`More actions for ${d.name}`}
           className="md:order-last"
           items={[
-            { label: opening ? "Opening…" : "Open", onSelect: onOpen },
-            ...(d.status === "FAILED" ? [{ label: "Retry reading", onSelect: () => retry.mutate(d.id) }] : []),
+            { label: opening ? "Opening…" : "Open", onSelect: onOpen, disabled: opening },
+            ...(d.status === "FAILED" ? [{ label: retry.isPending ? "Retrying…" : "Retry reading", onSelect: () => retry.mutate(d.id), disabled: retry.isPending }] : []),
             { label: "Remove", onSelect: askRemove, danger: true },
           ]}
         />

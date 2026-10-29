@@ -120,7 +120,8 @@ export function Documents({
       return sort === "oldest" ? diff : -diff;
     });
 
-  const selected = c.documents.find((d) => d.id === pickedId) ?? visible[0] ?? null;
+  // Only a document the table is showing can be the one in the panel, so its Remove has a row to confirm in.
+  const selected = visible.find((d) => d.id === pickedId) ?? visible[0] ?? null;
   const totalBytes = c.documents.reduce((sum, d) => sum + (d.size ?? 0), 0);
   const hasAny = c.documents.length > 0 || uploading.length > 0;
 
@@ -179,7 +180,10 @@ export function Documents({
                 e.preventDefault();
                 setDragging(true);
               }}
-              onDragLeave={() => setDragging(false)}
+              onDragLeave={(e) => {
+                // Moving over the icon or the browse link also fires dragleave; only leaving the zone counts.
+                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false);
+              }}
               onDrop={(e) => {
                 e.preventDefault();
                 setDragging(false);
@@ -259,7 +263,7 @@ export function Documents({
                     onConfirmChange={(on) => setConfirmingId(on ? d.id : null)}
                     usedIn={usedCount(d)}
                     onOpen={() => opener.open(d.id)}
-                    opening={opener.pending}
+                    opening={opener.openingId === d.id}
                     rowRef={(el) => {
                       rows.current[d.id] = el;
                     }}
@@ -276,8 +280,8 @@ export function Documents({
                   d={selected}
                   cites={citations.get(selected.id) ?? []}
                   onOpen={() => opener.open(selected.id)}
-                  opening={opener.pending}
-                  openError={opener.error?.message}
+                  opening={opener.openingId === selected.id}
+                  openError={opener.errorFor(selected.id)}
                   onRemove={() => setConfirmingId(selected.id)}
                   onOpenOverview={onOpenOverview}
                 />
