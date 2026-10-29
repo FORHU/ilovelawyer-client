@@ -24,6 +24,9 @@ import type { Case } from "@/lib/types";
 // all, since [id]/page.tsx drops straight back to the ordinary case view for it).
 const MAIN_STAGES = CLIENT_REQUEST_STAGES.filter((s): s is Exclude<ClientRequestStage, "expired" | "withdrawn"> => s !== "expired" && s !== "withdrawn");
 
+/** Up to 3 lawyers can take up a request and quote (ilovelawyer-api, several lawyers). */
+const MAX_LAWYERS = 3;
+
 function stageTitle(stage: (typeof MAIN_STAGES)[number], request: LawyerRequest): string {
   const on = request.lawyers.length;
   const quoted = request.lawyers.filter((l) => l.quote).length;
@@ -203,7 +206,9 @@ function QuoteStage({ c, request }: { c: Case; request: LawyerRequest }) {
         </div>
       ))}
 
-      <div className="text-xs text-muted">Other lawyers may still take up your request and send you a quote.</div>
+      {request.lawyers.length < MAX_LAWYERS && (
+        <div className="text-xs text-muted">Up to {MAX_LAWYERS} lawyers can send you a quote. Others may still take up your request.</div>
+      )}
 
       {request.referralDisclosure && (
         <div className="rounded-input border border-line bg-subtle px-4 py-3 text-xs leading-[1.6] text-ink-2">
@@ -296,7 +301,7 @@ export function LawyerTab({ c, request }: { c: Case; request: LawyerRequest }) {
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2.5 rounded-input border border-line bg-subtle px-4 py-3 text-[13px] text-ink-2">
               <Radar size={16} className="shrink-0 text-gold" aria-hidden="true" />
-              Verified UK lawyers are reviewing an anonymised summary of your case. Any of them can take it up and send you a quote.
+              Verified UK lawyers are reviewing an anonymised summary of your case. Up to {MAX_LAWYERS} can take it up and send you a quote.
             </div>
             <WithdrawButton requestId={request.id} caseId={c.id} />
           </div>

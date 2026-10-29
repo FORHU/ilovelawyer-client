@@ -91,7 +91,7 @@ export interface LawyerRequest {
   consentVersion: string;
   consentAcceptedAt: string;
   createdAt: string;
-  /** Everyone on the request now, oldest first, and the one hired. */
+  /** Everyone on the request now (up to 3), oldest first, and the one hired. */
   lawyers: LawyerOffer[];
   /** While quotes are open: the request closes if none is chosen by then. */
   pickByAt: string | null;
