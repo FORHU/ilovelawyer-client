@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent } from
 import { ArrowUpRight, FileText, Paperclip, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
-import { Chip, PromptChip } from "@/components/ui/chip";
+import { PromptChip } from "@/components/ui/chip";
 import { FilePicker } from "@/components/ui/file-picker";
 import { AiMark } from "@/components/ui/misc";
 import { LawyerSuggestion } from "@/components/case/lawyer-suggestion";
@@ -47,7 +47,6 @@ export function Consultation({ c }: { c: Case }) {
   const out = credits <= 0;
   const lastFailed = messages.at(-1)?.replyStatus === "FAILED";
   const latestAnswer = messages.findLast((m) => m.role === "ai");
-  const readyDocuments = c.documents.filter((d) => d.status === "READY");
   const missing = intake?.missing.length ?? 0;
   // A just-dropped/pasted file is attached right away but may still be reading; sending before
   // that finishes would just bounce off the API's READY check.
@@ -58,9 +57,6 @@ export function Consultation({ c }: { c: Case }) {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages.length, thinking]);
 
-  const attachExisting = (id: string) => {
-    setAttachedIds((prev) => (prev.includes(id) || prev.length >= MAX_ATTACHED_DOCUMENTS ? prev : [...prev, id]));
-  };
   const removeAttached = (id: string) => setAttachedIds((prev) => prev.filter((x) => x !== id));
 
   const send = (raw: string) => {
@@ -247,7 +243,6 @@ export function Consultation({ c }: { c: Case }) {
           )}
           {attachedIds.length > 0 && !out && (
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] text-muted">Attached:</span>
               {attachedIds.map((id) => {
                 const d = documentById.get(id);
                 return (
@@ -266,18 +261,6 @@ export function Consultation({ c }: { c: Case }) {
                   </span>
                 );
               })}
-            </div>
-          )}
-          {readyDocuments.some((d) => !attachedIds.includes(d.id)) && !out && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] text-muted">Also from this case:</span>
-              {readyDocuments
-                .filter((d) => !attachedIds.includes(d.id))
-                .map((d) => (
-                  <Chip key={d.id} small onClick={() => attachExisting(d.id)}>
-                    {d.name}
-                  </Chip>
-                ))}
             </div>
           )}
           <form
