@@ -44,9 +44,16 @@ function stageTitle(stage: (typeof MAIN_STAGES)[number], request: LawyerRequest)
   }
 }
 
-/** "Friday 6 November" */
-function pickByDay(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+/** "9:00 am on Friday 6 November": the request closes at that moment, not at the end of the day. */
+function pickByTime(iso: string) {
+  const at = new Date(iso);
+  const time = at.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true });
+  return `${time} on ${at.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}`;
+}
+
+/** The SRA's referral disclosure: shown before any Hire button, since hiring acknowledges it. */
+function ReferralDisclosure({ text }: { text: string }) {
+  return <div className="rounded-input border border-line bg-subtle px-4 py-3 text-xs leading-[1.6] text-ink-2">{text}</div>;
 }
 
 /** The five-stage progress line (#19). Past stages check off; the current one is highlighted;
@@ -154,6 +161,7 @@ function QuoteStage({ c, request }: { c: Case; request: LawyerRequest }) {
           <Check size={14} className="text-success" />
           Confirmed — paying the lawyer&apos;s introduction fee.
         </div>
+        {request.referralDisclosure && <ReferralDisclosure text={request.referralDisclosure} />}
       </div>
     );
   }
@@ -162,9 +170,12 @@ function QuoteStage({ c, request }: { c: Case; request: LawyerRequest }) {
     <div className="flex flex-col gap-4">
       {request.pickByAt && (
         <div className="text-[13px] text-ink-2">
-          Choose a lawyer by {pickByDay(request.pickByAt)}. If you don&apos;t, this request closes and you can ask again.
+          Choose a lawyer by {pickByTime(request.pickByAt)}. If you don&apos;t, this request closes and you can ask again.
         </div>
       )}
+
+      {/* Above the offers, so it's read before any Hire, which acknowledges it. */}
+      {request.referralDisclosure && <ReferralDisclosure text={request.referralDisclosure} />}
 
       {request.lawyers.map((offer) => (
         <div key={offer.claimId} className="flex flex-col gap-3">
@@ -206,15 +217,10 @@ function QuoteStage({ c, request }: { c: Case; request: LawyerRequest }) {
         </div>
       ))}
 
-      {request.lawyers.length < MAX_LAWYERS && (
+      {(request.openToLawyers ?? request.lawyers.length < MAX_LAWYERS) && (
         <div className="text-xs text-muted">Up to {MAX_LAWYERS} lawyers can send you a quote. Others may still take up your request.</div>
       )}
 
-      {request.referralDisclosure && (
-        <div className="rounded-input border border-line bg-subtle px-4 py-3 text-xs leading-[1.6] text-ink-2">
-          {request.referralDisclosure}
-        </div>
-      )}
 
       {error && <ErrorBox message={error} />}
       <WithdrawButton requestId={request.id} caseId={c.id} disabled={busy} />
