@@ -170,8 +170,7 @@ function Tile({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function WithdrawControl({ request, caseId }: { request: LawyerRequest; caseId: string }) {
-  const withdraw = useWithdrawLawyerRequestMutation(caseId);
+function WithdrawControl({ request, withdraw, disabled }: { request: LawyerRequest; withdraw: ReturnType<typeof useWithdrawLawyerRequestMutation>; disabled?: boolean }) {
   const [asking, setAsking] = useState(false);
   const [error, setError] = useState("");
   return (
@@ -188,7 +187,7 @@ function WithdrawControl({ request, caseId }: { request: LawyerRequest; caseId: 
               variant="danger"
               size="sm"
               className="!normal-case !text-[13px] !font-semibold tracking-normal"
-              disabled={withdraw.isPending}
+              disabled={withdraw.isPending || disabled}
               onClick={() => {
                 setError("");
                 withdraw.mutate(request.id, {
@@ -204,7 +203,7 @@ function WithdrawControl({ request, caseId }: { request: LawyerRequest; caseId: 
           </div>
         </div>
       ) : (
-        <Button variant="soft" size="sm" className="self-start" onClick={() => setAsking(true)}>
+        <Button variant="soft" size="sm" className="self-start" onClick={() => setAsking(true)} disabled={disabled}>
           Withdraw request
         </Button>
       )}
@@ -231,13 +230,24 @@ function LawyerHeader({ lawyer, tone = "plain", children }: { lawyer: NonNullabl
   );
 }
 
-function QuoteStage({ c, request, finalising }: { c: Case; request: LawyerRequest; finalising: boolean }) {
-  const confirm = useConfirmLawyerRequestMutation(c.id);
-  const decline = useDeclineLawyerRequestMutation(c.id);
+/** `confirm` and `decline` belong to LawyerTab, which also disables Withdraw while either is running. */
+function QuoteStage({
+  request,
+  finalising,
+  confirm,
+  decline,
+  locked,
+}: {
+  locked: boolean;
+  request: LawyerRequest;
+  finalising: boolean;
+  confirm: ReturnType<typeof useConfirmLawyerRequestMutation>;
+  decline: ReturnType<typeof useDeclineLawyerRequestMutation>;
+}) {
   const [error, setError] = useState("");
   const lawyer = request.lawyer;
   const first = firstName(lawyer?.name) ?? "your lawyer";
-  const busy = confirm.isPending || decline.isPending;
+  const busy = confirm.isPending || decline.isPending || locked;
 
   return (
     <div className="flex flex-col gap-4">
@@ -448,6 +458,12 @@ const VISIBILITY = (engaged: boolean, since?: string | null) => [
 ];
 
 export function LawyerTab({ c, request }: { c: Case; request: LawyerRequest }) {
+  const confirm = useConfirmLawyerRequestMutation(c.id);
+  const decline = useDeclineLawyerRequestMutation(c.id);
+  const withdraw = useWithdrawLawyerRequestMutation(c.id);
+  // Confirm, decline and withdraw all act on the same request, so only one runs at a time.
+  const deciding = confirm.isPending || decline.isPending;
+
   // [id]/page.tsx filters "withdrawn" out before mounting this tab at all — this is just so the
   // rest of the function can treat the request as one that is still on screen.
   if (clientRequestStage(request.status) === "withdrawn") return null;
@@ -468,7 +484,7 @@ export function LawyerTab({ c, request }: { c: Case; request: LawyerRequest }) {
               <h2 className="text-base font-semibold">Your lawyer request</h2>
             </div>
             <RequestSteps request={request} phase={phase} />
-            {canWithdraw && <WithdrawControl request={request} caseId={c.id} />}
+            {canWithdraw && <WithdrawControl request={request} withdraw={withdraw} disabled={deciding} />}
           </section>
 
           <section className="flex flex-col gap-2.5 rounded-card border border-line bg-white px-5 py-[18px]">
@@ -488,7 +504,7 @@ export function LawyerTab({ c, request }: { c: Case; request: LawyerRequest }) {
 
         <div className="flex min-w-0 flex-[999_1_520px] flex-col gap-4">
           {(phase === "sent" || phase === "finding" || phase === "reviewing") && <StageCard request={request} phase={phase} />}
-          {(phase === "quote" || phase === "finalising") && <QuoteStage c={c} request={request} finalising={phase === "finalising"} />}
+          {(phase === "quote" || phase === "finalising") && <QuoteStage request={request} finalising={phase === "finalising"} confirm={confirm} decline={decline} locked={withdraw.isPending} />}
           {phase === "engaged" && <EngagedStage c={c} request={request} />}
           {phase === "closed" && <ClosedStage c={c} request={request} />}
           {phase === "expired" && <ExpiredStage caseId={c.id} />}
