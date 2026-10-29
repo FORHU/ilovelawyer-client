@@ -23,23 +23,26 @@ export function SourceBadge({
   sources,
   onOpenChat,
   onOpenDocument,
+  tone = "default",
 }: {
+  tone?: "default" | "warn";
   sources: IntakeSource[];
   onOpenChat: () => void;
   onOpenDocument: (documentId: string) => void;
 }) {
   if (!sources.length) return null;
+  const link = `underline decoration-from-font underline-offset-2 ${tone === "warn" ? "text-warn-ink hover:text-gold-hover" : "text-gold hover:text-gold-hover"}`;
   const [first, ...rest] = sources;
 
   return (
-    <span className="inline-flex flex-wrap items-center gap-1 text-[12px] text-ink-2">
+    <span className={`inline-flex flex-wrap items-center gap-1 text-[12px] ${tone === "warn" ? "text-warn-ink" : "text-ink-2"}`}>
       {first!.kind === "CASE_DETAILS" ? (
         <span>{labelFor(first!)}</span>
       ) : first!.kind === "CLIENT" ? (
         <button
           type="button"
           onClick={onOpenChat}
-          className="text-gold underline decoration-from-font underline-offset-2 hover:text-gold-hover"
+          className={link}
         >
           {labelFor(first!)}
         </button>
@@ -47,12 +50,12 @@ export function SourceBadge({
         <button
           type="button"
           onClick={() => first!.documentId && onOpenDocument(first!.documentId)}
-          className="break-words text-left text-gold underline decoration-from-font underline-offset-2 hover:text-gold-hover"
+          className={`break-words text-left ${link}`}
         >
           {labelFor(first!)}
         </button>
       )}
-      {rest.length > 0 && <span title={rest.map(labelFor).join("; ")}>+{rest.length} more</span>}
+      {rest.length > 0 && <span className="text-ink-2" title={rest.map(labelFor).join("; ")}>+{rest.length} more</span>}
     </span>
   );
 }
