@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent } from "react";
-import { ArrowUpRight, FileText, Paperclip } from "lucide-react";
+import { ArrowUpRight, FileText, Paperclip, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { Chip, PromptChip } from "@/components/ui/chip";
@@ -58,13 +58,10 @@ export function Consultation({ c }: { c: Case }) {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages.length, thinking]);
 
-  const toggleAttached = (id: string) => {
-    setAttachedIds((prev) => {
-      if (prev.includes(id)) return prev.filter((x) => x !== id);
-      if (prev.length >= MAX_ATTACHED_DOCUMENTS) return prev;
-      return [...prev, id];
-    });
+  const attachExisting = (id: string) => {
+    setAttachedIds((prev) => (prev.includes(id) || prev.length >= MAX_ATTACHED_DOCUMENTS ? prev : [...prev, id]));
   };
+  const removeAttached = (id: string) => setAttachedIds((prev) => prev.filter((x) => x !== id));
 
   const send = (raw: string) => {
     const text = raw.trim();
@@ -248,14 +245,39 @@ export function Consultation({ c }: { c: Case }) {
               </Button>
             </div>
           )}
-          {readyDocuments.length > 0 && !out && (
+          {attachedIds.length > 0 && !out && (
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] text-muted">Send with this:</span>
-              {readyDocuments.map((d) => (
-                <Chip key={d.id} small selected={attachedIds.includes(d.id)} onClick={() => toggleAttached(d.id)}>
-                  {d.name}
-                </Chip>
-              ))}
+              <span className="text-[11px] text-muted">Attached:</span>
+              {attachedIds.map((id) => {
+                const d = documentById.get(id);
+                return (
+                  <span key={id} className="inline-flex items-center gap-1.5 rounded-full border border-ink bg-ink px-3 py-1.5 text-[12.5px] font-medium text-white">
+                    <FileText size={12} />
+                    {d?.name ?? "Document"}
+                    <button
+                      type="button"
+                      aria-label={`Remove ${d?.name ?? "document"}`}
+                      onClick={() => removeAttached(id)}
+                      data-no-tap
+                      className="-mr-1 flex size-4 items-center justify-center rounded-full opacity-80 hover:opacity-100"
+                    >
+                      <X size={11} />
+                    </button>
+                  </span>
+                );
+              })}
+            </div>
+          )}
+          {readyDocuments.some((d) => !attachedIds.includes(d.id)) && !out && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] text-muted">Also from this case:</span>
+              {readyDocuments
+                .filter((d) => !attachedIds.includes(d.id))
+                .map((d) => (
+                  <Chip key={d.id} small onClick={() => attachExisting(d.id)}>
+                    {d.name}
+                  </Chip>
+                ))}
             </div>
           )}
           <form
