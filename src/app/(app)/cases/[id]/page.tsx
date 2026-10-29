@@ -74,7 +74,7 @@ export default function CasePage() {
           onOpenChat={() => setTab("chat")}
         />
       )}
-      {active === "docs" && <Documents c={c} focusDocumentId={focusDocumentId} onFocused={clearFocusDocument} />}
+      {active === "docs" && <Documents c={c} focusDocumentId={focusDocumentId} onFocused={clearFocusDocument} onOpenOverview={() => setTab("overview")} />}
       {active === "lawyer" && request && <LawyerTab c={c} request={request} />}
     </div>
   );
