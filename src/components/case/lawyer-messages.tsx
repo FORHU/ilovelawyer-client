@@ -6,21 +6,18 @@ import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { cn } from "@/lib/cn";
 import type { EngagementMessage } from "@/lib/client-handoff";
+import { formatDateTime } from "@/lib/format";
 import type { Case } from "@/lib/types";
 import { useEngagementMessagesQuery, useMarkEngagementMessagesReadMutation, usePostEngagementMessageMutation } from "@/lib/lawyer-requests/messages";
 
 const MESSAGE_MAX_LENGTH = 5000;
-
-function when(iso: string) {
-  return new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
-}
 
 function Message({ message }: { message: EngagementMessage }) {
   const mine = message.author.side === "CLIENT";
   return (
     <li className={cn("flex max-w-[85%] flex-col gap-1", mine ? "items-end self-end" : "items-start self-start")}>
       <span className="text-[11.5px] text-muted">
-        {mine ? "You" : `${message.author.name} · Your lawyer`} · {when(message.createdAt)}
+        {mine ? "You" : `${message.author.name} · Your lawyer`} · {formatDateTime(message.createdAt)}
       </span>
       {message.body && (
         <p className={cn("whitespace-pre-wrap break-words rounded-card px-3.5 py-2 text-[13px] leading-[1.6]", mine ? "bg-gold text-white" : "bg-subtle text-ink")}>

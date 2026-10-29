@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatBytes, formatDay } from "../format";
+import { formatBytes, firstName, formatDateTime, formatDay, formatEventDate, timeAgo } from "../format";
 
 describe("formatBytes", () => {
   it("shows a small file in bytes", () => {
@@ -28,5 +28,57 @@ describe("formatDay", () => {
 
   it("reads the date in UTC, so a late-evening upload keeps its day everywhere", () => {
     expect(formatDay("2026-10-23T23:59:00Z")).toBe("23 Oct 2026");
+  });
+});
+
+describe("timeAgo", () => {
+  const now = new Date("2026-10-29T12:00:00Z");
+
+  it("says just now inside the first minute", () => {
+    expect(timeAgo("2026-10-29T11:59:30Z", now)).toBe("just now");
+  });
+
+  it("counts minutes, hours and days, singular and plural", () => {
+    expect(timeAgo("2026-10-29T11:59:00Z", now)).toBe("1 minute ago");
+    expect(timeAgo("2026-10-29T11:15:00Z", now)).toBe("45 minutes ago");
+    expect(timeAgo("2026-10-29T10:00:00Z", now)).toBe("2 hours ago");
+    expect(timeAgo("2026-10-27T12:00:00Z", now)).toBe("2 days ago");
+  });
+
+  it("never reads as the future", () => {
+    expect(timeAgo("2026-10-29T12:05:00Z", now)).toBe("just now");
+  });
+});
+
+describe("formatEventDate", () => {
+  it("keeps the precision it was given", () => {
+    expect(formatEventDate("2026-03-06T00:00:00Z", "DAY")).toBe("6 Mar 2026");
+    expect(formatEventDate("2026-03-01T00:00:00Z", "MONTH")).toBe("Mar 2026");
+    expect(formatEventDate("2026-01-01T00:00:00Z", "YEAR")).toBe("2026");
+  });
+
+  it("does not turn an unknown precision into a day", () => {
+    expect(formatEventDate("2026-01-01T00:00:00Z", "UNKNOWN")).toBe("Date unknown");
+  });
+});
+
+describe("firstName", () => {
+  it("takes the first word of a name", () => {
+    expect(firstName("Priya Natarajan")).toBe("Priya");
+  });
+
+  it("ignores stray spaces", () => {
+    expect(firstName("  Priya   Natarajan ")).toBe("Priya");
+  });
+
+  it("is null with no name", () => {
+    expect(firstName("")).toBeNull();
+    expect(firstName(undefined)).toBeNull();
+  });
+});
+
+describe("formatDateTime", () => {
+  it("shows day, month and time", () => {
+    expect(formatDateTime("2026-10-29T10:42:00")).toBe("29 Oct, 10:42");
   });
 });
