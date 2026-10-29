@@ -13,6 +13,7 @@ import {
   useDeclineLawyerRequestMutation,
   useEndLawyerRequestMutation,
   useWithdrawLawyerRequestMutation,
+  type LawyerOffer,
   type LawyerRequest,
 } from "@/lib/lawyer-requests/api";
 import { money } from "@/lib/pricing";
@@ -23,13 +24,27 @@ import type { Case } from "@/lib/types";
 // all, since [id]/page.tsx drops straight back to the ordinary case view for it).
 const MAIN_STAGES = CLIENT_REQUEST_STAGES.filter((s): s is Exclude<ClientRequestStage, "expired" | "withdrawn"> => s !== "expired" && s !== "withdrawn");
 
-const STAGE_TITLE: Record<(typeof MAIN_STAGES)[number], string> = {
-  waiting: "Finding your lawyer",
-  review: "A lawyer is reviewing your case",
-  accepted: "Quote received",
-  ongoing: "Lawyer confirmed",
-  done: "Closed",
-};
+function stageTitle(stage: (typeof MAIN_STAGES)[number], request: LawyerRequest): string {
+  const on = request.lawyers.length;
+  const quoted = request.lawyers.filter((l) => l.quote).length;
+  switch (stage) {
+    case "waiting":
+      return "Finding your lawyer";
+    case "review":
+      return on > 1 ? `${on} lawyers are reviewing your case` : "A lawyer is reviewing your case";
+    case "accepted":
+      return quoted > 1 ? `${quoted} quotes received` : "Quote received";
+    case "ongoing":
+      return "Lawyer confirmed";
+    case "done":
+      return "Closed";
+  }
+}
+
+/** "Friday 6 November" */
+function pickByDay(iso: string) {
+  return new Date(iso).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+}
 
 /** The five-stage progress line (#19). Past stages check off; the current one is highlighted;
  * later ones are dimmed. */
@@ -106,23 +121,89 @@ function LawyerProfileCard({ lawyer }: { lawyer: NonNullable<LawyerRequest["lawy
   );
 }
 
+function QuoteCard({ quote }: { quote: NonNullable<LawyerOffer["quote"]> }) {
+  return (
+    <div className="flex flex-col gap-1.5 border-t border-line pt-3">
+      <div className={LABEL}>{quote.type === "FIXED_FEE" ? "Fixed fee" : "First consultation"}</div>
+      <div className="font-display text-[22px] tracking-[-0.02em] text-ink">{money(quote.amount)}</div>
+      {quote.message && <p className="text-[13px] leading-[1.6] text-ink-2">{quote.message}</p>}
+    </div>
+  );
+}
+
+/**
+ * The quotes (several lawyers, ilovelawyer-api phase 5): each lawyer on the request with their quote,
+ * or a note that they're still reviewing. The client hires one, which tells the others; or declines
+ * one, which frees their place for another lawyer.
+ */
 function QuoteStage({ c, request }: { c: Case; request: LawyerRequest }) {
   const confirm = useConfirmLawyerRequestMutation(c.id);
   const decline = useDeclineLawyerRequestMutation(c.id);
   const [error, setError] = useState("");
   const confirmed = request.status === "CONFIRMED";
+  const busy = confirm.isPending || decline.isPending;
+
+  if (confirmed) {
+    return (
+      <div className="flex flex-col gap-4">
+        {request.lawyer && <LawyerProfileCard lawyer={request.lawyer} />}
+        <div className="flex items-center gap-2 rounded-input border border-line bg-subtle px-4 py-3 text-[13px] text-ink-2">
+          <Check size={14} className="text-success" />
+          Confirmed — paying the lawyer&apos;s introduction fee.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">
-      {request.lawyer && <LawyerProfileCard lawyer={request.lawyer} />}
-
-      {request.quote && (
-        <div className={CARD}>
-          <div className={LABEL}>{request.quote.type === "FIXED_FEE" ? "Fixed fee" : "First consultation"}</div>
-          <div className="font-display text-[22px] tracking-[-0.02em] text-ink">{money(request.quote.amount)}</div>
-          {request.quote.message && <p className="text-[13px] leading-[1.6] text-ink-2">{request.quote.message}</p>}
+      {request.pickByAt && (
+        <div className="text-[13px] text-ink-2">
+          Choose a lawyer by {pickByDay(request.pickByAt)}. If you don&apos;t, this request closes and you can ask again.
         </div>
       )}
+
+      {request.lawyers.map((offer) => (
+        <div key={offer.claimId} className="flex flex-col gap-3">
+          <LawyerProfileCard lawyer={offer.lawyer} />
+          <div className={CARD}>
+            {offer.quote ? (
+              <>
+                <QuoteCard quote={offer.quote} />
+                <div className="flex gap-2.5">
+                  <Button
+                    size="md"
+                    className="flex-1"
+                    disabled={busy}
+                    onClick={() => {
+                      setError("");
+                      confirm.mutate({ id: request.id, claimId: offer.claimId }, { onError: (err) => setError(err instanceof Error ? err.message : "Couldn't confirm. Try again.") });
+                    }}
+                  >
+                    {confirm.isPending && confirm.variables?.claimId === offer.claimId ? "Confirming…" : `Hire ${offer.lawyer.name}`}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="md"
+                    className="flex-1"
+                    disabled={busy}
+                    onClick={() => {
+                      setError("");
+                      decline.mutate({ id: request.id, claimId: offer.claimId }, { onError: (err) => setError(err instanceof Error ? err.message : "Couldn't decline. Try again.") });
+                    }}
+                  >
+                    {decline.isPending && decline.variables?.claimId === offer.claimId ? "Declining…" : "Decline this quote"}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="text-[13px] text-ink-2">Reviewing your case. They&apos;ll send a quote within 24 hours.</div>
+            )}
+          </div>
+        </div>
+      ))}
+
+      <div className="text-xs text-muted">Other lawyers may still take up your request and send you a quote.</div>
 
       {request.referralDisclosure && (
         <div className="rounded-input border border-line bg-subtle px-4 py-3 text-xs leading-[1.6] text-ink-2">
@@ -131,40 +212,7 @@ function QuoteStage({ c, request }: { c: Case; request: LawyerRequest }) {
       )}
 
       {error && <ErrorBox message={error} />}
-
-      {confirmed ? (
-        <div className="flex items-center gap-2 rounded-input border border-line bg-subtle px-4 py-3 text-[13px] text-ink-2">
-          <Check size={14} className="text-success" />
-          Confirmed — paying the lawyer&apos;s introduction fee.
-        </div>
-      ) : (
-        <div className="flex gap-2.5">
-          <Button
-            size="md"
-            className="flex-1"
-            disabled={confirm.isPending || decline.isPending}
-            onClick={() => {
-              setError("");
-              confirm.mutate(request.id, { onError: (err) => setError(err instanceof Error ? err.message : "Couldn't confirm. Try again.") });
-            }}
-          >
-            {confirm.isPending ? "Confirming…" : "Confirm this lawyer"}
-          </Button>
-          <Button
-            variant="outline"
-            size="md"
-            className="flex-1"
-            disabled={confirm.isPending || decline.isPending}
-            onClick={() => {
-              setError("");
-              decline.mutate({ id: request.id }, { onError: (err) => setError(err instanceof Error ? err.message : "Couldn't decline. Try again.") });
-            }}
-          >
-            {decline.isPending ? "Declining…" : "Decline, find another lawyer"}
-          </Button>
-        </div>
-      )}
-      {!confirmed && <WithdrawButton requestId={request.id} caseId={c.id} disabled={confirm.isPending || decline.isPending} />}
+      <WithdrawButton requestId={request.id} caseId={c.id} disabled={busy} />
     </div>
   );
 }
@@ -216,8 +264,8 @@ function ExpiredStage() {
       </div>
       <div className="font-display text-[22px] tracking-[-0.02em]">No lawyer found</div>
       <div className="max-w-[420px] text-[13px] leading-[1.6] text-ink-2">
-        No verified lawyer claimed this request in time. You haven&apos;t been charged for it, and any case fee credit stays on your account —
-        you can ask for a lawyer on this case again any time.
+        No lawyer took up this request in time, or no quote was chosen within 7 days. You haven&apos;t been charged for it, and you can
+        ask for a lawyer on this case again any time.
       </div>
     </div>
   );
@@ -242,13 +290,13 @@ export function LawyerTab({ c, request }: { c: Case; request: LawyerRequest }) {
     <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 py-6 md:px-10">
       <div className="mx-auto flex w-full max-w-[640px] flex-col gap-5">
         <StageTimeline stage={stage} />
-        <div className="font-display text-[20px] tracking-[-0.02em] text-ink">{STAGE_TITLE[stage]}</div>
+        <div className="font-display text-[20px] tracking-[-0.02em] text-ink">{stageTitle(stage, request)}</div>
 
         {stage === "waiting" && (
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2.5 rounded-input border border-line bg-subtle px-4 py-3 text-[13px] text-ink-2">
               <Radar size={16} className="shrink-0 text-gold" aria-hidden="true" />
-              Verified UK lawyers are reviewing an anonymised summary of your case. Most requests are claimed within a day.
+              Verified UK lawyers are reviewing an anonymised summary of your case. Any of them can take it up and send you a quote.
             </div>
             <WithdrawButton requestId={request.id} caseId={c.id} />
           </div>
@@ -258,7 +306,9 @@ export function LawyerTab({ c, request }: { c: Case; request: LawyerRequest }) {
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2.5 rounded-input border border-line bg-subtle px-4 py-3 text-[13px] text-ink-2">
               <Scale size={16} className="shrink-0 text-gold" aria-hidden="true" />
-              A lawyer has taken your case for a conflict check and will send a quote shortly.
+              {request.lawyers.length > 1
+                ? `${request.lawyers.length} lawyers have taken up your case. Each checks for a conflict and sends you a quote within 24 hours.`
+                : "A lawyer has taken up your case for a conflict check and will send a quote within 24 hours."}
             </div>
             <WithdrawButton requestId={request.id} caseId={c.id} />
           </div>

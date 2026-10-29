@@ -73,6 +73,15 @@ export interface EngagementFeedback {
   createdAt: string;
 }
 
+/** One lawyer on the request (several lawyers, ilovelawyer-api phase 5): `claimId` is what hiring and
+ * declining take; `quote` is null until they've sent one. */
+export interface LawyerOffer {
+  claimId: string;
+  joinedAt: string;
+  lawyer: LawyerPublicProfile;
+  quote: LawyerQuote | null;
+}
+
 /** LawyerRequestForClient in the contract. */
 export interface LawyerRequest {
   id: string;
@@ -82,6 +91,11 @@ export interface LawyerRequest {
   consentVersion: string;
   consentAcceptedAt: string;
   createdAt: string;
+  /** Everyone on the request now, oldest first, and the one hired. */
+  lawyers: LawyerOffer[];
+  /** While quotes are open: the request closes if none is chosen by then. */
+  pickByAt: string | null;
+  /** The lawyer hired, or until then the only quote; null with several. */
   lawyer: LawyerPublicProfile | null;
   quote: LawyerQuote | null;
   /** Shown again on the quote screen; acknowledged to confirm. */
@@ -129,12 +143,14 @@ export function withdrawLawyerRequest(id: string) {
   return post<LawyerRequest>(`/api/client/lawyer-requests/${id}/withdraw`, {});
 }
 
-export function confirmLawyerRequest(id: string) {
-  return post<LawyerRequest>(`/api/client/lawyer-requests/${id}/confirm`, { disclosureAcknowledged: true });
+/** Hires the lawyer whose quote `claimId` is. */
+export function confirmLawyerRequest(id: string, claimId: string) {
+  return post<LawyerRequest>(`/api/client/lawyer-requests/${id}/confirm`, { disclosureAcknowledged: true, claimId });
 }
 
-export function declineLawyerRequest(id: string, reason?: string) {
-  return post<LawyerRequest>(`/api/client/lawyer-requests/${id}/decline`, reason ? { reason } : {});
+/** Declines one lawyer's quote; the others stay open. */
+export function declineLawyerRequest(id: string, claimId: string, reason?: string) {
+  return post<LawyerRequest>(`/api/client/lawyer-requests/${id}/decline`, reason ? { claimId, reason } : { claimId });
 }
 
 /** The client's side of closing the engagement — same effect as the lawyer closing it. */
@@ -257,7 +273,7 @@ export function useConfirmLawyerRequestMutation(caseId: string) {
   const queryClient = useQueryClient();
   const userId = useUserId();
   return useMutation({
-    mutationFn: (id: string) => confirmLawyerRequest(id),
+    mutationFn: ({ id, claimId }: { id: string; claimId: string }) => confirmLawyerRequest(id, claimId),
     onSettled: () => invalidateLawyerRequests(queryClient, userId, caseId),
   });
 }
@@ -266,7 +282,7 @@ export function useDeclineLawyerRequestMutation(caseId: string) {
   const queryClient = useQueryClient();
   const userId = useUserId();
   return useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason?: string }) => declineLawyerRequest(id, reason),
+    mutationFn: ({ id, claimId, reason }: { id: string; claimId: string; reason?: string }) => declineLawyerRequest(id, claimId, reason),
     onSettled: () => invalidateLawyerRequests(queryClient, userId, caseId),
   });
 }
