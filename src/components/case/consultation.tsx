@@ -40,6 +40,7 @@ export function Consultation({ c }: { c: Case }) {
   const [dragging, setDragging] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   const dragCounter = useRef(0);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const messages = data?.messages ?? [];
   const documentById = new Map(c.documents.map((d) => [d.id, d]));
@@ -56,6 +57,15 @@ export function Consultation({ c }: { c: Case }) {
     const el = scroller.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages.length, thinking]);
+
+  // Grows with what's typed, up to a cap (then scrolls inside itself) — so a long message stays
+  // readable instead of scrolling sideways in a single line.
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+  }, [input]);
 
   const removeAttached = (id: string) => setAttachedIds((prev) => prev.filter((x) => x !== id));
 
@@ -119,7 +129,7 @@ export function Consultation({ c }: { c: Case }) {
     if (dragCounter.current === 0) setDragging(false);
   };
 
-  const onPaste = (e: ClipboardEvent<HTMLInputElement>) => {
+  const onPaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
     const files = Array.from(e.clipboardData?.items ?? [])
       .filter((item) => item.kind === "file")
       .map((item) => item.getAsFile())
@@ -268,7 +278,7 @@ export function Consultation({ c }: { c: Case }) {
               e.preventDefault();
               send(input);
             }}
-            className={`flex items-center gap-1.5 rounded-composer border border-line bg-subtle p-2 ${out ? "pointer-events-none opacity-50" : ""}`}
+            className={`flex items-end gap-1.5 rounded-composer border border-line bg-subtle p-2 ${out ? "pointer-events-none opacity-50" : ""}`}
           >
             <FilePicker onPick={attach}>
               {(open) => (
@@ -279,22 +289,30 @@ export function Consultation({ c }: { c: Case }) {
                   disabled={out || upload.isPending}
                   onClick={open}
                   data-no-tap
-                  className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line text-muted disabled:opacity-60"
+                  className="flex size-9 shrink-0 items-center justify-center self-end rounded-full border border-line text-muted disabled:opacity-60"
                 >
                   <Paperclip size={15} />
                 </button>
               )}
             </FilePicker>
-            <input
+            <textarea
+              ref={textareaRef}
               value={input}
               disabled={out}
+              rows={1}
               onChange={(e) => setInput(e.target.value)}
               onPaste={onPaste}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  send(input);
+                }
+              }}
               placeholder="Tell me what's going on…"
               aria-label="Tell me what's going on"
-              className="min-w-0 flex-1 bg-transparent px-3.5 text-[15px] text-ink outline-none"
+              className="my-1.5 min-w-0 flex-1 resize-none bg-transparent px-3.5 text-[15px] leading-[1.5] text-ink outline-none"
             />
-            <span className="whitespace-nowrap text-[11px] text-muted">
+            <span className="mb-1.5 whitespace-nowrap self-end text-[11px] text-muted">
               {upload.isPending || attachmentPending ? "Uploading…" : `${credits} credits`}
             </span>
             <button
@@ -302,7 +320,7 @@ export function Consultation({ c }: { c: Case }) {
               aria-label="Send"
               disabled={out || thinking || attachmentPending || (!input.trim() && attachedIds.length === 0)}
               data-no-tap
-              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gold text-white disabled:opacity-60"
+              className="flex size-9 shrink-0 items-center justify-center self-end rounded-full bg-gold text-white disabled:opacity-60"
             >
               <ArrowUpRight size={14} />
             </button>
