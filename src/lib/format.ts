@@ -29,9 +29,21 @@ export function timeAgo(iso: string, now: Date = new Date()): string {
 }
 
 /** A timeline date only as precisely as it was given: "6 Mar 2026", "Mar 2026" or "2026". A month
- * the client mentioned stays a month, never a made-up day. */
+ * the client mentioned stays a month, never a made-up day; a date of unknown precision is not shown
+ * as a day at all. */
 export function formatEventDate(iso: string, precision: "DAY" | "MONTH" | "YEAR" | "UNKNOWN"): string {
+  if (precision === "UNKNOWN") return "Date unknown";
   const opts: Intl.DateTimeFormatOptions =
     precision === "YEAR" ? { year: "numeric" } : precision === "MONTH" ? { month: "short", year: "numeric" } : { day: "numeric", month: "short", year: "numeric" };
   return new Date(iso).toLocaleDateString("en-GB", { ...opts, timeZone: "UTC" });
+}
+
+/** "29 Oct, 10:42" — a moment in the viewer's own time zone. */
+export function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+}
+
+/** "Priya" from "Priya Natarajan", or null when there's no name to take it from. */
+export function firstName(name: string | null | undefined): string | null {
+  return name?.trim().split(/\s+/)[0] || null;
 }

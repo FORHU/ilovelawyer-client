@@ -17,6 +17,7 @@ import {
   useWithdrawLawyerRequestMutation,
   type LawyerRequest,
 } from "@/lib/lawyer-requests/api";
+import { firstName, formatDateTime } from "@/lib/format";
 import { money } from "@/lib/pricing";
 import type { Case } from "@/lib/types";
 
@@ -50,11 +51,6 @@ function phaseOf(request: LawyerRequest): Phase {
 /** How many steps are behind the request. */
 const POSITION: Record<Phase, number> = { sent: 0, finding: 1, reviewing: 2, quote: 3, finalising: 4, engaged: 4, closed: 5, expired: 1 };
 
-/** "29 Oct, 10:42" */
-function when(iso: string) {
-  return new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
-}
-
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
 interface Step {
@@ -65,9 +61,9 @@ interface Step {
 }
 
 function stepsFor(request: LawyerRequest, phase: Phase): Step[] {
-  const first = request.lawyer?.name.split(" ")[0];
+  const first = firstName(request.lawyer?.name);
   return [
-    { label: "Request sent", sub: "Anonymised summary of your overview", time: when(request.createdAt), expect: "Takes about a minute" },
+    { label: "Request sent", sub: "Anonymised summary of your overview", time: formatDateTime(request.createdAt), expect: "Takes about a minute" },
     {
       label: phase === "expired" ? "No lawyer picked it up" : "Finding a lawyer",
       sub: "Sent to matching lawyers",
@@ -78,7 +74,7 @@ function stepsFor(request: LawyerRequest, phase: Phase): Step[] {
     {
       label: phase === "finalising" ? `Finalising${first ? ` with ${first}` : ""}` : "Working with your lawyer",
       sub: "Messages, and read-only access to your case",
-      time: request.engagedAt ? (request.closedAt ? `${day(request.engagedAt)} – ${day(request.closedAt)}` : when(request.engagedAt)) : undefined,
+      time: request.engagedAt ? (request.closedAt ? `${day(request.engagedAt)} – ${day(request.closedAt)}` : formatDateTime(request.engagedAt)) : undefined,
       expect: phase === "finalising" ? "Usually takes a few minutes" : request.engagedAt ? `Started ${day(request.engagedAt)}` : undefined,
     },
   ];
@@ -240,7 +236,7 @@ function QuoteStage({ c, request, finalising }: { c: Case; request: LawyerReques
   const decline = useDeclineLawyerRequestMutation(c.id);
   const [error, setError] = useState("");
   const lawyer = request.lawyer;
-  const first = lawyer?.name.split(" ")[0] ?? "your lawyer";
+  const first = firstName(lawyer?.name) ?? "your lawyer";
   const busy = confirm.isPending || decline.isPending;
 
   return (
@@ -310,7 +306,7 @@ function EngagedStage({ c, request }: { c: Case; request: LawyerRequest }) {
   const [asking, setAsking] = useState(false);
   const [error, setError] = useState("");
   const lawyer = request.lawyer;
-  const first = lawyer?.name.split(" ")[0] ?? "your lawyer";
+  const first = firstName(lawyer?.name) ?? "your lawyer";
   return (
     <div className="flex flex-col gap-4">
       {lawyer && (
@@ -422,7 +418,7 @@ function StageCard({ request, phase }: { request: LawyerRequest; phase: Phase })
           Verified lawyers who handle cases like yours have an anonymised summary of your case. The first to pick it up checks for conflicts and sends you a quote.
         </p>
         <div className="flex flex-wrap gap-2.5">
-          <Tile label="Sent">{when(request.createdAt)}</Tile>
+          <Tile label="Sent">{formatDateTime(request.createdAt)}</Tile>
           <Tile label="Usually picked up within">a day</Tile>
         </div>
         <span className="text-[12.5px] text-ink-2">We&apos;ll email you the moment a lawyer picks it up.</span>
@@ -482,7 +478,7 @@ export function LawyerTab({ c, request }: { c: Case; request: LawyerRequest }) {
             <ul className="flex flex-col gap-2.5">
               {activity.map((ev) => (
                 <li key={`${ev.at}-${ev.text}`} className="grid grid-cols-[92px_minmax(0,1fr)] gap-2.5 text-[12.5px]">
-                  <span className="text-ink-2">{when(ev.at).replace(",", "")}</span>
+                  <span className="text-ink-2">{formatDateTime(ev.at).replace(",", "")}</span>
                   <span>{ev.text}</span>
                 </li>
               ))}

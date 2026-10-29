@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatBytes, formatDay, formatEventDate, timeAgo } from "../format";
+import { formatBytes, firstName, formatDateTime, formatDay, formatEventDate, timeAgo } from "../format";
 
 describe("formatBytes", () => {
   it("shows a small file in bytes", () => {
@@ -55,5 +55,30 @@ describe("formatEventDate", () => {
     expect(formatEventDate("2026-03-06T00:00:00Z", "DAY")).toBe("6 Mar 2026");
     expect(formatEventDate("2026-03-01T00:00:00Z", "MONTH")).toBe("Mar 2026");
     expect(formatEventDate("2026-01-01T00:00:00Z", "YEAR")).toBe("2026");
+  });
+
+  it("does not turn an unknown precision into a day", () => {
+    expect(formatEventDate("2026-01-01T00:00:00Z", "UNKNOWN")).toBe("Date unknown");
+  });
+});
+
+describe("firstName", () => {
+  it("takes the first word of a name", () => {
+    expect(firstName("Priya Natarajan")).toBe("Priya");
+  });
+
+  it("ignores stray spaces", () => {
+    expect(firstName("  Priya   Natarajan ")).toBe("Priya");
+  });
+
+  it("is null with no name", () => {
+    expect(firstName("")).toBeNull();
+    expect(firstName(undefined)).toBeNull();
+  });
+});
+
+describe("formatDateTime", () => {
+  it("shows day, month and time", () => {
+    expect(formatDateTime("2026-10-29T10:42:00")).toBe("29 Oct, 10:42");
   });
 });

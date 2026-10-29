@@ -9,6 +9,7 @@ import { Documents } from "@/components/case/overview-docs";
 import { Overview } from "@/components/case/overview/overview";
 import { Tabs, type TabDef } from "@/components/case/tabs";
 import { ApiError } from "@/lib/api/fetch";
+import { firstName } from "@/lib/format";
 import { useCaseQuery } from "@/lib/cases/queries";
 import { clientRequestStage, useLatestLawyerRequestQuery } from "@/lib/lawyer-requests/api";
 import { lawyerTabStatus } from "@/lib/lawyer-requests/tab-status";
@@ -55,7 +56,7 @@ export default function CasePage() {
     { id: "chat", label: "Interview" },
     { id: "overview", label: "Overview" },
     { id: "docs", label: "Documents", count: c.documents.length },
-    ...(request ? [{ id: "lawyer", label: "Lawyer", status: lawyerTabStatus(request.status, request.lawyer?.name.split(" ")[0]) }] : []),
+    ...(request ? [{ id: "lawyer", label: "Lawyer", status: lawyerTabStatus(request.status, firstName(request.lawyer?.name)) }] : []),
   ];
 
   return (
