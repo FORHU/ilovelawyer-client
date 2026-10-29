@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent } from "react";
 import { ArrowUpRight, FileText, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
@@ -37,7 +37,9 @@ export function Consultation({ c }: { c: Case }) {
   const [input, setInput] = useState("");
   const [notice, setNotice] = useState("");
   const [attachedIds, setAttachedIds] = useState<string[]>([]);
+  const [dragging, setDragging] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
+  const dragCounter = useRef(0);
 
   const messages = data?.messages ?? [];
   const documentById = new Map(c.documents.map((d) => [d.id, d]));
@@ -47,6 +49,9 @@ export function Consultation({ c }: { c: Case }) {
   const latestAnswer = messages.findLast((m) => m.role === "ai");
   const readyDocuments = c.documents.filter((d) => d.status === "READY");
   const missing = intake?.missing.length ?? 0;
+  // A just-dropped/pasted file is attached right away but may still be reading; sending before
+  // that finishes would just bounce off the API's READY check.
+  const attachmentPending = attachedIds.some((id) => documentById.get(id)?.status !== "READY");
 
   useEffect(() => {
     const el = scroller.current;
@@ -63,13 +68,15 @@ export function Consultation({ c }: { c: Case }) {
 
   const send = (raw: string) => {
     const text = raw.trim();
-    if (!text || thinking || credits <= 0) return;
+    if ((!text && attachedIds.length === 0) || thinking || credits <= 0 || attachmentPending) return;
     const documentIds = attachedIds;
+    // Dropping/pasting a file in with nothing typed still needs something for the AI to read.
+    const body = text || (documentIds.length === 1 ? "Here's a document." : "Here are some documents.");
     setInput("");
     setNotice("");
     setAttachedIds([]);
     sendMessage.mutate(
-      { text, documentIds: documentIds.length ? documentIds : undefined },
+      { text: body, documentIds: documentIds.length ? documentIds : undefined },
       {
         onError: (err) => {
           setInput(text);
@@ -81,6 +88,7 @@ export function Consultation({ c }: { c: Case }) {
   };
 
   const attach = (files: File[]) => {
+    if (!files.length) return;
     setNotice("");
     upload.mutate(files, {
       onSuccess: ({ added, failed }) => {
@@ -88,11 +96,44 @@ export function Consultation({ c }: { c: Case }) {
         if (added.length) {
           const one = added.length === 1;
           parts.push(`Added ${added.map((d) => d.name).join(", ")}. The AI will use ${one ? "it" : "them"} once ${one ? "it's" : "they're"} read.`);
+          // Attached and ready to send without an extra click — up to the existing cap.
+          setAttachedIds((prev) => [...new Set([...prev, ...added.map((d) => d.id)])].slice(0, MAX_ATTACHED_DOCUMENTS));
         }
         if (failed.length) parts.push(failed.map((f) => f.reason).join(" "));
         setNotice(parts.join(" "));
       },
     });
+  };
+
+  const onDrop = (e: DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    dragCounter.current = 0;
+    setDragging(false);
+    if (out) return;
+    attach(Array.from(e.dataTransfer.files ?? []));
+  };
+
+  const onDragEnter = (e: DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    if (out || !e.dataTransfer.types.includes("Files")) return;
+    dragCounter.current += 1;
+    setDragging(true);
+  };
+
+  const onDragLeave = (e: DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    dragCounter.current = Math.max(0, dragCounter.current - 1);
+    if (dragCounter.current === 0) setDragging(false);
+  };
+
+  const onPaste = (e: ClipboardEvent<HTMLInputElement>) => {
+    const files = Array.from(e.clipboardData?.items ?? [])
+      .filter((item) => item.kind === "file")
+      .map((item) => item.getAsFile())
+      .filter((f): f is File => f !== null);
+    if (!files.length || out) return;
+    e.preventDefault();
+    attach(files);
   };
 
   return (
@@ -179,7 +220,18 @@ export function Consultation({ c }: { c: Case }) {
         </div>
       )}
 
-      <div className="shrink-0 px-4 pb-[30px] pt-2 md:px-12 md:pb-[18px]">
+      <div
+        className="relative shrink-0 px-4 pb-[30px] pt-2 md:px-12 md:pb-[18px]"
+        onDragEnter={onDragEnter}
+        onDragOver={(e) => e.preventDefault()}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+      >
+        {dragging && !out && (
+          <div className="pointer-events-none absolute inset-2 z-10 flex items-center justify-center rounded-composer border-2 border-dashed border-gold bg-subtle/95 text-[13px] font-medium text-ink">
+            Drop to attach
+          </div>
+        )}
         <div className="mx-auto flex max-w-[768px] flex-col gap-2">
           {loadError && <ErrorBox message={loadError.message} />}
           {notice && <div className="text-center text-[12.5px] text-ink-2">{notice}</div>}
@@ -232,17 +284,18 @@ export function Consultation({ c }: { c: Case }) {
               value={input}
               disabled={out}
               onChange={(e) => setInput(e.target.value)}
+              onPaste={onPaste}
               placeholder="Tell me what's going on…"
               aria-label="Tell me what's going on"
               className="min-w-0 flex-1 bg-transparent px-3.5 text-[15px] text-ink outline-none"
             />
             <span className="whitespace-nowrap text-[11px] text-muted">
-              {upload.isPending ? "Uploading…" : `${credits} credits`}
+              {upload.isPending || attachmentPending ? "Uploading…" : `${credits} credits`}
             </span>
             <button
               type="submit"
               aria-label="Send"
-              disabled={out || thinking}
+              disabled={out || thinking || attachmentPending || (!input.trim() && attachedIds.length === 0)}
               data-no-tap
               className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gold text-white disabled:opacity-60"
             >
