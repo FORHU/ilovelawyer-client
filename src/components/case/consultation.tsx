@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { ArrowUpRight, FileText, Paperclip } from "lucide-react";
+import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent } from "react";
+import { ArrowUpRight, FileText, Paperclip, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
-import { Chip, PromptChip } from "@/components/ui/chip";
+import { PromptChip } from "@/components/ui/chip";
 import { FilePicker } from "@/components/ui/file-picker";
 import { AiMark } from "@/components/ui/misc";
 import { LawyerSuggestion } from "@/components/case/lawyer-suggestion";
@@ -37,42 +37,71 @@ export function Consultation({ c }: { c: Case }) {
   const [input, setInput] = useState("");
   const [notice, setNotice] = useState("");
   const [attachedIds, setAttachedIds] = useState<string[]>([]);
+  const [dragging, setDragging] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
+  const dragCounter = useRef(0);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const messages = data?.messages ?? [];
+  const documentById = new Map(c.documents.map((d) => [d.id, d]));
   const thinking = sendMessage.isPending || !!data?.replying;
   const out = credits <= 0;
   const lastFailed = messages.at(-1)?.replyStatus === "FAILED";
   const latestAnswer = messages.findLast((m) => m.role === "ai");
-  const readyDocuments = c.documents.filter((d) => d.status === "READY");
   const missing = intake?.missing.length ?? 0;
+  // A just-dropped/pasted file is attached right away but may still be reading; sending before
+  // that finishes would just bounce off the API's READY check.
+  const attachmentPending = attachedIds.some((id) => documentById.get(id)?.status === "PENDING");
+  // A document whose extraction ends FAILED can never become READY — excluded from what's
+  // actually sent (rather than blocking Send and "Uploading…" forever), but still shown as its
+  // own removable chip so it isn't just silently dropped with no explanation. Derived at render
+  // time, not synced into state via an effect, so a chip disappears the moment its status changes
+  // instead of waiting a tick.
+  const failedAttachedIds = attachedIds.filter((id) => documentById.get(id)?.status === "FAILED");
+  const sendableAttachedIds = attachedIds.filter((id) => !failedAttachedIds.includes(id));
 
   useEffect(() => {
     const el = scroller.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages.length, thinking]);
 
-  const toggleAttached = (id: string) => {
-    setAttachedIds((prev) => {
-      if (prev.includes(id)) return prev.filter((x) => x !== id);
-      if (prev.length >= MAX_ATTACHED_DOCUMENTS) return prev;
-      return [...prev, id];
-    });
-  };
+  // Grows with what's typed, up to a cap (then scrolls inside itself) — so a long message stays
+  // readable instead of scrolling sideways in a single line.
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+  }, [input]);
+
+  const removeAttached = (id: string) => setAttachedIds((prev) => prev.filter((x) => x !== id));
 
   const send = (raw: string) => {
     const text = raw.trim();
-    if (!text || thinking || credits <= 0) return;
-    const documentIds = attachedIds;
+    if ((!text && sendableAttachedIds.length === 0) || thinking || credits <= 0 || attachmentPending) return;
+    const documentIds = sendableAttachedIds;
+    // Restored in full on error below, including a failed attachment that was still showing as
+    // its own chip — not just what was actually sendable.
+    const allAttachedIds = attachedIds;
+    // Dropping/pasting a file in with nothing typed still needs something for the API to accept
+    // (it requires non-empty text) and for the AI to read. This must not read as something the
+    // client said — it ends up verbatim in the transcript, the lawyer brief and the intake
+    // extraction as a quote, so it names the actual files rather than putting words in anyone's
+    // mouth ("Here's a document." reads exactly like the client wrote it).
+    const body =
+      text ||
+      `[Attached: ${documentIds
+        .map((id) => documentById.get(id)?.name ?? "a document")
+        .join(", ")}]`;
     setInput("");
     setNotice("");
     setAttachedIds([]);
     sendMessage.mutate(
-      { text, documentIds: documentIds.length ? documentIds : undefined },
+      { text: body, documentIds: documentIds.length ? documentIds : undefined },
       {
         onError: (err) => {
           setInput(text);
-          setAttachedIds(documentIds);
+          setAttachedIds(allAttachedIds);
           setNotice(err instanceof Error ? err.message : "Couldn't send that. Try again.");
         },
       },
@@ -80,6 +109,7 @@ export function Consultation({ c }: { c: Case }) {
   };
 
   const attach = (files: File[]) => {
+    if (!files.length) return;
     setNotice("");
     upload.mutate(files, {
       onSuccess: ({ added, failed }) => {
@@ -87,11 +117,44 @@ export function Consultation({ c }: { c: Case }) {
         if (added.length) {
           const one = added.length === 1;
           parts.push(`Added ${added.map((d) => d.name).join(", ")}. The AI will use ${one ? "it" : "them"} once ${one ? "it's" : "they're"} read.`);
+          // Attached and ready to send without an extra click — up to the existing cap.
+          setAttachedIds((prev) => [...new Set([...prev, ...added.map((d) => d.id)])].slice(0, MAX_ATTACHED_DOCUMENTS));
         }
         if (failed.length) parts.push(failed.map((f) => f.reason).join(" "));
         setNotice(parts.join(" "));
       },
     });
+  };
+
+  const onDrop = (e: DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    dragCounter.current = 0;
+    setDragging(false);
+    if (out) return;
+    attach(Array.from(e.dataTransfer.files ?? []));
+  };
+
+  const onDragEnter = (e: DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    if (out || !e.dataTransfer.types.includes("Files")) return;
+    dragCounter.current += 1;
+    setDragging(true);
+  };
+
+  const onDragLeave = (e: DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    dragCounter.current = Math.max(0, dragCounter.current - 1);
+    if (dragCounter.current === 0) setDragging(false);
+  };
+
+  const onPaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+    const files = Array.from(e.clipboardData?.items ?? [])
+      .filter((item) => item.kind === "file")
+      .map((item) => item.getAsFile())
+      .filter((f): f is File => f !== null);
+    if (!files.length || out) return;
+    e.preventDefault();
+    attach(files);
   };
 
   return (
@@ -127,14 +190,17 @@ export function Consultation({ c }: { c: Case }) {
                   <div className="rounded-[18px_18px_4px_18px] border border-line bg-bubble px-4 py-3 text-[15px] leading-[1.6]">
                     {m.text}
                   </div>
-                  {m.documents.length > 0 && (
+                  {(m.documentIds ?? []).length > 0 && (
                     <div className="flex flex-wrap justify-end gap-1.5">
-                      {m.documents.map((d) => (
-                        <span key={d.id} className="inline-flex items-center gap-1 rounded-full bg-chip px-2 py-0.5 text-[11px] text-ink-2">
-                          <FileText size={10} />
-                          {d.name}
-                        </span>
-                      ))}
+                      {(m.documentIds ?? []).map((id) => {
+                        const d = documentById.get(id);
+                        return (
+                          <span key={id} className="inline-flex items-center gap-1 rounded-full bg-chip px-2 py-0.5 text-[11px] text-ink-2">
+                            <FileText size={10} />
+                            {d?.name ?? "Document"}
+                          </span>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -175,7 +241,18 @@ export function Consultation({ c }: { c: Case }) {
         </div>
       )}
 
-      <div className="shrink-0 px-4 pb-[30px] pt-2 md:px-12 md:pb-[18px]">
+      <div
+        className="relative shrink-0 px-4 pb-[30px] pt-2 md:px-12 md:pb-[18px]"
+        onDragEnter={onDragEnter}
+        onDragOver={(e) => e.preventDefault()}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+      >
+        {dragging && !out && (
+          <div className="pointer-events-none absolute inset-2 z-10 flex items-center justify-center rounded-composer border-2 border-dashed border-gold bg-subtle/95 text-[13px] font-medium text-ink">
+            Drop to attach
+          </div>
+        )}
         <div className="mx-auto flex max-w-[768px] flex-col gap-2">
           {loadError && <ErrorBox message={loadError.message} />}
           {notice && <div className="text-center text-[12.5px] text-ink-2">{notice}</div>}
@@ -192,14 +269,32 @@ export function Consultation({ c }: { c: Case }) {
               </Button>
             </div>
           )}
-          {readyDocuments.length > 0 && !out && (
+          {attachedIds.length > 0 && !out && (
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] text-muted">Send with this:</span>
-              {readyDocuments.map((d) => (
-                <Chip key={d.id} small selected={attachedIds.includes(d.id)} onClick={() => toggleAttached(d.id)}>
-                  {d.name}
-                </Chip>
-              ))}
+              {attachedIds.map((id) => {
+                const d = documentById.get(id);
+                const failed = failedAttachedIds.includes(id);
+                return (
+                  <span
+                    key={id}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium ${
+                      failed ? "border-error/40 bg-error/10 text-error" : "border-ink bg-ink text-white"
+                    }`}
+                  >
+                    <FileText size={12} />
+                    {failed ? `Couldn't read ${d?.name ?? "document"}` : (d?.name ?? "Document")}
+                    <button
+                      type="button"
+                      aria-label={`Remove ${d?.name ?? "document"}`}
+                      onClick={() => removeAttached(id)}
+                      data-no-tap
+                      className="-mr-1 flex size-4 items-center justify-center rounded-full opacity-80 hover:opacity-100"
+                    >
+                      <X size={11} />
+                    </button>
+                  </span>
+                );
+              })}
             </div>
           )}
           <form
@@ -207,7 +302,7 @@ export function Consultation({ c }: { c: Case }) {
               e.preventDefault();
               send(input);
             }}
-            className={`flex items-center gap-1.5 rounded-composer border border-line bg-subtle p-2 ${out ? "pointer-events-none opacity-50" : ""}`}
+            className={`flex items-end gap-1.5 rounded-composer border border-line bg-subtle p-2 ${out ? "pointer-events-none opacity-50" : ""}`}
           >
             <FilePicker onPick={attach}>
               {(open) => (
@@ -218,29 +313,40 @@ export function Consultation({ c }: { c: Case }) {
                   disabled={out || upload.isPending}
                   onClick={open}
                   data-no-tap
-                  className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line text-muted disabled:opacity-60"
+                  className="flex size-9 shrink-0 items-center justify-center self-end rounded-full border border-line text-muted disabled:opacity-60"
                 >
                   <Paperclip size={15} />
                 </button>
               )}
             </FilePicker>
-            <input
+            <textarea
+              ref={textareaRef}
               value={input}
               disabled={out}
+              rows={1}
               onChange={(e) => setInput(e.target.value)}
+              onPaste={onPaste}
+              onKeyDown={(e) => {
+                // isComposing is true while an IME (Japanese/Chinese/Korean input, etc.) is still
+                // resolving a character — Enter there confirms the composition, it doesn't submit.
+                if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  send(input);
+                }
+              }}
               placeholder="Tell me what's going on…"
               aria-label="Tell me what's going on"
-              className="min-w-0 flex-1 bg-transparent px-3.5 text-[15px] text-ink outline-none"
+              className="my-1.5 min-w-0 flex-1 resize-none bg-transparent px-3.5 text-[15px] leading-[1.5] text-ink outline-none"
             />
-            <span className="whitespace-nowrap text-[11px] text-muted">
-              {upload.isPending ? "Uploading…" : `${credits} credits`}
+            <span className="mb-1.5 whitespace-nowrap self-end text-[11px] text-muted">
+              {upload.isPending || attachmentPending ? "Uploading…" : `${credits} credits`}
             </span>
             <button
               type="submit"
               aria-label="Send"
-              disabled={out || thinking}
+              disabled={out || thinking || attachmentPending || (!input.trim() && sendableAttachedIds.length === 0)}
               data-no-tap
-              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gold text-white disabled:opacity-60"
+              className="flex size-9 shrink-0 items-center justify-center self-end rounded-full bg-gold text-white disabled:opacity-60"
             >
               <ArrowUpRight size={14} />
             </button>
