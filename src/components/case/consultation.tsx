@@ -40,6 +40,7 @@ export function Consultation({ c }: { c: Case }) {
   const scroller = useRef<HTMLDivElement>(null);
 
   const messages = data?.messages ?? [];
+  const documentById = new Map(c.documents.map((d) => [d.id, d]));
   const thinking = sendMessage.isPending || !!data?.replying;
   const out = credits <= 0;
   const lastFailed = messages.at(-1)?.replyStatus === "FAILED";
@@ -127,14 +128,17 @@ export function Consultation({ c }: { c: Case }) {
                   <div className="rounded-[18px_18px_4px_18px] border border-line bg-bubble px-4 py-3 text-[15px] leading-[1.6]">
                     {m.text}
                   </div>
-                  {m.documents.length > 0 && (
+                  {m.documentIds.length > 0 && (
                     <div className="flex flex-wrap justify-end gap-1.5">
-                      {m.documents.map((d) => (
-                        <span key={d.id} className="inline-flex items-center gap-1 rounded-full bg-chip px-2 py-0.5 text-[11px] text-ink-2">
-                          <FileText size={10} />
-                          {d.name}
-                        </span>
-                      ))}
+                      {m.documentIds.map((id) => {
+                        const d = documentById.get(id);
+                        return (
+                          <span key={id} className="inline-flex items-center gap-1 rounded-full bg-chip px-2 py-0.5 text-[11px] text-ink-2">
+                            <FileText size={10} />
+                            {d?.name ?? "Document"}
+                          </span>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
