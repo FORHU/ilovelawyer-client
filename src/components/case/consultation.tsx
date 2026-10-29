@@ -50,8 +50,10 @@ export function Consultation({ c }: { c: Case }) {
   const latestAnswer = messages.findLast((m) => m.role === "ai");
   const missing = intake?.missing.length ?? 0;
   // A just-dropped/pasted file is attached right away but may still be reading; sending before
-  // that finishes would just bounce off the API's READY check.
-  const attachmentPending = attachedIds.some((id) => documentById.get(id)?.status !== "READY");
+  // that finishes would just bounce off the API's READY check. A FAILED document is not pending —
+  // it will never become READY, so it's dropped from attachedIds entirely below instead of
+  // blocking Send forever.
+  const attachmentPending = attachedIds.some((id) => documentById.get(id)?.status === "PENDING");
 
   useEffect(() => {
     const el = scroller.current;
@@ -67,14 +69,32 @@ export function Consultation({ c }: { c: Case }) {
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
   }, [input]);
 
+  // A document whose extraction ends FAILED can never become READY — drop it from attachedIds
+  // (rather than leave Send disabled and "Uploading…" stuck forever) and say so.
+  useEffect(() => {
+    const failed = attachedIds.filter((id) => documentById.get(id)?.status === "FAILED");
+    if (!failed.length) return;
+    setAttachedIds((prev) => prev.filter((id) => !failed.includes(id)));
+    const names = failed.map((id) => documentById.get(id)?.name ?? "Document").join(", ");
+    setNotice(`Couldn't read ${names}, so it wasn't attached. Try a different file.`);
+  }, [attachedIds, c.documents]);
+
   const removeAttached = (id: string) => setAttachedIds((prev) => prev.filter((x) => x !== id));
 
   const send = (raw: string) => {
     const text = raw.trim();
     if ((!text && attachedIds.length === 0) || thinking || credits <= 0 || attachmentPending) return;
     const documentIds = attachedIds;
-    // Dropping/pasting a file in with nothing typed still needs something for the AI to read.
-    const body = text || (documentIds.length === 1 ? "Here's a document." : "Here are some documents.");
+    // Dropping/pasting a file in with nothing typed still needs something for the API to accept
+    // (it requires non-empty text) and for the AI to read. This must not read as something the
+    // client said — it ends up verbatim in the transcript, the lawyer brief and the intake
+    // extraction as a quote, so it names the actual files rather than putting words in anyone's
+    // mouth ("Here's a document." reads exactly like the client wrote it).
+    const body =
+      text ||
+      `[Attached: ${documentIds
+        .map((id) => documentById.get(id)?.name ?? "a document")
+        .join(", ")}]`;
     setInput("");
     setNotice("");
     setAttachedIds([]);
@@ -172,9 +192,9 @@ export function Consultation({ c }: { c: Case }) {
                   <div className="rounded-[18px_18px_4px_18px] border border-line bg-bubble px-4 py-3 text-[15px] leading-[1.6]">
                     {m.text}
                   </div>
-                  {m.documentIds.length > 0 && (
+                  {(m.documentIds ?? []).length > 0 && (
                     <div className="flex flex-wrap justify-end gap-1.5">
-                      {m.documentIds.map((id) => {
+                      {(m.documentIds ?? []).map((id) => {
                         const d = documentById.get(id);
                         return (
                           <span key={id} className="inline-flex items-center gap-1 rounded-full bg-chip px-2 py-0.5 text-[11px] text-ink-2">
@@ -303,7 +323,9 @@ export function Consultation({ c }: { c: Case }) {
               onChange={(e) => setInput(e.target.value)}
               onPaste={onPaste}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
+                // isComposing is true while an IME (Japanese/Chinese/Korean input, etc.) is still
+                // resolving a character — Enter there confirms the composition, it doesn't submit.
+                if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                   e.preventDefault();
                   send(input);
                 }
