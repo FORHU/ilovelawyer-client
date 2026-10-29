@@ -36,7 +36,7 @@ export function EditCaseModal({ c, onClose }: { c: Case; onClose: () => void }) 
   const [others, setOthers] = useState<OtherParty[]>(c.others);
   const [happened, setHappened] = useState(notes.happened);
   const [wants, setWants] = useState(notes.wants);
-  const [budget, setBudget] = useState<BudgetDraft>(draftFromBudget(c.budget));
+  const [budget, setBudget] = useState<BudgetDraft>(() => draftFromBudget(c.budget));
   const [titleErr, setTitleErr] = useState(false);
   const [areasErr, setAreasErr] = useState(false);
   const [budgetErr, setBudgetErr] = useState(false);

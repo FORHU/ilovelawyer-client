@@ -10,7 +10,7 @@ import { RadioCard } from "@/components/ui/radio-card";
 import { Eyebrow } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { checkFiles, describeLimits, useLimitsQuery } from "@/lib/cases/limits";
-import { BUDGET_RANGES, FEE_PREFERENCES, budgetFromDraft, formatBudget, ownAmountError, type BudgetDraft } from "@/lib/cases/budget";
+import { formatBudgetAmount, BUDGET_RANGES, FEE_PREFERENCES, budgetFromDraft, formatBudget, ownAmountError, type BudgetDraft } from "@/lib/cases/budget";
 import { NOTES_FIELD_MAX } from "@/lib/cases/notes";
 import { useCaseAreasQuery } from "@/lib/cases/case-areas";
 import {
@@ -314,6 +314,11 @@ export function BudgetField({ value, onChange, error }: { value: BudgetDraft; on
               {r.label}
             </Chip>
           ))}
+          {value.saved && (
+            <Chip selected={value.choice === "SAVED"} onClick={() => onChange({ choice: "SAVED" })}>
+              Keep {formatBudgetAmount(value.saved)}
+            </Chip>
+          )}
           <Chip selected={value.choice === "OWN"} onClick={() => onChange({ choice: "OWN" })}>
             Set my own amount
           </Chip>

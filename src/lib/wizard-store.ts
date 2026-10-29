@@ -1,3 +1,4 @@
+import { useRouter } from "next/navigation";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { EMPTY_BUDGET_DRAFT, ownAmountError, type BudgetDraft } from "./cases/budget";
@@ -117,6 +118,12 @@ export const useWizard = create<WizardState>()(
       set({ step: step + 1, maxStep: Math.max(maxStep, step + 1), titleErr: false, regionErr: false, areasErr: false, budgetErr: false });
       return false;
     }
+    // The last step creates the case: one more check, for an own amount changed and then left
+    // through the step list.
+    if (ownAmountError(budget)) {
+      set({ step: BUDGET_STEP, budgetErr: true });
+      return false;
+    }
     return true;
   },
   back: () => {
@@ -128,7 +135,14 @@ export const useWizard = create<WizardState>()(
     return true;
   },
   goTo: (n) => {
-    if (n <= get().maxStep) set({ step: n });
+    const { step, budget, maxStep } = get();
+    if (n > maxStep) return;
+    // Leaving Budget through the step list checks the own amount, as Continue does.
+    if (step === BUDGET_STEP && n !== BUDGET_STEP && ownAmountError(budget)) {
+      set({ budgetErr: true });
+      return;
+    }
+    set({ step: n });
   },
   // Keeps the owner: the draft is for this account, and the next one starts empty.
   reset: () => set({ ...blank, ownerId: get().ownerId }),
@@ -172,4 +186,13 @@ export const useWizard = create<WizardState>()(
  * through it, so it keeps what was typed. */
 export function startNewCase() {
   useWizard.getState().reset();
+}
+
+/** Starts a fresh draft and opens New case: for a button (a link calls startNewCase itself). */
+export function useStartNewCase() {
+  const router = useRouter();
+  return () => {
+    startNewCase();
+    router.push("/cases/new");
+  };
 }

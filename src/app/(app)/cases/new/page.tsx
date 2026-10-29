@@ -11,6 +11,7 @@ import { useCreateCaseFromWizard } from "@/lib/cases/new-case";
 import { cn } from "@/lib/cn";
 import { usePricingQuery } from "@/lib/pricing";
 import { WIZARD_STEPS, useWizard } from "@/lib/wizard-store";
+import { ownAmountError } from "@/lib/cases/budget";
 
 const STEPS = [
   { numeral: "I", title: "Case details", hint: "Title and place" },
@@ -46,7 +47,7 @@ export default function NewCasePage() {
     };
   }, [userId]);
 
-  const stepDone = (n: number) => (n === 1 ? !!title.trim() && !!region : n === 2 ? !!side : n === 3 ? !!budget.choice || !!budget.fee : false);
+  const stepDone = (n: number) => (n === 1 ? !!title.trim() && !!region : n === 2 ? !!side : n === 3 ? !ownAmountError(budget) : false);
 
   if (!ready) return null;
 

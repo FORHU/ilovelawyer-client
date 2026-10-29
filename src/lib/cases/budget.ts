@@ -27,8 +27,9 @@ export const FEE_PREFERENCES: { value: FeePreference | ""; label: string }[] = [
   { value: "", label: "Either" },
 ];
 
-/** "" is "Not sure"; "OWN" is the client's own amount, typed into `own`. */
-export type BudgetChoice = "" | (typeof BUDGET_RANGES)[number]["value"] | "OWN";
+/** "" is "Not sure"; "OWN" is the client's own amount, typed into `own`; "SAVED" keeps a saved
+ * budget none of the others can express (a range that isn't a preset, a cap, a floor), in `saved`. */
+export type BudgetChoice = "" | (typeof BUDGET_RANGES)[number]["value"] | "OWN" | "SAVED";
 
 /** The budget as the wizard and the edit form hold it while the client answers. */
 export interface BudgetDraft {
@@ -36,6 +37,8 @@ export interface BudgetDraft {
   /** The client's own amount in pounds, as typed. */
   own: string;
   fee: FeePreference | "";
+  /** With "SAVED": the saved low and high, sent back as they were. */
+  saved?: { minMinor: number | null; maxMinor: number | null };
 }
 
 export const EMPTY_BUDGET_DRAFT: BudgetDraft = { choice: "", own: "", fee: "" };
@@ -61,7 +64,11 @@ export function budgetFromDraft(draft: BudgetDraft): ClientBudget | null {
   const feePreference = draft.fee || null;
   const range = BUDGET_RANGES.find((r) => r.value === draft.choice);
   const own = draft.choice === "OWN" ? parsePounds(draft.own) : null;
-  const [minMinor, maxMinor] = range ? [range.minMinor, range.maxMinor] : [own, own];
+  const [minMinor, maxMinor] = range
+    ? [range.minMinor, range.maxMinor]
+    : draft.choice === "SAVED" && draft.saved
+      ? [draft.saved.minMinor, draft.saved.maxMinor]
+      : [own, own];
   return minMinor === null && maxMinor === null && feePreference === null ? null : { minMinor, maxMinor, feePreference };
 }
 
@@ -70,23 +77,41 @@ function pounds(minor: number): string {
   return (minor / 100).toLocaleString("en-GB", { minimumFractionDigits: minor % 100 === 0 ? 0 : 2, maximumFractionDigits: 2 });
 }
 
-/** The draft that shows a saved budget, for the edit form. */
+/** The preset range a saved budget is exactly, if any. */
+function presetOf(budget: ClientBudget) {
+  return BUDGET_RANGES.find((r) => r.minMinor === budget.minMinor && r.maxMinor === budget.maxMinor);
+}
+
+/** The draft that shows a saved budget, for the edit form. A budget the choices can't express
+ * (a range that isn't a preset, a cap, a floor) is kept as "SAVED", so saving an unrelated edit
+ * sends it back unchanged rather than rewriting or refusing it. */
 export function draftFromBudget(budget: ClientBudget | null): BudgetDraft {
   if (!budget) return EMPTY_BUDGET_DRAFT;
   const fee = budget.feePreference ?? "";
-  const range = BUDGET_RANGES.find((r) => r.minMinor === budget.minMinor && r.maxMinor === budget.maxMinor);
+  const range = presetOf(budget);
   if (range) return { choice: range.value, own: "", fee };
-  const amount = budget.minMinor ?? budget.maxMinor;
-  if (amount === null) return { choice: "", own: "", fee };
-  return { choice: "OWN", own: pounds(amount).replace(/,/g, ""), fee };
+  const { minMinor, maxMinor } = budget;
+  if (minMinor === null && maxMinor === null) return { choice: "", own: "", fee };
+  if (minMinor !== null && minMinor === maxMinor && minMinor > 0) return { choice: "OWN", own: pounds(minMinor).replace(/,/g, ""), fee };
+  return { choice: "SAVED", own: "", fee, saved: { minMinor, maxMinor } };
+}
+
+/** "£500–£1,500" for a preset, "£2,750" for one amount, "£1,000–£2,000", "Up to £3,000",
+ * "£500 or more", or "Not sure". */
+export function formatBudgetAmount(budget: Pick<ClientBudget, "minMinor" | "maxMinor"> | null): string {
+  if (!budget || (budget.minMinor === null && budget.maxMinor === null)) return "Not sure";
+  const range = presetOf({ ...budget, feePreference: null });
+  if (range) return range.label;
+  const { minMinor, maxMinor } = budget;
+  if (minMinor === null) return `Up to £${pounds(maxMinor!)}`;
+  if (maxMinor === null) return `£${pounds(minMinor)} or more`;
+  return minMinor === maxMinor ? `£${pounds(minMinor)}` : `£${pounds(minMinor)}–£${pounds(maxMinor)}`;
 }
 
 const FEE_WORDS: Record<FeePreference, string> = { FIXED_FEE: "a fixed fee", FIRST_CONSULTATION: "a first consultation" };
 
 /** "£500–£1,500 · prefers a fixed fee", "£2,750", "Not sure". */
 export function formatBudget(budget: ClientBudget | null): string {
-  const draft = draftFromBudget(budget);
-  const range = BUDGET_RANGES.find((r) => r.value === draft.choice);
-  const amount = range ? range.label : draft.choice === "OWN" && budget?.minMinor != null ? `£${pounds(budget.minMinor)}` : "Not sure";
+  const amount = formatBudgetAmount(budget);
   return budget?.feePreference ? `${amount} · prefers ${FEE_WORDS[budget.feePreference]}` : amount;
 }

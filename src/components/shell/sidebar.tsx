@@ -12,7 +12,7 @@ import { clientRequestStatusLabel, useOpenLawyerRequestsQuery } from "@/lib/lawy
 import { usePricingQuery } from "@/lib/pricing";
 import { useApp } from "@/lib/store";
 import { areasLabel } from "@/lib/types";
-import { startNewCase } from "@/lib/wizard-store";
+import { useStartNewCase } from "@/lib/wizard-store";
 
 const railBtn =
   "flex size-[34px] shrink-0 items-center justify-center rounded-full border bg-white text-ink";
@@ -20,10 +20,7 @@ const railBtn =
 export function Sidebar() {
   const router = useRouter();
   // A fresh draft each time: a refresh of New case keeps what's typed, a new visit doesn't.
-  const newCase = () => {
-    startNewCase();
-    router.push("/cases/new");
-  };
+  const newCase = useStartNewCase();
   const pathname = usePathname();
   const { sidebarCollapsed: collapsed, toggleSidebar } = useApp();
   const { data: cases = [] } = useCasesQuery();

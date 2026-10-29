@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Archive, ArrowDown, ArrowUp, ArrowUpDown, FolderPlus, Pencil, Plus, RotateCcw, Search, Trash2, X } from "lucide-react";
 import { EditCaseModal } from "@/components/case/edit-case-modal";
 import { RemoveCaseModal, type RemoveMode } from "@/components/case/remove-case-modal";
@@ -17,7 +16,7 @@ import { clientRequestStatusLabel, useOpenLawyerRequestsQuery } from "@/lib/lawy
 import { usePricingQuery } from "@/lib/pricing";
 import { useApp } from "@/lib/store";
 import { areasLabel, type Case } from "@/lib/types";
-import { startNewCase } from "@/lib/wizard-store";
+import { startNewCase, useStartNewCase } from "@/lib/wizard-store";
 
 // The cases list follows the lawyer app's case portfolio: one row per case with sortable date
 // columns, search, an Active / Archived switch, a notes line, a row menu and pages of ten. The API
@@ -89,12 +88,8 @@ function ListSkeleton() {
 }
 
 export default function CasesPage() {
-  const router = useRouter();
   // A fresh draft each time: a refresh of New case keeps what's typed, a new visit doesn't.
-  const newCase = () => {
-    startNewCase();
-    router.push("/cases/new");
-  };
+  const newCase = useStartNewCase();
   const [status, setStatus] = useState<"ACTIVE" | "ARCHIVED">("ACTIVE");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<{ field: SortField; order: SortOrder }>({ field: "updated", order: "desc" });

@@ -62,6 +62,25 @@ describe("draftFromBudget", () => {
   it("shows an own amount with pence as typed", () => {
     expect(draftFromBudget({ minMinor: 9_950, maxMinor: 9_950, feePreference: null }).own).toBe("99.50");
   });
+
+  // Review finding 3 (client #68): a budget the form has no choice for is kept, not rewritten.
+  it("keeps a saved budget that isn't a range or one amount, and sends it back unchanged", () => {
+    for (const saved of [
+      { minMinor: 100_000, maxMinor: 200_000, feePreference: "FIXED_FEE" as const },
+      { minMinor: 0, maxMinor: null, feePreference: null },
+      { minMinor: null, maxMinor: 300_000, feePreference: null },
+    ]) {
+      const draft = draftFromBudget(saved);
+      expect(draft.choice).toBe("SAVED");
+      expect(ownAmountError(draft)).toBe(null);
+      expect(budgetFromDraft(draft)).toEqual(saved);
+    }
+  });
+
+  it("drops the kept budget once the client picks something else", () => {
+    const draft = { ...draftFromBudget({ minMinor: 100_000, maxMinor: 200_000, feePreference: null }), choice: "UNDER_500" as const };
+    expect(budgetFromDraft(draft)).toEqual({ minMinor: 0, maxMinor: 50_000, feePreference: null });
+  });
 });
 
 describe("formatBudget", () => {
@@ -71,6 +90,13 @@ describe("formatBudget", () => {
     expect(formatBudget({ minMinor: 500_000, maxMinor: null, feePreference: "FIXED_FEE" })).toBe("Over £5,000 · prefers a fixed fee");
     expect(formatBudget({ minMinor: 275_000, maxMinor: 275_000, feePreference: "FIRST_CONSULTATION" })).toBe("£2,750 · prefers a first consultation");
     expect(formatBudget({ minMinor: null, maxMinor: null, feePreference: "FIXED_FEE" })).toBe("Not sure · prefers a fixed fee");
+  });
+
+  // Review finding 4 (client #68): ranges and caps that aren't presets.
+  it("shows a range that isn't a preset as a range, a cap as a cap, and a floor as a floor", () => {
+    expect(formatBudget({ minMinor: 100_000, maxMinor: 200_000, feePreference: null })).toBe("£1,000–£2,000");
+    expect(formatBudget({ minMinor: null, maxMinor: 300_000, feePreference: null })).toBe("Up to £3,000");
+    expect(formatBudget({ minMinor: 0, maxMinor: null, feePreference: null })).toBe("£0 or more");
   });
 });
 
