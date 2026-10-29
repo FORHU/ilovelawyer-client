@@ -11,6 +11,7 @@ import { LawyerSuggestion } from "@/components/case/lawyer-suggestion";
 import { useIntakeQuery, useMessagesQuery, useSendMessageMutation, useUploadDocumentsMutation } from "@/lib/cases/queries";
 import { useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
 import { usePayment } from "@/lib/payment-store";
+import { useSocketConnected } from "@/lib/socket";
 import type { Case } from "@/lib/types";
 
 const PROMPTS = [
@@ -30,6 +31,8 @@ export function Consultation({ c }: { c: Case }) {
   const { data: intake } = useIntakeQuery(c.id, c.documents.some((d) => d.status === "PENDING"));
   const sendMessage = useSendMessageMutation(c.id);
   const upload = useUploadDocumentsMutation(c.id);
+  // The reply arrives over the socket, so while it's down the wait is the connection's, not the AI's.
+  const connected = useSocketConnected();
 
   const [input, setInput] = useState("");
   const [notice, setNotice] = useState("");
@@ -164,6 +167,7 @@ export function Consultation({ c }: { c: Case }) {
                       style={{ animationDelay: `${d * 150}ms` }}
                     />
                   ))}
+                  {!connected && <span className="ml-2 text-[12.5px] text-muted">Reconnecting…</span>}
                 </div>
               </div>
             )}

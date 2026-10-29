@@ -23,9 +23,7 @@ import {
 
 // TanStack Query hooks for the client's cases. The request functions live in ./api.ts.
 
-/** How often to check while something is happening in the background (the AI answering, a
- * document being read). */
-const BUSY_POLL_MS = 1500;
+/** How often to check while a document is being read. */
 const DOCUMENT_POLL_MS = 4000;
 /** While the intake's job is running, how often to check for it to finish. */
 const INTAKE_POLL_MS = 3000;
@@ -96,6 +94,9 @@ export function useRefreshIntakeMutation(caseId: string) {
   });
 }
 
+/** Never polls, not even while the AI is answering: the reply's chat:done / chat:error over the
+ * socket refetches it (lib/cases/chat-socket.ts). staleTime 0 so a reconnect or a tab coming back
+ * into focus refetches it too. */
 export function useMessagesQuery(caseId: string) {
   const userId = useUserId();
   return useQuery({
@@ -103,7 +104,6 @@ export function useMessagesQuery(caseId: string) {
     queryFn: () => listMessages(caseId),
     enabled: !!userId,
     staleTime: 0,
-    refetchInterval: (q) => (q.state.data?.replying ? BUSY_POLL_MS : false),
   });
 }
 
