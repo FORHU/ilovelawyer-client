@@ -11,6 +11,7 @@ import { Tabs, type TabDef } from "@/components/case/tabs";
 import { ApiError } from "@/lib/api/fetch";
 import { useCaseQuery } from "@/lib/cases/queries";
 import { clientRequestStage, useLatestLawyerRequestQuery } from "@/lib/lawyer-requests/api";
+import { lawyerTabStatus } from "@/lib/lawyer-requests/tab-status";
 
 export default function CasePage() {
   const router = useRouter();
@@ -53,8 +54,8 @@ export default function CasePage() {
   const tabs: TabDef[] = [
     { id: "chat", label: "Interview" },
     { id: "overview", label: "Overview" },
-    { id: "docs", label: "Documents" },
-    ...(request ? [{ id: "lawyer", label: "Lawyer" }] : []),
+    { id: "docs", label: "Documents", count: c.documents.length },
+    ...(request ? [{ id: "lawyer", label: "Lawyer", status: lawyerTabStatus(request.status, request.lawyer?.name.split(" ")[0]) }] : []),
   ];
 
   return (
