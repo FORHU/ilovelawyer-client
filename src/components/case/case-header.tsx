@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, ArrowLeft, Trash2, Zap } from "lucide-react";
+import { Archive, ArrowLeft, Trash2 } from "lucide-react";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { ProgressBar, type ProgressTone } from "@/components/ui/progress-bar";
 import { GetLawyerAction } from "@/components/case/get-lawyer-action";
@@ -62,18 +62,17 @@ export function CaseHeader({ c }: { c: Case }) {
           className="flex flex-1 shrink-0 flex-col gap-1.5 rounded-card border border-line bg-subtle px-3.5 py-2 text-[12.5px] font-medium text-ink md:w-[230px] md:flex-none"
         >
           <span className="flex items-center justify-between gap-2">
-            <span className="flex items-center gap-1.5">
-              <Zap size={14} className="text-gold" />
-              {c.credits} credits
-            </span>
+            <span>{c.credits} credits</span>
             <span className="font-semibold text-gold">Top up</span>
           </span>
           {percent !== null && (
             <span className="flex items-center gap-2">
-              <ProgressBar value={percent} tone={TONE_BY_STATUS[status]} className="flex-1" />
-              <span className={`shrink-0 text-[10.5px] font-semibold tabular-nums ${TEXT_CLASS_BY_STATUS[status]}`}>
-                {percent}% used
-              </span>
+              <ProgressBar value={percent} tone={TONE_BY_STATUS[status]} className="h-1 flex-1" />
+              {status !== "normal" && (
+                <span className={`shrink-0 text-[10.5px] font-semibold tabular-nums ${TEXT_CLASS_BY_STATUS[status]}`}>
+                  {percent}% used
+                </span>
+              )}
             </span>
           )}
         </button>

@@ -11,6 +11,8 @@ export interface ActionMenuItem {
   onSelect: () => void;
   /** Destructive: shown in the error colour. */
   danger?: boolean;
+  /** Not available right now (say, its request is already running). Stays in the menu, dimmed. */
+  disabled?: boolean;
 }
 
 const MENU_WIDTH = 192;
@@ -119,12 +121,13 @@ export function ActionMenu({ label, items, className }: { label: string; items: 
                 key={item.label}
                 type="button"
                 role="menuitem"
+                disabled={item.disabled}
                 onClick={() => {
                   close();
                   item.onSelect();
                 }}
                 className={cn(
-                  "flex min-h-11 items-center gap-2.5 px-4 text-left text-[13px] hover:bg-subtle focus-visible:bg-subtle focus-visible:outline-none md:min-h-9",
+                  "flex min-h-11 items-center gap-2.5 px-4 text-left text-[13px] hover:bg-subtle focus-visible:bg-subtle focus-visible:outline-none disabled:opacity-40 md:min-h-9",
                   item.danger ? "text-error" : "text-ink",
                 )}
               >
