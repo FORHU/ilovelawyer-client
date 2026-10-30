@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Check } from "lucide-react";
+import { Check, MessageCircleMore } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { Avatar, Eyebrow, initialsOf } from "@/components/ui/misc";
@@ -18,6 +18,8 @@ import {
   type LawyerOffer,
   type LawyerRequest,
 } from "@/lib/lawyer-requests/api";
+import { useEngagementMessagesQuery } from "@/lib/lawyer-requests/messages";
+import { quoteAgainstBudget, type ClientBudget } from "@/lib/cases/budget";
 import { firstName, formatDateTime } from "@/lib/format";
 import { money } from "@/lib/pricing";
 import type { Case } from "@/lib/types";
@@ -253,9 +255,58 @@ function LawyerHeader({ lawyer, tone = "plain", children }: { lawyer: NonNullabl
   );
 }
 
+/** The quote against what the client said they can spend (phase 5c): within or above it, and a note
+ * when it isn't the kind of fee they preferred. Nothing for "Not sure". */
+function BudgetFit({ budget, quote }: { budget: ClientBudget | null; quote: NonNullable<LawyerOffer["quote"]> }) {
+  const against = quoteAgainstBudget(budget, { type: quote.type, amountMinor: quote.amount.amountMinor });
+  if (!against || (!against.fit && !against.otherFeeType)) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5 text-[11.5px] font-medium">
+      {against.fit === "WITHIN" && (
+        <span className="rounded-full border border-success-line bg-success-bg px-2.5 py-0.5 text-success-ink">Within your budget</span>
+      )}
+      {against.fit === "ABOVE" && <span className="rounded-full border border-warn-line bg-warn-bg px-2.5 py-0.5 text-warn-ink">Above your budget</span>}
+      {against.otherFeeType && (
+        <span className="rounded-full border border-line px-2.5 py-0.5 text-ink-2">Not the kind of fee you preferred</span>
+      )}
+    </div>
+  );
+}
+
+/** One lawyer's thread before hire (phase 5b): a button with their unread count, opening the
+ * thread. Kept closed until asked for, so opening the tab doesn't mark every lawyer's messages read. */
+function OfferMessages({ c, request, offer }: { c: Case; request: LawyerRequest; offer: LawyerOffer }) {
+  const [open, setOpen] = useState(false);
+  const thread = useEngagementMessagesQuery(request.id, offer.claimId);
+  const unread = thread.data?.unread ?? 0;
+
+  if (open) {
+    return (
+      <div className="flex flex-col gap-2">
+        <LawyerMessages c={c} requestId={request.id} claimId={offer.claimId} lawyerName={offer.lawyer.name} closed={false} beforeHire />
+        <Button variant="ghost" size="sm" className="self-start" onClick={() => setOpen(false)}>
+          Hide messages
+        </Button>
+      </div>
+    );
+  }
+  return (
+    <Button variant="outline" size="sm" className="self-start" onClick={() => setOpen(true)}>
+      <MessageCircleMore size={14} aria-hidden="true" />
+      Message {offer.lawyer.name}
+      {unread > 0 && (
+        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-error px-1.5 text-[11px] text-white" aria-label={`${unread} unread`}>
+          {unread}
+        </span>
+      )}
+    </Button>
+  );
+}
+
 /** One lawyer on the request (several lawyers): their quote, with Hire and Decline, or that they're
  * still reviewing. `busy` holds every lawyer's buttons while any confirm, decline or withdraw runs. */
 function OfferCard({
+  c,
   request,
   offer,
   confirm,
@@ -263,6 +314,7 @@ function OfferCard({
   busy,
   onError,
 }: {
+  c: Case;
   request: LawyerRequest;
   offer: LawyerOffer;
   confirm: ReturnType<typeof useConfirmLawyerRequestMutation>;
@@ -279,6 +331,7 @@ function OfferCard({
         <section className={CARD}>
           <Eyebrow muted>{offer.quote.type === "FIXED_FEE" ? "Fixed fee quote" : "First consultation"}</Eyebrow>
           <span className="font-display text-[34px] tracking-[-0.02em]">{money(offer.quote.amount)}</span>
+          <BudgetFit budget={c.budget} quote={offer.quote} />
           {offer.quote.message && <p className="text-[#4a4a4a]">{offer.quote.message}</p>}
           <div className="flex flex-col gap-1.5 rounded-input border border-line bg-subtle px-4 py-3.5 text-[13px]">
             <div className="flex justify-between gap-2">
@@ -316,6 +369,7 @@ function OfferCard({
       ) : (
         <div className="rounded-input border border-line bg-subtle px-4 py-3 text-[13px] text-ink-2">Reviewing your case. They&apos;ll send a quote within 24 hours.</div>
       )}
+      <OfferMessages c={c} request={request} offer={offer} />
     </div>
   );
 }
@@ -324,12 +378,14 @@ function OfferCard({
  * choose by, and the referral disclosure above any Hire. `confirm` and `decline` belong to
  * LawyerTab, which also disables Withdraw while either is running. */
 function QuoteStage({
+  c,
   request,
   finalising,
   confirm,
   decline,
   locked,
 }: {
+  c: Case;
   locked: boolean;
   request: LawyerRequest;
   finalising: boolean;
@@ -366,6 +422,7 @@ function QuoteStage({
       {request.lawyers.map((offer) => (
         <OfferCard
           key={offer.claimId || offer.lawyer.id}
+          c={c}
           request={request}
           offer={offer}
           confirm={confirm}
@@ -480,7 +537,7 @@ function ExpiredStage({ caseId }: { caseId: string }) {
   );
 }
 
-function StageCard({ request, phase }: { request: LawyerRequest; phase: Phase }) {
+function StageCard({ c, request, phase }: { c: Case; request: LawyerRequest; phase: Phase }) {
   if (phase === "sent") {
     return (
       <section className={CARD}>
@@ -524,6 +581,13 @@ function StageCard({ request, phase }: { request: LawyerRequest; phase: Phase })
             <span className="font-sans text-sm">It goes back to other lawyers automatically</span>
           </Tile>
         </div>
+        {/* Each lawyer's thread is open from when they take it up, before any quote (phase 5b). */}
+        {request.lawyers.map((offer) => (
+          <div key={offer.claimId || offer.lawyer.id} className="flex flex-col gap-3">
+            <LawyerHeader lawyer={offer.lawyer} />
+            <OfferMessages c={c} request={request} offer={offer} />
+          </div>
+        ))}
       </section>
     );
   }
@@ -582,8 +646,8 @@ export function LawyerTab({ c, request }: { c: Case; request: LawyerRequest }) {
         </aside>
 
         <div className="flex min-w-0 flex-[999_1_520px] flex-col gap-4">
-          {(phase === "sent" || phase === "finding" || phase === "reviewing") && <StageCard request={request} phase={phase} />}
-          {(phase === "quote" || phase === "finalising") && <QuoteStage request={request} finalising={phase === "finalising"} confirm={confirm} decline={decline} locked={withdraw.isPending} />}
+          {(phase === "sent" || phase === "finding" || phase === "reviewing") && <StageCard c={c} request={request} phase={phase} />}
+          {(phase === "quote" || phase === "finalising") && <QuoteStage c={c} request={request} finalising={phase === "finalising"} confirm={confirm} decline={decline} locked={withdraw.isPending} />}
           {phase === "engaged" && <EngagedStage c={c} request={request} />}
           {phase === "closed" && <ClosedStage c={c} request={request} />}
           {phase === "expired" && <ExpiredStage caseId={c.id} />}

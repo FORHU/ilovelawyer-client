@@ -196,7 +196,7 @@ export function useEligibilityQuery(caseId: string) {
   return useQuery({
     queryKey: lawyerRequestKeys.eligibility(userId, caseId),
     queryFn: () => getEligibility(caseId),
-    enabled: !!userId,
+    enabled: !!userId && !!caseId,
     staleTime: 0,
   });
 }

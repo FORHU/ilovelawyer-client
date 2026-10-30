@@ -40,14 +40,32 @@ function Message({ message }: { message: EngagementMessage }) {
 }
 
 /**
- * The thread with the engaged lawyer (FORHU/ilovelawyer-client#21, ilovelawyer-api#517). The client
- * can write, share a document already on the case (the lawyer sees who shared it and when), or
- * both. Seeing the thread marks it read. Read-only once the engagement has closed.
+ * The thread with one lawyer (FORHU/ilovelawyer-client#21, ilovelawyer-api#517). With the lawyer
+ * they hired, the client can write, share a document already on the case (the lawyer sees who
+ * shared it and when), or both. Since phase 5b each lawyer on the request has a thread from when they
+ * join (`claimId`, `beforeHire`): text only, the lawyer sees an anonymised summary and not the
+ * client's name, and a hint asks not to share contact details. Seeing the thread marks it read.
+ * Read-only once the engagement has closed.
  */
-export function LawyerMessages({ c, requestId, lawyerName, closed }: { c: Case; requestId: string; lawyerName: string; closed: boolean }) {
-  const thread = useEngagementMessagesQuery(requestId);
-  const post = usePostEngagementMessageMutation(requestId);
-  const { mutate: markRead, isPending: marking } = useMarkEngagementMessagesReadMutation(requestId);
+export function LawyerMessages({
+  c,
+  requestId,
+  lawyerName,
+  closed,
+  claimId,
+  beforeHire = false,
+}: {
+  c: Case;
+  requestId: string;
+  lawyerName: string;
+  closed: boolean;
+  /** The lawyer's thread; left out, the hired lawyer's. */
+  claimId?: string;
+  beforeHire?: boolean;
+}) {
+  const thread = useEngagementMessagesQuery(requestId, claimId);
+  const post = usePostEngagementMessageMutation(requestId, claimId);
+  const { mutate: markRead, isPending: marking } = useMarkEngagementMessagesReadMutation(requestId, claimId);
   const [draft, setDraft] = useState("");
   const [documentId, setDocumentId] = useState("");
   const [error, setError] = useState("");
@@ -87,7 +105,11 @@ export function LawyerMessages({ c, requestId, lawyerName, closed }: { c: Case; 
         <MessageCircleMore size={16} className="text-muted" aria-hidden="true" />
         Messages with {lawyerName}
       </div>
-      <p className="text-[12.5px] leading-[1.6] text-ink-2">They can already see your case and documents. Ask them anything here.</p>
+      <p className="text-[12.5px] leading-[1.6] text-ink-2">
+        {beforeHire
+          ? "Ask them anything before you hire. They can see an anonymised summary of your case, not your name or documents."
+          : "They can already see your case and documents. Ask them anything here."}
+      </p>
 
       <div className="max-h-[420px] overflow-y-auto">
         {thread.isLoading ? (
@@ -110,6 +132,7 @@ export function LawyerMessages({ c, requestId, lawyerName, closed }: { c: Case; 
         <p className="text-[12.5px] text-muted">This engagement has ended. You can still read your messages, but not reply.</p>
       ) : (
         <form onSubmit={send} className="flex flex-col gap-2">
+          {beforeHire && <p className="text-[12px] text-muted">Don&apos;t share contact details. Keep the conversation here until you hire a lawyer.</p>}
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -123,7 +146,8 @@ export function LawyerMessages({ c, requestId, lawyerName, closed }: { c: Case; 
             className="w-full resize-none rounded-card border border-line-input bg-transparent px-3.5 py-2.5 text-[13px] text-ink outline-none focus:border-ink"
           />
           <div className="flex flex-wrap items-center justify-between gap-2">
-            {c.documents.length > 0 ? (
+            {/* Documents go only to the lawyer you hired (phase 5b). */}
+            {!beforeHire && c.documents.length > 0 ? (
               <select
                 value={documentId}
                 onChange={(e) => setDocumentId(e.target.value)}

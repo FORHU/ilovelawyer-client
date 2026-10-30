@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { budgetFromDraft, draftFromBudget, formatBudget, ownAmountError, parsePounds, EMPTY_BUDGET_DRAFT } from "../budget";
+import { budgetFromDraft, draftFromBudget, formatBudget, ownAmountError, parsePounds, quoteAgainstBudget, EMPTY_BUDGET_DRAFT } from "../budget";
 import { newCaseFromDraft } from "../new-case";
 
 describe("parsePounds", () => {
@@ -80,5 +80,33 @@ describe("newCaseFromDraft", () => {
   it("sends the budget, and null for Not sure", () => {
     expect(newCaseFromDraft({ ...draft, budget: { choice: "500_1500", own: "", fee: "" } }).budget).toEqual({ minMinor: 50_000, maxMinor: 150_000, feePreference: null });
     expect(newCaseFromDraft({ ...draft, budget: EMPTY_BUDGET_DRAFT }).budget).toBe(null);
+  });
+});
+
+describe("quoteAgainstBudget (phase 5c)", () => {
+  const range = { minMinor: 50_000, maxMinor: 150_000, feePreference: null };
+  const fixed = (amountMinor: number) => ({ type: "FIXED_FEE" as const, amountMinor });
+
+  it("says nothing when the client set no amount", () => {
+    expect(quoteAgainstBudget(null, fixed(90_000))).toBe(null);
+    expect(quoteAgainstBudget({ minMinor: null, maxMinor: null, feePreference: "FIXED_FEE" }, fixed(90_000))).toMatchObject({ fit: null });
+  });
+
+  it("is within up to the top of the range, under it included, and above past it", () => {
+    expect(quoteAgainstBudget(range, fixed(150_000))).toMatchObject({ fit: "WITHIN" });
+    expect(quoteAgainstBudget(range, fixed(20_000))).toMatchObject({ fit: "WITHIN" });
+    expect(quoteAgainstBudget(range, fixed(150_001))).toMatchObject({ fit: "ABOVE" });
+  });
+
+  it("is never above an open-ended range, and compares to the client's own amount", () => {
+    expect(quoteAgainstBudget({ minMinor: 500_000, maxMinor: null, feePreference: null }, fixed(9_000_000))).toMatchObject({ fit: "WITHIN" });
+    expect(quoteAgainstBudget({ minMinor: 275_000, maxMinor: 275_000, feePreference: null }, fixed(300_000))).toMatchObject({ fit: "ABOVE" });
+  });
+
+  it("notes a quote that isn't the kind of fee the client preferred", () => {
+    const prefersConsultation = { ...range, feePreference: "FIRST_CONSULTATION" as const };
+    expect(quoteAgainstBudget(prefersConsultation, fixed(90_000))).toMatchObject({ fit: "WITHIN", otherFeeType: true });
+    expect(quoteAgainstBudget(prefersConsultation, { type: "FIRST_CONSULTATION", amountMinor: 9_000 })).toMatchObject({ otherFeeType: false });
+    expect(quoteAgainstBudget(range, fixed(90_000))).toMatchObject({ otherFeeType: false });
   });
 });
