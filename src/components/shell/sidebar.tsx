@@ -10,6 +10,7 @@ import { cn } from "@/lib/cn";
 import { clientRequestStatusLabel, useOpenLawyerRequestsQuery } from "@/lib/lawyer-requests/api";
 import { useApp } from "@/lib/store";
 import { areasLabel } from "@/lib/types";
+import { startNewCase } from "@/lib/wizard-store";
 
 const railBtn =
   "flex size-[34px] shrink-0 items-center justify-center rounded-full border bg-white text-ink";
@@ -59,8 +60,10 @@ export function Sidebar() {
 
       {!collapsed ? (
         <>
+          {/* A fresh draft each time: a refresh of New case keeps what's typed, a new visit doesn't. */}
           <Link
             href="/cases/new"
+            onClick={startNewCase}
             data-no-tap
             className="flex h-10 items-center gap-2.5 rounded-full border border-line bg-white px-3.5 text-[13px] font-medium text-ink no-underline hover:border-line-hover hover:text-ink"
           >
@@ -120,7 +123,7 @@ export function Sidebar() {
       ) : (
         <>
           <div className="flex min-h-0 flex-1 flex-col items-center gap-2 overflow-y-auto">
-            <Link href="/cases/new" aria-label="New case" title="New case" data-no-tap className={cn(railBtn, "border-line text-ink no-underline hover:text-ink")}>
+            <Link href="/cases/new" onClick={startNewCase} aria-label="New case" title="New case" data-no-tap className={cn(railBtn, "border-line text-ink no-underline hover:text-ink")}>
               <Plus size={15} />
             </Link>
             {NAV.map(({ href, label: text, icon: Icon, match }) => (

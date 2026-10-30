@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Check } from "lucide-react";
+import { Check, MessageCircleMore } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { Avatar, Eyebrow, initialsOf } from "@/components/ui/misc";
@@ -15,8 +15,11 @@ import {
   useEndLawyerRequestMutation,
   useLawyerRequestForm,
   useWithdrawLawyerRequestMutation,
+  type LawyerOffer,
   type LawyerRequest,
 } from "@/lib/lawyer-requests/api";
+import { useEngagementMessagesQuery } from "@/lib/lawyer-requests/messages";
+import { quoteAgainstBudget, type ClientBudget } from "@/lib/cases/budget";
 import { firstName, formatDateTime } from "@/lib/format";
 import { money } from "@/lib/pricing";
 import type { Case } from "@/lib/types";
@@ -53,6 +56,11 @@ const POSITION: Record<Phase, number> = { sent: 0, finding: 1, reviewing: 2, quo
 
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
+/** "Friday 6 November" */
+function pickByDay(iso: string) {
+  return new Date(iso).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+}
+
 interface Step {
   label: string;
   sub: string;
@@ -62,15 +70,18 @@ interface Step {
 
 function stepsFor(request: LawyerRequest, phase: Phase): Step[] {
   const first = firstName(request.lawyer?.name);
+  // Several lawyers (ilovelawyer-api phase 5): the steps count them rather than assume one.
+  const on = request.lawyers.length;
+  const quoted = request.lawyers.filter((l) => l.quote).length;
   return [
     { label: "Request sent", sub: "Anonymised summary of your overview", time: formatDateTime(request.createdAt), expect: "Takes about a minute" },
     {
       label: phase === "expired" ? "No lawyer picked it up" : "Finding a lawyer",
       sub: "Sent to matching lawyers",
-      expect: phase === "expired" ? "Ended after 48 hours" : "Most are picked up within a day",
+      expect: phase === "expired" ? "Ended after 48 hours, or 7 days without a choice" : "Most are picked up within a day",
     },
-    { label: "A lawyer is reviewing", sub: "Conflict check, then a quote" },
-    { label: "Review the quote", sub: "Confirm or decline — you pay the lawyer, not us" },
+    { label: on > 1 ? `${on} lawyers are reviewing` : "A lawyer is reviewing", sub: "Conflict check, then a quote" },
+    { label: quoted > 1 ? "Compare the quotes" : "Review the quote", sub: "Hire one or decline — you pay the lawyer, not us" },
     {
       label: phase === "finalising" ? `Finalising${first ? ` with ${first}` : ""}` : "Working with your lawyer",
       sub: "Messages, and read-only access to your case",
@@ -112,7 +123,7 @@ function RequestSteps({ request, phase }: { request: LawyerRequest; phase: Phase
         const finished = phase === "closed" && last;
         const dot = finished ? "done" : state;
         return (
-          <li key={st.label} aria-current={state === "current" || state === "fail" ? "step" : undefined} className="flex gap-3.5">
+          <li key={i} aria-current={state === "current" || state === "fail" ? "step" : undefined} className="flex gap-3.5">
             <div className="flex flex-col items-center">
               <StepDot n={i + 1} state={dot} />
               {!last && <span className={cn("my-1 min-h-5 w-0.5 flex-1", i < pos ? "bg-ink" : "bg-line")} />}
@@ -148,11 +159,15 @@ function RequestSteps({ request, phase }: { request: LawyerRequest; phase: Phase
   );
 }
 
-/** What has happened, newest last, from the times the API gives. */
+/** What has happened, newest last, from the times the API gives: each lawyer taking it up and
+ * quoting (several lawyers), then the engagement. */
 function activityOf(request: LawyerRequest): { at: string; text: string }[] {
   const lawyer = request.lawyer?.name ?? "A lawyer";
   const events: { at: string; text: string }[] = [{ at: request.createdAt, text: "You sent your request" }];
-  if (request.quote) events.push({ at: request.quote.sentAt, text: `${lawyer} sent a ${money(request.quote.amount)} quote` });
+  for (const offer of request.lawyers) {
+    if (offer.joinedAt) events.push({ at: offer.joinedAt, text: `${offer.lawyer.name} took up your request` });
+    if (offer.quote) events.push({ at: offer.quote.sentAt, text: `${offer.lawyer.name} sent a ${money(offer.quote.amount)} quote` });
+  }
   if (request.engagedAt) events.push({ at: request.engagedAt, text: `You confirmed ${lawyer}, who can now see your case` });
   if (request.closedAt) events.push({ at: request.closedAt, text: request.closedBy === "LAWYER" ? "Your lawyer ended the engagement" : "You ended the engagement" });
   return events.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
@@ -168,6 +183,11 @@ function Tile({ label, children }: { label: string; children: ReactNode }) {
       <span className="font-display text-xl">{children}</span>
     </div>
   );
+}
+
+/** The SRA's referral disclosure, which hiring acknowledges. */
+function ReferralDisclosure({ text }: { text: string }) {
+  return <div className="rounded-input border border-line bg-subtle px-4 py-3 text-xs leading-[1.6] text-ink-2">{text}</div>;
 }
 
 function WithdrawControl({ request, withdraw, disabled }: { request: LawyerRequest; withdraw: ReturnType<typeof useWithdrawLawyerRequestMutation>; disabled?: boolean }) {
@@ -230,14 +250,137 @@ function LawyerHeader({ lawyer, tone = "plain", children }: { lawyer: NonNullabl
   );
 }
 
-/** `confirm` and `decline` belong to LawyerTab, which also disables Withdraw while either is running. */
+/** The quote against what the client said they can spend (phase 5c): within or above it, and a note
+ * when it isn't the kind of fee they preferred. Nothing for "Not sure". */
+function BudgetFit({ budget, quote }: { budget: ClientBudget | null; quote: NonNullable<LawyerOffer["quote"]> }) {
+  const against = quoteAgainstBudget(budget, { type: quote.type, amountMinor: quote.amount.amountMinor });
+  if (!against || (!against.fit && !against.otherFeeType)) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5 text-[11.5px] font-medium">
+      {against.fit === "WITHIN" && (
+        <span className="rounded-full border border-success-line bg-success-bg px-2.5 py-0.5 text-success-ink">Within your budget</span>
+      )}
+      {against.fit === "ABOVE" && <span className="rounded-full border border-warn-line bg-warn-bg px-2.5 py-0.5 text-warn-ink">Above your budget</span>}
+      {against.otherFeeType && (
+        <span className="rounded-full border border-line px-2.5 py-0.5 text-ink-2">Not the kind of fee you preferred</span>
+      )}
+    </div>
+  );
+}
+
+/** One lawyer's thread before hire (phase 5b): a button with their unread count, opening the
+ * thread. Kept closed until asked for, so opening the tab doesn't mark every lawyer's messages read. */
+function OfferMessages({ c, request, offer }: { c: Case; request: LawyerRequest; offer: LawyerOffer }) {
+  const [open, setOpen] = useState(false);
+  const thread = useEngagementMessagesQuery(request.id, offer.claimId);
+  const unread = thread.data?.unread ?? 0;
+
+  if (open) {
+    return (
+      <div className="flex flex-col gap-2">
+        <LawyerMessages c={c} requestId={request.id} claimId={offer.claimId} lawyerName={offer.lawyer.name} closed={false} beforeHire />
+        <Button variant="ghost" size="sm" className="self-start" onClick={() => setOpen(false)}>
+          Hide messages
+        </Button>
+      </div>
+    );
+  }
+  return (
+    <Button variant="outline" size="sm" className="self-start" onClick={() => setOpen(true)}>
+      <MessageCircleMore size={14} aria-hidden="true" />
+      Message {offer.lawyer.name}
+      {unread > 0 && (
+        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-error px-1.5 text-[11px] text-white" aria-label={`${unread} unread`}>
+          {unread}
+        </span>
+      )}
+    </Button>
+  );
+}
+
+/** One lawyer on the request (several lawyers): their quote, with Hire and Decline, or that they're
+ * still reviewing. `busy` holds every lawyer's buttons while any confirm, decline or withdraw runs. */
+function OfferCard({
+  c,
+  request,
+  offer,
+  confirm,
+  decline,
+  busy,
+  onError,
+}: {
+  c: Case;
+  request: LawyerRequest;
+  offer: LawyerOffer;
+  confirm: ReturnType<typeof useConfirmLawyerRequestMutation>;
+  decline: ReturnType<typeof useDeclineLawyerRequestMutation>;
+  busy: boolean;
+  onError: (message: string) => void;
+}) {
+  const first = firstName(offer.lawyer.name) ?? "the lawyer";
+  return (
+    <div className="flex flex-col gap-3">
+      <LawyerHeader lawyer={offer.lawyer} />
+      {offer.lawyer.bio && <p className="px-1 text-[13px] leading-[1.6] text-ink-2">{offer.lawyer.bio}</p>}
+      {offer.quote ? (
+        <section className={CARD}>
+          <Eyebrow muted>{offer.quote.type === "FIXED_FEE" ? "Fixed fee quote" : "First consultation"}</Eyebrow>
+          <span className="font-display text-[34px] tracking-[-0.02em]">{money(offer.quote.amount)}</span>
+          <BudgetFit budget={c.budget} quote={offer.quote} />
+          {offer.quote.message && <p className="text-[#4a4a4a]">{offer.quote.message}</p>}
+          <div className="flex flex-col gap-1.5 rounded-input border border-line bg-subtle px-4 py-3.5 text-[13px]">
+            <div className="flex justify-between gap-2">
+              <span>{first}&apos;s fee, paid to them</span>
+              <span className="font-semibold">{money(offer.quote.amount)}</span>
+            </div>
+            <div className="flex justify-between gap-2 text-ink-2">
+              <span>Paid to {first} directly, on the terms you agree</span>
+              <span className="shrink-0">Nothing to pay now</span>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2.5">
+            <Button
+              variant="dark"
+              className="!h-[46px] min-w-[200px] flex-1 !text-sm !font-semibold"
+              disabled={busy}
+              onClick={() =>
+                confirm.mutate({ id: request.id, claimId: offer.claimId }, { onError: (err) => onError(err instanceof Error ? err.message : "Couldn't confirm. Try again.") })
+              }
+            >
+              {confirm.isPending && confirm.variables?.claimId === offer.claimId ? "Confirming…" : `Hire ${offer.lawyer.name}`}
+            </Button>
+            <Button
+              variant="soft"
+              className="!h-[46px] min-w-[200px] flex-1 !text-sm"
+              disabled={busy}
+              onClick={() =>
+                decline.mutate({ id: request.id, claimId: offer.claimId }, { onError: (err) => onError(err instanceof Error ? err.message : "Couldn't decline. Try again.") })
+              }
+            >
+              {decline.isPending && decline.variables?.claimId === offer.claimId ? "Declining…" : "Decline this quote"}
+            </Button>
+          </div>
+        </section>
+      ) : (
+        <div className="rounded-input border border-line bg-subtle px-4 py-3 text-[13px] text-ink-2">Reviewing your case. They&apos;ll send a quote within 24 hours.</div>
+      )}
+      <OfferMessages c={c} request={request} offer={offer} />
+    </div>
+  );
+}
+
+/** The quotes (several lawyers, ilovelawyer-api phase 5): every lawyer on the request, the date to
+ * choose by, and the referral disclosure. `confirm` and `decline` belong to
+ * LawyerTab, which also disables Withdraw while either is running. */
 function QuoteStage({
+  c,
   request,
   finalising,
   confirm,
   decline,
   locked,
 }: {
+  c: Case;
   locked: boolean;
   request: LawyerRequest;
   finalising: boolean;
@@ -245,68 +388,46 @@ function QuoteStage({
   decline: ReturnType<typeof useDeclineLawyerRequestMutation>;
 }) {
   const [error, setError] = useState("");
-  const lawyer = request.lawyer;
-  const first = firstName(lawyer?.name) ?? "your lawyer";
   const busy = confirm.isPending || decline.isPending || locked;
 
+  if (finalising) {
+    const first = firstName(request.lawyer?.name) ?? "your lawyer";
+    return (
+      <div className="flex flex-col gap-4">
+        {request.lawyer && <LawyerHeader lawyer={request.lawyer} />}
+        <div className="flex items-center gap-2 rounded-xl border border-warn-line bg-warn-bg px-3.5 py-3 text-[13px] text-warn-ink">
+          You confirmed {first}. They&apos;re finishing setup on their side — you&apos;ll be able to message them here in a few minutes. Nothing else for you to do.
+        </div>
+      </div>
+    );
+  }
+
+  const quoted = request.lawyers.filter((l) => l.quote).length;
   return (
     <div className="flex flex-col gap-4">
-      {lawyer && <LawyerHeader lawyer={lawyer} />}
-      {lawyer?.bio && <p className="px-1 text-[13px] leading-[1.6] text-ink-2">{lawyer.bio}</p>}
-
-      {request.quote && (
-        <section className={CARD}>
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <Eyebrow muted>{request.quote.type === "FIXED_FEE" ? "Fixed fee quote" : "First consultation"}</Eyebrow>
-          </div>
-          <span className="font-display text-[34px] tracking-[-0.02em]">{money(request.quote.amount)}</span>
-          {request.quote.message && <p className="text-[#4a4a4a]">{request.quote.message}</p>}
-          <div className="flex flex-col gap-1.5 rounded-input border border-line bg-subtle px-4 py-3.5 text-[13px]">
-            <div className="flex justify-between gap-2">
-              <span>{first}&apos;s fee, paid to them</span>
-              <span className="font-semibold">{money(request.quote.amount)}</span>
-            </div>
-            <div className="flex justify-between gap-2 text-ink-2">
-              <span>Paid to {first} directly, on the terms you agree</span>
-              <span className="shrink-0">Nothing to pay now</span>
-            </div>
-          </div>
-          {request.referralDisclosure && <span className="text-xs text-ink-2">{request.referralDisclosure}</span>}
-
-          {error && <ErrorBox message={error} />}
-
-          {finalising ? (
-            <div className="flex items-center gap-2 rounded-xl border border-warn-line bg-warn-bg px-3.5 py-3 text-[13px] text-warn-ink">
-              You confirmed {first}. They&apos;re finishing setup on their side — you&apos;ll be able to message them here in a few minutes. Nothing else for you to do.
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-2.5">
-              <Button
-                variant="dark"
-                className="!h-[46px] min-w-[200px] flex-1 !text-sm !font-semibold"
-                disabled={busy}
-                onClick={() => {
-                  setError("");
-                  confirm.mutate(request.id, { onError: (err) => setError(err instanceof Error ? err.message : "Couldn't confirm. Try again.") });
-                }}
-              >
-                {confirm.isPending ? "Confirming…" : "Confirm this lawyer"}
-              </Button>
-              <Button
-                variant="soft"
-                className="!h-[46px] min-w-[200px] flex-1 !text-sm"
-                disabled={busy}
-                onClick={() => {
-                  setError("");
-                  decline.mutate({ id: request.id }, { onError: (err) => setError(err instanceof Error ? err.message : "Couldn't decline. Try again.") });
-                }}
-              >
-                {decline.isPending ? "Declining…" : "Decline and keep looking"}
-              </Button>
-            </div>
-          )}
-        </section>
+      <h2 className={HEADING}>{quoted > 1 ? `${quoted} quotes received` : "Quote received"}</h2>
+      {request.pickByAt && (
+        <p className="text-[13px] text-ink-2">Choose a lawyer by {pickByDay(request.pickByAt)}. If you don&apos;t, this request closes and you can ask again.</p>
       )}
+
+      {request.lawyers.map((offer) => (
+        <OfferCard
+          key={offer.claimId || offer.lawyer.id}
+          c={c}
+          request={request}
+          offer={offer}
+          confirm={confirm}
+          decline={decline}
+          busy={busy}
+          onError={(message) => setError(message)}
+        />
+      ))}
+
+      <div className="text-xs text-ink-2">Other lawyers may still take up your request and send you a quote.</div>
+
+      {request.referralDisclosure && <ReferralDisclosure text={request.referralDisclosure} />}
+
+      {error && <ErrorBox message={error} />}
     </div>
   );
 }
@@ -389,9 +510,10 @@ function ExpiredStage({ caseId }: { caseId: string }) {
   const { data: eligibility } = useEligibilityQuery(caseId);
   return (
     <section className={cn(CARD, "border-error-line")}>
-      <h2 className={HEADING}>No lawyer picked up your request</h2>
+      <h2 className={HEADING}>No lawyer found</h2>
       <p className="text-[#4a4a4a]">
-        None of the matching lawyers picked up your request within 48 hours. You haven&apos;t been charged anything, and any case fee credit stays on your account.
+        No lawyer picked up your request within 48 hours, or no quote was chosen within 7 days. You haven&apos;t been charged anything, and any case fee credit stays on your
+        account.
       </p>
       <ul className="flex list-disc flex-col gap-1 pl-[18px] text-[13px] text-[#4a4a4a]">
         <li>Answering the questions still open in your interview helps lawyers see what you need.</li>
@@ -406,7 +528,7 @@ function ExpiredStage({ caseId }: { caseId: string }) {
   );
 }
 
-function StageCard({ request, phase }: { request: LawyerRequest; phase: Phase }) {
+function StageCard({ c, request, phase }: { c: Case; request: LawyerRequest; phase: Phase }) {
   if (phase === "sent") {
     return (
       <section className={CARD}>
@@ -425,7 +547,8 @@ function StageCard({ request, phase }: { request: LawyerRequest; phase: Phase })
       <section className={CARD}>
         <h2 className={HEADING}>Finding the right lawyer</h2>
         <p className="text-[#4a4a4a]">
-          Verified lawyers who handle cases like yours have an anonymised summary of your case. The first to pick it up checks for conflicts and sends you a quote.
+          Verified lawyers who handle cases like yours have an anonymised summary of your case. Any of them can take it up; each checks for conflicts and sends you a
+          quote.
         </p>
         <div className="flex flex-wrap gap-2.5">
           <Tile label="Sent">{formatDateTime(request.createdAt)}</Tile>
@@ -436,15 +559,26 @@ function StageCard({ request, phase }: { request: LawyerRequest; phase: Phase })
     );
   }
   if (phase === "reviewing") {
+    const on = request.lawyers.length;
     return (
       <section className={CARD}>
-        <h2 className={HEADING}>A lawyer is reviewing your case</h2>
-        <p className="text-[#4a4a4a]">They&apos;re checking they don&apos;t already act for the other side, then they&apos;ll send you a quote. You don&apos;t need to do anything yet.</p>
+        <h2 className={HEADING}>{on > 1 ? `${on} lawyers are reviewing your case` : "A lawyer is reviewing your case"}</h2>
+        <p className="text-[#4a4a4a]">
+          {on > 1 ? "Each is" : "They're"} checking they don&apos;t already act for the other side, then {on > 1 ? "each will" : "they'll"} send you a quote within 24 hours. You
+          don&apos;t need to do anything yet.
+        </p>
         <div className="flex flex-wrap gap-2.5">
           <Tile label="If they can't take it">
             <span className="font-sans text-sm">It goes back to other lawyers automatically</span>
           </Tile>
         </div>
+        {/* Each lawyer's thread is open from when they take it up, before any quote (phase 5b). */}
+        {request.lawyers.map((offer) => (
+          <div key={offer.claimId || offer.lawyer.id} className="flex flex-col gap-3">
+            <LawyerHeader lawyer={offer.lawyer} />
+            <OfferMessages c={c} request={request} offer={offer} />
+          </div>
+        ))}
       </section>
     );
   }
@@ -503,8 +637,8 @@ export function LawyerTab({ c, request }: { c: Case; request: LawyerRequest }) {
         </aside>
 
         <div className="flex min-w-0 flex-[999_1_520px] flex-col gap-4">
-          {(phase === "sent" || phase === "finding" || phase === "reviewing") && <StageCard request={request} phase={phase} />}
-          {(phase === "quote" || phase === "finalising") && <QuoteStage request={request} finalising={phase === "finalising"} confirm={confirm} decline={decline} locked={withdraw.isPending} />}
+          {(phase === "sent" || phase === "finding" || phase === "reviewing") && <StageCard c={c} request={request} phase={phase} />}
+          {(phase === "quote" || phase === "finalising") && <QuoteStage c={c} request={request} finalising={phase === "finalising"} confirm={confirm} decline={decline} locked={withdraw.isPending} />}
           {phase === "engaged" && <EngagedStage c={c} request={request} />}
           {phase === "closed" && <ClosedStage c={c} request={request} />}
           {phase === "expired" && <ExpiredStage caseId={c.id} />}

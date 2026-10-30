@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/api/fetch";
+import type { ClientBudget } from "@/lib/cases/budget";
 import type { Case, CaseDocument, CaseIntake, ChatMessage, OtherParty, UkJurisdiction } from "@/lib/types";
 
 // The client app's own routes (/api/client, ilovelawyer-api's client.route.ts). They only answer
@@ -17,6 +18,8 @@ export interface NewCase {
   others: Omit<OtherParty, "id">[];
   /** What happened and what the client wants. Optional. */
   notes?: string;
+  /** What they can spend on a lawyer; null: "Not sure" (or, on an edit, clears it). */
+  budget?: ClientBudget | null;
 }
 
 /** Any of the case's details; what's left out stays as it is (PATCH /api/client/cases/:id). */
