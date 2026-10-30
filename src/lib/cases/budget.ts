@@ -90,3 +90,18 @@ export function formatBudget(budget: ClientBudget | null): string {
   const amount = range ? range.label : draft.choice === "OWN" && budget?.minMinor != null ? `£${pounds(budget.minMinor)}` : "Not sure";
   return budget?.feePreference ? `${amount} · prefers ${FEE_WORDS[budget.feePreference]}` : amount;
 }
+
+/** How a lawyer's quote sits against the client's budget (phase 5c), for the quotes list: WITHIN up
+ * to the top of their range (under it counts as within), ABOVE past it, and null when they set no
+ * amount. `otherFeeType` when they said which kind of fee they'd rather have and this isn't it. Null
+ * altogether for "Not sure". */
+export function quoteAgainstBudget(
+  budget: ClientBudget | null,
+  quote: { type: FeePreference; amountMinor: number },
+): { fit: "WITHIN" | "ABOVE" | null; otherFeeType: boolean } | null {
+  if (!budget) return null;
+  const top = budget.maxMinor;
+  const hasAmount = budget.minMinor !== null || top !== null;
+  const fit = !hasAmount ? null : top !== null && quote.amountMinor > top ? "ABOVE" : "WITHIN";
+  return { fit, otherFeeType: budget.feePreference !== null && budget.feePreference !== quote.type };
+}
