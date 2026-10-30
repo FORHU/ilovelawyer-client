@@ -7,8 +7,12 @@ import { ErrorBox } from "@/components/ui/banner";
 import { Avatar, Eyebrow, initialsOf } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { LawyerMessages } from "@/components/case/lawyer-messages";
+import { StripePaymentElement } from "@/components/payment/stripe-payment-element";
 import {
   clientRequestStage,
+  getQuotationPayment,
+  usePayQuotationMutation,
+  useRefreshLawyerRequests,
   useConfirmLawyerRequestMutation,
   useDeclineLawyerRequestMutation,
   useEligibilityQuery,
@@ -17,6 +21,8 @@ import {
   useWithdrawLawyerRequestMutation,
   type LawyerOffer,
   type LawyerRequest,
+  type PaymentStart,
+  type Quotation,
 } from "@/lib/lawyer-requests/api";
 import { useEngagementMessagesQuery } from "@/lib/lawyer-requests/messages";
 import { quoteAgainstBudget, type ClientBudget } from "@/lib/cases/budget";
@@ -25,8 +31,8 @@ import { money } from "@/lib/pricing";
 import type { Case } from "@/lib/types";
 
 /** Where a request sits on the five-step line. "sent" is its own step (the brief is being written
- * before any lawyer sees it), and "payfail" is CONFIRMED: the client has chosen, the lawyer's side
- * isn't open yet. */
+ * before any lawyer sees it), and "finalising" is CONFIRMED: the client has accepted a quote and pays
+ * it here (or, for a request accepted before quotation payments, the lawyer's side isn't open yet). */
 type Phase = "sent" | "finding" | "reviewing" | "quote" | "finalising" | "engaged" | "closed" | "expired";
 
 function phaseOf(request: LawyerRequest): Phase {
@@ -81,12 +87,24 @@ function stepsFor(request: LawyerRequest, phase: Phase): Step[] {
       expect: phase === "expired" ? "Ended after 48 hours, or 7 days without a choice" : "Most are picked up within a day",
     },
     { label: on > 1 ? `${on} lawyers are reviewing` : "A lawyer is reviewing", sub: "Conflict check, then a quote" },
-    { label: quoted > 1 ? "Compare the quotes" : "Review the quote", sub: "Hire one or decline — you pay the lawyer, not us" },
+    { label: quoted > 1 ? "Compare the quotes" : "Review the quote", sub: "Accept one and pay through ilovelawyer, or decline" },
     {
-      label: phase === "finalising" ? `Finalising${first ? ` with ${first}` : ""}` : "Working with your lawyer",
+      label:
+        phase === "finalising"
+          ? request.awaitingPayment
+            ? `Pay${first ? ` ${first}'s` : " the"} quote`
+            : `Finalising${first ? ` with ${first}` : ""}`
+          : "Working with your lawyer",
       sub: "Messages, and read-only access to your case",
       time: request.engagedAt ? (request.closedAt ? `${day(request.engagedAt)} – ${day(request.closedAt)}` : formatDateTime(request.engagedAt)) : undefined,
-      expect: phase === "finalising" ? "Usually takes a few minutes" : request.engagedAt ? `Started ${day(request.engagedAt)}` : undefined,
+      expect:
+        phase === "finalising"
+          ? request.awaitingPayment && request.quotation
+            ? `Pay by ${pickByDay(request.quotation.expiresAt)}`
+            : "Usually takes a few minutes"
+          : request.engagedAt
+            ? `Started ${day(request.engagedAt)}`
+            : undefined,
     },
   ];
 }
@@ -166,9 +184,10 @@ function activityOf(request: LawyerRequest): { at: string; text: string }[] {
   const events: { at: string; text: string }[] = [{ at: request.createdAt, text: "You sent your request" }];
   for (const offer of request.lawyers) {
     if (offer.joinedAt) events.push({ at: offer.joinedAt, text: `${offer.lawyer.name} took up your request` });
-    if (offer.quote) events.push({ at: offer.quote.sentAt, text: `${offer.lawyer.name} sent a ${money(offer.quote.amount)} quote` });
+    if (offer.quote) events.push({ at: offer.quote.sentAt, text: `${offer.lawyer.name} sent a ${money(offer.quotation?.total ?? offer.quote.amount)} quote` });
   }
-  if (request.engagedAt) events.push({ at: request.engagedAt, text: `You confirmed ${lawyer}, who can now see your case` });
+  if (request.quotation?.acceptedAt) events.push({ at: request.quotation.acceptedAt, text: `You accepted ${lawyer}'s quote` });
+  if (request.engagedAt) events.push({ at: request.engagedAt, text: `You paid ${lawyer}, who can now see your case` });
   if (request.closedAt) events.push({ at: request.closedAt, text: request.closedBy === "LAWYER" ? "Your lawyer ended the engagement" : "You ended the engagement" });
   return events.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
 }
@@ -185,7 +204,29 @@ function Tile({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-/** The SRA's referral disclosure, which hiring acknowledges. */
+/** What the client pays for a quotation: the lawyer's fee (paid out to them in full), ilovelawyer's
+ * platform fee on top, and the total. */
+function QuoteBreakdown({ quotation, lawyerFirst }: { quotation: Quotation; lawyerFirst: string }) {
+  const total = quotation.acceptedAmount ?? quotation.total;
+  return (
+    <div className="flex flex-col gap-1.5 rounded-input border border-line bg-subtle px-4 py-3.5 text-[13px]">
+      <div className="flex justify-between gap-2">
+        <span>{lawyerFirst}&apos;s fee, paid to them in full</span>
+        <span>{money(quotation.serviceFee)}</span>
+      </div>
+      <div className="flex justify-between gap-2 text-ink-2">
+        <span>ilovelawyer platform fee</span>
+        <span>{quotation.platformFee.amountMinor > 0 ? money(quotation.platformFee) : "None"}</span>
+      </div>
+      <div className="flex justify-between gap-2 border-t border-line pt-2 text-[15px] font-semibold">
+        <span>You pay</span>
+        <span>{money(total)}</span>
+      </div>
+    </div>
+  );
+}
+
+/** How ilovelawyer is paid, which accepting a quote acknowledges. */
 function ReferralDisclosure({ text }: { text: string }) {
   return <div className="rounded-input border border-line bg-subtle px-4 py-3 text-xs leading-[1.6] text-ink-2">{text}</div>;
 }
@@ -325,19 +366,11 @@ function OfferCard({
       {offer.quote ? (
         <section className={CARD}>
           <Eyebrow muted>{offer.quote.type === "FIXED_FEE" ? "Fixed fee quote" : "First consultation"}</Eyebrow>
-          <span className="font-display text-[34px] tracking-[-0.02em]">{money(offer.quote.amount)}</span>
+          <span className="font-display text-[34px] tracking-[-0.02em]">{money(offer.quotation?.total ?? offer.quote.amount)}</span>
           <BudgetFit budget={c.budget} quote={offer.quote} />
           {offer.quote.message && <p className="text-[#4a4a4a]">{offer.quote.message}</p>}
-          <div className="flex flex-col gap-1.5 rounded-input border border-line bg-subtle px-4 py-3.5 text-[13px]">
-            <div className="flex justify-between gap-2">
-              <span>{first}&apos;s fee, paid to them</span>
-              <span className="font-semibold">{money(offer.quote.amount)}</span>
-            </div>
-            <div className="flex justify-between gap-2 text-ink-2">
-              <span>Paid to {first} directly, on the terms you agree</span>
-              <span className="shrink-0">Nothing to pay now</span>
-            </div>
-          </div>
+          {offer.quotation && <QuoteBreakdown quotation={offer.quotation} lawyerFirst={first} />}
+          {offer.quotation && <p className="text-[12.5px] text-ink-2">This quote is valid until {pickByDay(offer.quotation.expiresAt)}. Accept and pay before then.</p>}
           <div className="flex flex-wrap gap-2.5">
             <Button
               variant="dark"
@@ -347,7 +380,11 @@ function OfferCard({
                 confirm.mutate({ id: request.id, claimId: offer.claimId }, { onError: (err) => onError(err instanceof Error ? err.message : "Couldn't confirm. Try again.") })
               }
             >
-              {confirm.isPending && confirm.variables?.claimId === offer.claimId ? "Confirming…" : `Hire ${offer.lawyer.name}`}
+              {confirm.isPending && confirm.variables?.claimId === offer.claimId
+                ? "Accepting…"
+                : offer.quotation && offer.quotation.total.amountMinor > 0
+                  ? `Accept and pay ${money(offer.quotation.total)}`
+                  : `Hire ${offer.lawyer.name}`}
             </Button>
             <Button
               variant="soft"
@@ -391,6 +428,7 @@ function QuoteStage({
   const busy = confirm.isPending || decline.isPending || locked;
 
   if (finalising) {
+    if (request.awaitingPayment && request.quotation) return <PayStage c={c} request={request} quotation={request.quotation} />;
     const first = firstName(request.lawyer?.name) ?? "your lawyer";
     return (
       <div className="flex flex-col gap-4">
@@ -428,6 +466,96 @@ function QuoteStage({
       {request.referralDisclosure && <ReferralDisclosure text={request.referralDisclosure} />}
 
       {error && <ErrorBox message={error} />}
+    </div>
+  );
+}
+
+const isDev = process.env.NODE_ENV !== "production";
+const PAYMENT_CHECKS = 10;
+const PAYMENT_CHECK_MS = 1500;
+
+/** The client accepted a quote: they pay it here, through ilovelawyer. With Stripe, its Payment
+ * Element takes the card; with the dummy provider, the payment settles at once. Once paid, the API
+ * engages the request and this tab moves on. */
+function PayStage({ c, request, quotation }: { c: Case; request: LawyerRequest; quotation: Quotation }) {
+  const pay = usePayQuotationMutation(c.id);
+  const refresh = useRefreshLawyerRequests(c.id);
+  const [intent, setIntent] = useState<PaymentStart["intent"]>(null);
+  const [error, setError] = useState("");
+  const [checking, setChecking] = useState(false);
+  const [simulateDecline, setSimulateDecline] = useState(false);
+  const first = firstName(request.lawyer?.name) ?? "your lawyer";
+  const total = quotation.acceptedAmount ?? quotation.total;
+
+  function start() {
+    setError("");
+    pay.mutate(
+      { id: request.id, quotationId: quotation.id, testOutcome: isDev && simulateDecline ? "decline" : undefined },
+      {
+        onSuccess: (started) => {
+          if (started.intent) setIntent(started.intent);
+        },
+        onError: (err) => setError(err instanceof Error ? err.message : "Your payment didn't go through. Try again."),
+      },
+    );
+  }
+
+  // Stripe has the payment: ask the API, which settles it, until it says how it ended.
+  async function afterStripe() {
+    setChecking(true);
+    try {
+      for (let i = 0; i < PAYMENT_CHECKS; i++) {
+        const { payment } = await getQuotationPayment(request.id);
+        if (payment?.status === "SUCCEEDED") break;
+        if (payment?.status === "FAILED") {
+          setIntent(null);
+          setError(payment.failureReason ?? "Your payment didn't go through. Try again.");
+          break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, PAYMENT_CHECK_MS));
+      }
+    } finally {
+      setChecking(false);
+      refresh();
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {request.lawyer && <LawyerHeader lawyer={request.lawyer} />}
+      <section className={CARD}>
+        <h2 className={HEADING}>Pay {first}&apos;s quote</h2>
+        <p className="text-[#4a4a4a]">
+          You accepted {first}&apos;s quote. Pay it here to get started: {first} can see your case and message you once it&apos;s paid. Pay by {pickByDay(quotation.expiresAt)}, or
+          the quote expires.
+        </p>
+        <QuoteBreakdown quotation={quotation} lawyerFirst={first} />
+        {error && <ErrorBox message={error} />}
+        {checking ? (
+          <div className="py-2 text-center text-[13px] text-ink-2">Confirming your payment…</div>
+        ) : intent ? (
+          <StripePaymentElement
+            clientSecret={intent.clientSecret}
+            publishableKey={intent.publishableKey}
+            returnUrl={typeof window === "undefined" ? "" : window.location.href}
+            payLabel={`Pay ${money(total)}`}
+            onPaid={() => void afterStripe()}
+          />
+        ) : (
+          <>
+            {isDev && (
+              <label className="flex items-center gap-2 text-[12px] text-muted">
+                <input type="checkbox" checked={simulateDecline} onChange={(e) => setSimulateDecline(e.target.checked)} />
+                Dev only: simulate a declined payment (dummy provider; with Stripe, use card 4000 0000 0000 0002)
+              </label>
+            )}
+            <Button variant="dark" className="!h-[46px] !text-sm !font-semibold" disabled={pay.isPending} onClick={start}>
+              {pay.isPending ? "Starting payment…" : `Pay ${money(total)}`}
+            </Button>
+          </>
+        )}
+        <span className="text-center text-xs text-muted">Pay securely with Stripe. Your card details go to Stripe, never to ilovelawyer.</span>
+      </section>
     </div>
   );
 }
@@ -588,7 +716,7 @@ function StageCard({ c, request, phase }: { c: Case; request: LawyerRequest; pha
 const VISIBILITY = (engaged: boolean, since?: string | null) => [
   { text: "Anonymised summary of your overview", when: "From the start", yes: true },
   { text: "Names, only for a conflict check", when: "From the start", yes: true },
-  { text: "Your case, documents and interview (read-only)", when: engaged ? (since ? `Since ${day(since)}` : "Now") : "Once you confirm", yes: engaged },
+  { text: "Your case, documents and interview (read-only)", when: engaged ? (since ? `Since ${day(since)}` : "Now") : "Once you pay", yes: engaged },
 ];
 
 export function LawyerTab({ c, request }: { c: Case; request: LawyerRequest }) {

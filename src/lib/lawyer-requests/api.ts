@@ -10,6 +10,8 @@ import {
   type ClientRequestStatus,
   type LawyerRegulator,
   type Money,
+  type Quotation,
+  type QuotationPaymentStatus,
   type QuoteType,
   type UkJurisdiction,
 } from "@/lib/client-handoff";
@@ -17,7 +19,7 @@ import {
 // Asking for a lawyer on a case (ilovelawyer-api /api/client/lawyer-requests, the UK client-to-lawyer
 // hand-off). Only client accounts reach these routes.
 
-export type { ClientRequestStage, ClientRequestStatus };
+export type { ClientRequestStage, ClientRequestStatus, Quotation };
 export { clientRequestStage, clientRequestStatusLabel };
 
 /** Why a case can't have a lawyer (the API's codes). */
@@ -34,7 +36,7 @@ export interface LawyerRequestEligibility {
 export interface LawyerRequestConsent {
   version: string;
   consentText: string;
-  /** The lawyer pays us for the introduction (SRA). */
+  /** How ilovelawyer is paid: the platform fee on top of the lawyer's quote. */
   referralDisclosure: string;
 }
 
@@ -61,7 +63,7 @@ export interface LawyerPublicProfile {
 
 export interface LawyerQuote {
   type: QuoteType;
-  /** The lawyer's own fee, paid to them directly. The platform takes no cut. */
+  /** The lawyer's own fee, paid out to them in full. `Quotation` adds the platform fee and the total. */
   amount: Money;
   message: string;
   sentAt: string;
@@ -74,12 +76,36 @@ export interface EngagementFeedback {
 }
 
 /** One lawyer on the request (several lawyers, ilovelawyer-api phase 5): `claimId` is what hiring and
- * declining take; `quote` is null until they've sent one. */
+ * declining take; `quote` and `quotation` are null until they've sent one. `quotation` has what the
+ * client pays: the lawyer's fee, ilovelawyer's platform fee on top, the total and the lawyer's expiry. */
 export interface LawyerOffer {
   claimId: string;
   joinedAt: string;
   lawyer: LawyerPublicProfile;
   quote: LawyerQuote | null;
+  quotation: Quotation | null;
+}
+
+/** One attempt at paying an accepted quotation. */
+export interface QuotationPayment {
+  id: string;
+  quotationId: string;
+  status: QuotationPaymentStatus;
+  amount: Money;
+  serviceFee: Money;
+  platformFee: Money;
+  refunded: Money;
+  provider: "STRIPE" | "DUMMY";
+  failureReason: string | null;
+  succeededAt: string | null;
+  createdAt: string;
+}
+
+/** What starting a payment returns: with Stripe, the PaymentIntent the Payment Element confirms;
+ * with the dummy provider, null (it has already settled). */
+export interface PaymentStart {
+  payment: QuotationPayment;
+  intent: { clientSecret: string; publishableKey: string } | null;
 }
 
 /** LawyerRequestForClient in the contract. */
@@ -98,6 +124,9 @@ export interface LawyerRequest {
   /** The lawyer hired, or until then the only quote; null with several. */
   lawyer: LawyerPublicProfile | null;
   quote: LawyerQuote | null;
+  quotation: Quotation | null;
+  /** The client accepted a quotation and hasn't paid it yet (CONFIRMED). */
+  awaitingPayment: boolean;
   /** Shown again on the quote screen; acknowledged to confirm. */
   referralDisclosure: string | null;
   engagedAt: string | null;
@@ -146,6 +175,17 @@ export function withdrawLawyerRequest(id: string) {
 /** Hires the lawyer whose quote `claimId` is. */
 export function confirmLawyerRequest(id: string, claimId: string) {
   return post<LawyerRequest>(`/api/client/lawyer-requests/${id}/confirm`, { disclosureAcknowledged: true, claimId });
+}
+
+/** Starts (or resumes) paying the accepted quotation. "decline" asks the dummy provider to refuse
+ * (dev only). */
+export function payQuotation(id: string, quotationId: string, testOutcome?: "decline") {
+  return post<PaymentStart>(`/api/client/lawyer-requests/${id}/quotations/${quotationId}/payment`, testOutcome ? { testOutcome } : {});
+}
+
+/** Where the client's payment for the request stands, checked with Stripe first while it's pending. */
+export function getQuotationPayment(id: string) {
+  return apiFetch<{ payment: QuotationPayment | null }>(`/api/client/lawyer-requests/${id}/payment`);
 }
 
 /** Declines one lawyer's quote; the others stay open. */
@@ -251,6 +291,14 @@ export function invalidateLawyerRequests(queryClient: ReturnType<typeof useQuery
   queryClient.invalidateQueries({ queryKey: lawyerRequestKeys.openAll(userId) });
 }
 
+/** Refetches everything a change to the case's request can affect, for a change made outside these
+ * mutations (Stripe taking a payment). */
+export function useRefreshLawyerRequests(caseId: string) {
+  const queryClient = useQueryClient();
+  const userId = useUserId();
+  return () => invalidateLawyerRequests(queryClient, userId, caseId);
+}
+
 export function useCreateLawyerRequestMutation(caseId: string) {
   const queryClient = useQueryClient();
   const userId = useUserId();
@@ -274,6 +322,15 @@ export function useConfirmLawyerRequestMutation(caseId: string) {
   const userId = useUserId();
   return useMutation({
     mutationFn: ({ id, claimId }: { id: string; claimId: string }) => confirmLawyerRequest(id, claimId),
+    onSettled: () => invalidateLawyerRequests(queryClient, userId, caseId),
+  });
+}
+
+export function usePayQuotationMutation(caseId: string) {
+  const queryClient = useQueryClient();
+  const userId = useUserId();
+  return useMutation({
+    mutationFn: ({ id, quotationId, testOutcome }: { id: string; quotationId: string; testOutcome?: "decline" }) => payQuotation(id, quotationId, testOutcome),
     onSettled: () => invalidateLawyerRequests(queryClient, userId, caseId),
   });
 }
