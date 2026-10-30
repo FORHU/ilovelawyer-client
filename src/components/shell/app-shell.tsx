@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Folder, Scale, SlidersHorizontal } from "lucide-react";
 import { PaymentModal } from "@/components/payment/payment-modal";
 import { LawyerRequestModal } from "@/components/case/lawyer-request-modal";
 import { SignOutButton } from "@/components/shell/sign-out-button";
@@ -56,7 +58,16 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Phone top bar */}
         <div className="flex min-h-[52px] shrink-0 items-center justify-between border-b border-line px-4 py-2 md:hidden">
           <Logo height={20} />
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            {[
+              { href: "/cases", label: "Cases", Icon: Folder },
+              { href: "/lawyers", label: "Find a lawyer", Icon: Scale },
+              { href: "/settings", label: "Settings", Icon: SlidersHorizontal },
+            ].map(({ href, label, Icon }) => (
+              <Link key={href} href={href} aria-label={label} title={label} className="flex size-[34px] items-center justify-center rounded-[10px] text-ink-2 hover:bg-chip hover:text-ink">
+                <Icon size={17} aria-hidden />
+              </Link>
+            ))}
             <SignOutButton compact />
             <Avatar initials={initialsOf(user?.name || "You")} size={36} />
           </div>
