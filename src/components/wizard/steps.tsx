@@ -10,6 +10,7 @@ import { RadioCard } from "@/components/ui/radio-card";
 import { Eyebrow } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { checkFiles, describeLimits, useLimitsQuery } from "@/lib/cases/limits";
+import { formatBudgetAmount, BUDGET_RANGES, FEE_PREFERENCES, budgetFromDraft, formatBudget, ownAmountError, type BudgetDraft } from "@/lib/cases/budget";
 import { NOTES_FIELD_MAX } from "@/lib/cases/notes";
 import { useCaseAreasQuery } from "@/lib/cases/case-areas";
 import {
@@ -296,6 +297,77 @@ export function IntakeNotesField({
   );
 }
 
+/**
+ * What the client can spend on a lawyer: a range, their own amount, or Not sure, and the kind of
+ * fee they'd rather be quoted. All optional. `error`: they chose their own amount but what's typed
+ * isn't one.
+ */
+export function BudgetField({ value, onChange, error }: { value: BudgetDraft; onChange: (patch: Partial<BudgetDraft>) => void; error?: boolean }) {
+  const ownError = error ? ownAmountError(value) : null;
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-2" role="radiogroup" aria-label="What can you spend on a lawyer?">
+        <WizardLabel>What can you spend on a lawyer?</WizardLabel>
+        <div className="flex flex-wrap gap-1.5">
+          {BUDGET_RANGES.map((r) => (
+            <Chip key={r.value} selected={value.choice === r.value} onClick={() => onChange({ choice: r.value })}>
+              {r.label}
+            </Chip>
+          ))}
+          {value.saved && (
+            <Chip selected={value.choice === "SAVED"} onClick={() => onChange({ choice: "SAVED" })}>
+              Keep {formatBudgetAmount(value.saved)}
+            </Chip>
+          )}
+          <Chip selected={value.choice === "OWN"} onClick={() => onChange({ choice: "OWN" })}>
+            Set my own amount
+          </Chip>
+          <Chip selected={value.choice === ""} onClick={() => onChange({ choice: "", own: "" })}>
+            Not sure
+          </Chip>
+        </div>
+        {value.choice === "OWN" && (
+          <div className="flex flex-col gap-1.5 pt-1">
+            <div className="relative max-w-[220px]">
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[15px] text-muted" aria-hidden="true">
+                £
+              </span>
+              <TextInput
+                aria-label="Your budget in pounds"
+                inputMode="decimal"
+                autoFocus
+                value={value.own}
+                placeholder="1,200"
+                aria-invalid={!!ownError}
+                aria-describedby={ownError ? "budget-own-err" : undefined}
+                onChange={(e) => onChange({ own: e.target.value })}
+                className={cn("pl-8", ownError && "border-error-field")}
+              />
+            </div>
+            {ownError && (
+              <div id="budget-own-err" className="text-xs text-error">
+                {ownError}
+              </div>
+            )}
+          </div>
+        )}
+        <div className="text-xs text-muted">Lawyers see this before they quote, so their quotes fit what you can spend. You can change it later.</div>
+      </div>
+      <div className="flex flex-col gap-2" role="radiogroup" aria-label="Which kind of fee would you prefer?">
+        <WizardLabel>Which kind of fee would you prefer?</WizardLabel>
+        <div className="flex flex-wrap gap-1.5">
+          {FEE_PREFERENCES.map((f) => (
+            <Chip key={f.label} selected={value.fee === f.value} onClick={() => onChange({ fee: f.value })}>
+              {f.label}
+            </Chip>
+          ))}
+        </div>
+        <div className="text-xs text-muted">A fixed fee covers the whole piece of work. A first consultation is a paid first meeting to talk it through.</div>
+      </div>
+    </div>
+  );
+}
+
 export function StepDetails() {
   const { title, region, where, areas, happened, wants, titleErr, regionErr, areasErr, set } = useWizard();
   return (
@@ -361,8 +433,17 @@ export function StepPeople() {
   );
 }
 
+export function StepBudget() {
+  const { budget, budgetErr, setBudget } = useWizard();
+  return (
+    <Section numeral="III" title="Your budget" sub="Optional. It helps lawyers decide whether to take your case and what to quote.">
+      <BudgetField value={budget} onChange={setBudget} error={budgetErr} />
+    </Section>
+  );
+}
+
 export function StepDocuments() {
-  const { title, side, others, files, addFiles, removeFile } = useWizard();
+  const { title, side, others, budget, files, addFiles, removeFile } = useWizard();
   const { data: limits } = useLimitsQuery();
   const [rejected, setRejected] = useState<string[]>([]);
   const named = others.map((o) => o.name.trim()).filter(Boolean);
@@ -376,7 +457,7 @@ export function StepDocuments() {
 
   return (
     <Section
-      numeral="III"
+      numeral="IV"
       title="Add your documents"
       sub="Contracts, messages, notices, receipts. The AI reads them to answer your questions. Optional."
       gap={20}
@@ -395,6 +476,10 @@ export function StepDocuments() {
         <div className="flex justify-between gap-3">
           <span className="text-muted">Others</span>
           <span className="text-right">{named.join(", ") || "None added"}</span>
+        </div>
+        <div className="flex justify-between gap-3">
+          <span className="text-muted">Budget</span>
+          <span className="text-right">{formatBudget(budgetFromDraft(budget))}</span>
         </div>
       </div>
       <FilePicker onPick={add}>

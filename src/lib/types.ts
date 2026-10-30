@@ -1,3 +1,5 @@
+import type { ClientBudget } from "@/lib/cases/budget";
+
 /** A kind of problem a case can be about ("Type of issue"). Admins manage the list
  * (GET /api/client/case-areas, lib/cases/case-areas.ts); a case has one or more, by code, and
  * lawyer matching uses them later. */
@@ -58,6 +60,8 @@ export interface Case {
   notes: string;
   side: "CLAIMANT" | "RESPONDENT" | null;
   others: OtherParty[];
+  /** What the client can spend on a lawyer. Null: not set ("Not sure"). */
+  budget: ClientBudget | null;
   documents: CaseDocument[];
   /** Chat credits left. Each message to the AI uses one. */
   credits: number;
