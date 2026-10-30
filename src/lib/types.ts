@@ -79,6 +79,18 @@ export interface ChatMessage {
    * these up against the case's own `documents` list for the name/status to show — the message
    * list doesn't resolve them inline (see ilovelawyer-api's IntakeChatSvc.listMessages). */
   documentIds: string[];
+  /** Playable audio: the client's own recording on a voice-originated message, or Polly's
+   * synthesized reply on its answer. Null on an ordinary typed turn. */
+  audioUrl?: string | null;
+  /** Only on a voice reply's answer: Polly's sentence/word speech marks for audioUrl, to sync a
+   * transcript highlight to playback. `text` is the markdown-stripped text actually spoken — the
+   * one these timings index into, never this message's own `text` field (see
+   * ilovelawyer-api's IntakeChatSvc.listMessages). */
+  audioTimings?: {
+    text: string;
+    sentenceTimings: { time: number; start: number; end: number }[];
+    wordTimings: { time: number; start: number; end: number }[];
+  } | null;
   createdAt: string;
 }
 

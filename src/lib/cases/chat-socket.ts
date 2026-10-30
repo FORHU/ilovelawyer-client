@@ -21,7 +21,10 @@ export interface ChatSocketEvent {
   messageId?: string;
 }
 
-export const CHAT_REPLY_EVENTS = ["chat:done", "chat:error", "chat:cancelled"] as const;
+// chat:voice-transcribed fires once a voice turn's recording has been transcribed, ahead of the
+// AI's reply — same refetch (refreshForChatEvent's default branch) so the transcript appears as
+// soon as it's ready instead of only once the whole answer is done.
+export const CHAT_REPLY_EVENTS = ["chat:done", "chat:error", "chat:cancelled", "chat:voice-transcribed"] as const;
 export type ChatReplyEvent = (typeof CHAT_REPLY_EVENTS)[number];
 
 function isMessagesKey(userId: string | undefined, key: readonly unknown[]): boolean {
