@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { LawyerCard } from "@/components/lawyers/lawyer-card";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { Eyebrow } from "@/components/ui/misc";
+import { useCaseAvailability } from "@/components/lawyers/use-case-availability";
 import { useCasesQuery } from "@/lib/cases/queries";
 import { cn } from "@/lib/cn";
 import {
@@ -17,13 +18,12 @@ import {
   filterLawyers,
   gbp,
   useLawyersQuery,
+  useMarketplaceCase,
   type LawyerFilters,
   type LawyerSort,
 } from "@/lib/lawyers/marketplace";
 import { useLawyerRequestForm } from "@/lib/lawyer-requests/api";
 import { UK_JURISDICTIONS, type UkJurisdiction } from "@/lib/types";
-
-const AREAS = ["Employment", "Housing", "Consumer", "Family", "Immigration"];
 
 const select =
   "h-[42px] rounded-full border border-line-input bg-white px-4 text-[13.5px] text-ink outline-none focus:border-ink-2";
@@ -58,21 +58,27 @@ export default function LawyersPage() {
   const { data: lawyers, isLoading, error, refetch } = useLawyersQuery();
 
   // Until the client chooses a filter, the list follows the case: its type of issue and place.
-  const [caseChoice, setCaseChoice] = useState<string | null>(null);
+  const caseChoice = useMarketplaceCase((s) => s.caseId);
   const [overrides, setOverrides] = useState<Partial<LawyerFilters>>({});
   const [sort, setSort] = useState<LawyerSort>("match");
 
   const activeCase = cases.find((c) => c.id === caseChoice) ?? cases[0] ?? null;
-  const caseArea = activeCase?.areas[0]?.name ?? null;
-  const filters: LawyerFilters = {
-    ...DEFAULT_FILTERS,
-    area: caseArea,
-    jurisdiction: activeCase?.ukJurisdiction ?? null,
-    ...overrides,
-  };
+  // The area options are the ones lawyers actually list, so a case area no lawyer covers (or an
+  // admin-renamed one) falls back to "All areas" instead of an empty list.
+  const areas = [...new Set((lawyers ?? []).flatMap((l) => l.practiceAreas))];
+  const caseArea = areas.find((a) => a.toLowerCase() === activeCase?.areas[0]?.name.trim().toLowerCase()) ?? null;
+  const caseJurisdiction = activeCase?.ukJurisdiction ?? null;
+  const filters: LawyerFilters = { ...DEFAULT_FILTERS, area: caseArea, jurisdiction: caseJurisdiction, ...overrides };
+  const followsCase = !!activeCase && filters.area === caseArea && filters.jurisdiction === caseJurisdiction;
+  const availability = useCaseAvailability(activeCase?.id ?? null);
+
+  // Keep the chosen case for the lawyer profile's request panel.
+  useEffect(() => {
+    if (activeCase && activeCase.id !== caseChoice) useMarketplaceCase.getState().set(activeCase.id);
+  }, [activeCase, caseChoice]);
   const set = (patch: Partial<LawyerFilters>) => setOverrides((o) => ({ ...o, ...patch }));
   const pickCase = (id: string) => {
-    setCaseChoice(id);
+    useMarketplaceCase.getState().set(id);
     setOverrides({});
   };
 
@@ -125,11 +131,13 @@ export default function LawyersPage() {
                 </select>
                 <button
                   type="button"
+                  disabled={!availability.canRequest}
                   onClick={() => useLawyerRequestForm.getState().openFor(activeCase.id)}
-                  className="h-10 rounded-full bg-white px-5 text-[13px] font-medium text-ink"
+                  className="h-10 rounded-full bg-white px-5 text-[13px] font-medium text-ink disabled:opacity-50"
                 >
                   Match me
                 </button>
+                {availability.reason && <p className="w-full text-xs leading-[1.5] text-white/80">{availability.reason}</p>}
               </div>
             ) : (
               <Link href="/cases/new" className="self-start text-[13px] font-medium text-white underline hover:text-white">
@@ -155,7 +163,7 @@ export default function LawyersPage() {
               <Option active={!filters.area} onClick={() => set({ area: null })}>
                 All areas
               </Option>
-              {AREAS.map((a) => (
+              {areas.map((a) => (
                 <Option key={a} active={filters.area === a} onClick={() => set({ area: a })}>
                   {a}
                 </Option>
@@ -243,7 +251,7 @@ export default function LawyersPage() {
                 <p className="text-sm text-ink-2" aria-live="polite">
                   {shown.length} {shown.length === 1 ? "lawyer" : "lawyers"}
                   {summary && ` for ${summary}`}
-                  {activeCase && !overrides.area && !overrides.jurisdiction ? ` — matched to your case “${activeCase.title}”` : ""}
+                  {activeCase && followsCase ? ` — matched to your case “${activeCase.title}”` : ""}
                 </p>
                 {shown.length === 0 ? (
                   <div className="flex flex-col items-start gap-3 rounded-card border border-dashed border-line-input p-6 text-sm text-ink-2">

@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { create } from "zustand";
 import { useSession } from "@/lib/auth/session";
 import type { UkJurisdiction } from "@/lib/types";
 
@@ -295,7 +296,6 @@ export const gbp = (n: number) => `£${n.toLocaleString("en-GB")}`;
 export const range = (r: FeeRange) => (r.min === r.max ? gbp(r.min) : `${gbp(r.min)}–${gbp(r.max)}`);
 export const consultationLabel = (l: MarketplaceLawyer) =>
   l.firstConsultationFee === null ? `Free ${l.freeConsultationMinutes ?? 30} min` : gbp(l.firstConsultationFee);
-export const firstName = (l: MarketplaceLawyer) => l.name.split(" ")[0];
 
 const delay = <T>(value: T, ms = 250) => new Promise<T>((resolve) => setTimeout(() => resolve(value), ms));
 
@@ -306,6 +306,16 @@ export function listLawyers() {
 export function getLawyer(id: string) {
   return delay(LAWYERS.find((l) => l.id === id) ?? null);
 }
+
+/** Whether a request can go to one named lawyer. False until the API supports it: the mock below
+ * would otherwise show "Request sent" for a request nobody receives. */
+export const DIRECT_REQUEST_AVAILABLE = false;
+
+/** The case picked on the marketplace, so a lawyer's profile requests for the same case. */
+export const useMarketplaceCase = create<{ caseId: string | null; set: (caseId: string | null) => void }>((set) => ({
+  caseId: null,
+  set: (caseId) => set({ caseId }),
+}));
 
 /** Sends the client's case to this one lawyer only. Mock: succeeds. */
 export function requestLawyer(input: { lawyerId: string; caseId: string }) {

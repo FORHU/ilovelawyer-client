@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Check, Star } from "lucide-react";
@@ -9,18 +9,19 @@ import { ErrorBox } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Eyebrow } from "@/components/ui/misc";
+import { useCaseAvailability } from "@/components/lawyers/use-case-availability";
 import { useCasesQuery } from "@/lib/cases/queries";
-import { useLawyerRequestForm, useOpenLawyerRequestsQuery } from "@/lib/lawyer-requests/api";
+import { formatDay, firstName } from "@/lib/format";
+import { useLawyerRequestForm } from "@/lib/lawyer-requests/api";
 import {
   consultationLabel,
-  firstName,
+  DIRECT_REQUEST_AVAILABLE,
+  useMarketplaceCase,
   range,
   useLawyerQuery,
   useRequestLawyerMutation,
   type MarketplaceLawyer,
 } from "@/lib/lawyers/marketplace";
-
-const dateFormat = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
 function Stars({ n }: { n: number }) {
   return (
@@ -46,12 +47,13 @@ function Section({ title, aside, children }: { title: string; aside?: string; ch
 
 function RequestPanel({ lawyer, onSent }: { lawyer: MarketplaceLawyer; onSent: (caseId: string) => void }) {
   const { data: cases = [] } = useCasesQuery();
-  const { data: openRequests } = useOpenLawyerRequestsQuery();
+  const picked = useMarketplaceCase((s) => s.caseId);
   const request = useRequestLawyerMutation();
   const [chosen, setChosen] = useState<string | null>(null);
-  const caseId = chosen ?? cases[0]?.id ?? null;
-  const hasOpen = caseId ? !!openRequests?.get(caseId) : false;
-  const name = firstName(lawyer);
+  // The case picked on the marketplace, if it still exists, else the first.
+  const caseId = chosen ?? (cases.some((c) => c.id === picked) ? picked : null) ?? cases[0]?.id ?? null;
+  const availability = useCaseAvailability(caseId);
+  const name = firstName(lawyer.name) ?? lawyer.name;
 
   return (
     <aside id="request" className="flex flex-col gap-4 rounded-card border border-line bg-white p-5 lg:sticky lg:top-6">
@@ -93,18 +95,21 @@ function RequestPanel({ lawyer, onSent }: { lawyer: MarketplaceLawyer; onSent: (
               ))}
             </select>
           </div>
-          {hasOpen && <p className="text-[13px] text-ink-2">This case already has an open request. Withdraw it from the case’s Lawyer tab to send a new one.</p>}
+          {availability.reason && <p className="text-[13px] leading-[1.6] text-ink-2">{availability.reason}</p>}
+          {!DIRECT_REQUEST_AVAILABLE && (
+            <p className="text-[13px] leading-[1.6] text-ink-2">Requesting {name} directly isn’t available yet. Use “Let us match me instead” below.</p>
+          )}
           {request.error && <ErrorBox message="Couldn't send your request. Try again." />}
           <Button
             variant="dark"
             size="xl"
             className="w-full !text-[14px]"
-            disabled={!caseId || hasOpen || request.isPending}
+            disabled={!DIRECT_REQUEST_AVAILABLE || !availability.canRequest || request.isPending}
             onClick={() => caseId && request.mutate({ lawyerId: lawyer.id, caseId }, { onSuccess: () => onSent(caseId) })}
           >
             {request.isPending ? "Sending…" : `Request ${name}`}
           </Button>
-          <Button variant="soft" size="lg" className="w-full" disabled={!caseId || hasOpen} onClick={() => caseId && useLawyerRequestForm.getState().openFor(caseId)}>
+          <Button variant="soft" size="lg" className="w-full" disabled={!availability.canRequest} onClick={() => caseId && useLawyerRequestForm.getState().openFor(caseId)}>
             Let us match me instead
           </Button>
         </>
@@ -122,6 +127,11 @@ export default function LawyerProfilePage() {
   const { data: lawyer, isLoading } = useLawyerQuery(id);
   const [sentFor, setSentFor] = useState<string | null>(null);
 
+  // The card's "Request" link ends in #request, which isn't on the page until the lawyer loads.
+  useEffect(() => {
+    if (lawyer && window.location.hash === "#request") document.getElementById("request")?.scrollIntoView();
+  }, [lawyer]);
+
   if (isLoading) return <div className="flex-1" aria-busy />;
 
   if (!lawyer) {
@@ -136,7 +146,7 @@ export default function LawyerProfilePage() {
     );
   }
 
-  const name = firstName(lawyer);
+  const name = firstName(lawyer.name) ?? lawyer.name;
   const max = Math.max(...lawyer.ratingBreakdown, 1);
 
   return (
@@ -202,7 +212,7 @@ export default function LawyerProfilePage() {
                   <span className="text-[13px] text-ink-2">{lawyer.reviewCount} reviews</span>
                 </div>
                 <div className="flex flex-1 flex-col gap-1.5">
-                  {lawyer.ratingBreakdown.slice(0, 3).map((n, i) => (
+                  {lawyer.ratingBreakdown.map((n, i) => (
                     <div key={i} className="flex items-center gap-3 text-xs text-ink-2">
                       <span className="w-2">{5 - i}</span>
                       <div className="h-1.5 flex-1 rounded-full bg-chip">
@@ -227,7 +237,7 @@ export default function LawyerProfilePage() {
                 {[
                   ["Regulator", lawyer.regulator],
                   ["Registration no.", lawyer.registrationNumber],
-                  ["Verified by ilovelawyer", dateFormat.format(new Date(lawyer.verifiedAt))],
+                  ["Verified by ilovelawyer", formatDay(lawyer.verifiedAt)],
                 ].map(([k, v]) => (
                   <div key={k} className="flex flex-col gap-1 rounded-input border border-line bg-subtle px-4 py-3.5">
                     <span className="text-[13px] text-ink-2">{k}</span>
