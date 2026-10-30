@@ -91,10 +91,13 @@ export interface LawyerRequest {
   consentVersion: string;
   consentAcceptedAt: string;
   createdAt: string;
-  /** Everyone on the request now, oldest first, and the one hired. */
+  /** Everyone on the request now (up to 3), oldest first, and the one hired. */
   lawyers: LawyerOffer[];
   /** While quotes are open: the request closes if none is chosen by then. */
   pickByAt: string | null;
+  /** More lawyers can still take it up: its 48 hours are open and a place is free. Missing from an
+   * older API. */
+  openToLawyers?: boolean;
   /** The lawyer hired, or until then the only quote; null with several. */
   lawyer: LawyerPublicProfile | null;
   quote: LawyerQuote | null;
@@ -117,6 +120,20 @@ function post<T>(path: string, body: unknown): Promise<T> {
   return apiFetch<T>(path, { method: "POST", body: JSON.stringify(body) });
 }
 
+/** An API from before several lawyers (ilovelawyer-api phase 5) sends no `lawyers`, only the one
+ * lawyer and their quote: they become the list, so the Lawyer tab works against either. Their
+ * claimId is empty, and hiring or declining then sends none, as that API expects. */
+export function withLawyers(r: LawyerRequest): LawyerRequest {
+  if (Array.isArray(r.lawyers)) return r;
+  const lawyers = r.lawyer ? [{ claimId: "", joinedAt: r.createdAt, lawyer: r.lawyer, quote: r.quote }] : [];
+  return { ...r, lawyers, pickByAt: r.pickByAt ?? null };
+}
+
+/** A request from any of the routes below, with `lawyers` always set (withLawyers). */
+async function requestFrom(fetched: Promise<LawyerRequest>): Promise<LawyerRequest> {
+  return withLawyers(await fetched);
+}
+
 export function getEligibility(caseId: string) {
   return apiFetch<LawyerRequestEligibility>(`/api/client/lawyer-requests/eligibility?caseId=${encodeURIComponent(caseId)}`);
 }
@@ -126,36 +143,37 @@ export function getConsent() {
 }
 
 export function createLawyerRequest(input: { caseId: string; note: string; consentVersion: string; consentAccepted: true }) {
-  return post<LawyerRequest>("/api/client/lawyer-requests", input);
+  return requestFrom(post<LawyerRequest>("/api/client/lawyer-requests", input));
 }
 
 /** All the client's requests, newest first, or just one case's with `caseId`. */
-export function listLawyerRequests(caseId?: string) {
+export async function listLawyerRequests(caseId?: string) {
   const query = caseId ? `?caseId=${encodeURIComponent(caseId)}&limit=5` : "?limit=50";
-  return apiFetch<{ total: number; data: LawyerRequest[] }>(`/api/client/lawyer-requests${query}`);
+  const page = await apiFetch<{ total: number; data: LawyerRequest[] }>(`/api/client/lawyer-requests${query}`);
+  return { ...page, data: page.data.map(withLawyers) };
 }
 
 export function getLawyerRequest(id: string) {
-  return apiFetch<LawyerRequest>(`/api/client/lawyer-requests/${id}`);
+  return requestFrom(apiFetch<LawyerRequest>(`/api/client/lawyer-requests/${id}`));
 }
 
 export function withdrawLawyerRequest(id: string) {
-  return post<LawyerRequest>(`/api/client/lawyer-requests/${id}/withdraw`, {});
+  return requestFrom(post<LawyerRequest>(`/api/client/lawyer-requests/${id}/withdraw`, {}));
 }
 
 /** Hires the lawyer whose quote `claimId` is. */
 export function confirmLawyerRequest(id: string, claimId: string) {
-  return post<LawyerRequest>(`/api/client/lawyer-requests/${id}/confirm`, { disclosureAcknowledged: true, claimId });
+  return requestFrom(post<LawyerRequest>(`/api/client/lawyer-requests/${id}/confirm`, { disclosureAcknowledged: true, ...(claimId ? { claimId } : {}) }));
 }
 
 /** Declines one lawyer's quote; the others stay open. */
 export function declineLawyerRequest(id: string, claimId: string, reason?: string) {
-  return post<LawyerRequest>(`/api/client/lawyer-requests/${id}/decline`, reason ? { claimId, reason } : { claimId });
+  return requestFrom(post<LawyerRequest>(`/api/client/lawyer-requests/${id}/decline`, { ...(claimId ? { claimId } : {}), ...(reason ? { reason } : {}) }));
 }
 
 /** The client's side of closing the engagement — same effect as the lawyer closing it. */
 export function endLawyerRequest(id: string, reason?: string) {
-  return post<LawyerRequest>(`/api/client/lawyer-requests/${id}/end`, reason ? { reason } : {});
+  return requestFrom(post<LawyerRequest>(`/api/client/lawyer-requests/${id}/end`, reason ? { reason } : {}));
 }
 
 export const lawyerRequestKeys = {
