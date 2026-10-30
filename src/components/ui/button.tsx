@@ -1,7 +1,7 @@
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/cn";
 
-type Variant = "primary" | "outline" | "ghost" | "social" | "dashed" | "danger";
+type Variant = "primary" | "outline" | "ghost" | "social" | "dashed" | "danger" | "dark" | "soft" | "quiet";
 type Size = "sm" | "md" | "lg" | "xl";
 
 const base =
@@ -15,6 +15,10 @@ const variants: Record<Variant, string> = {
   social:
     "w-full border border-line-input bg-white text-ink !normal-case !font-medium !text-[14px] tracking-normal gap-[10px] hover:border-line-hover",
   danger: "bg-error text-white tracking-[1.2px] hover:bg-error-ink",
+  // The revised case screens: sentence-case pills, a near-black primary and a quieter outline.
+  dark: "bg-primary text-white !normal-case !font-medium !text-[13px] tracking-normal hover:bg-ink",
+  soft: "border border-line-input bg-white text-ink !normal-case !font-medium !text-[13px] tracking-normal hover:border-line-hover",
+  quiet: "text-ink-2 !normal-case !font-medium !text-[12.5px] tracking-normal hover:text-ink",
   dashed:
     "border border-dashed border-line-input text-ink-2 tracking-[1px] hover:border-line-hover",
 };

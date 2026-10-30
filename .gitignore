@@ -43,3 +43,6 @@ next-env.d.ts
 # design-taste inspector output
 .taste-skill/
 package-lock.json
+
+# local handoff notes, not for the repo
+/docs/

@@ -24,7 +24,7 @@ export function GetLawyerAction({ caseId }: { caseId: string }) {
 
   if (data.eligible) {
     return (
-      <Button variant="outline" size="md" data-no-tap className="h-11 flex-1 !px-4 md:h-9 md:flex-none" onClick={() => useLawyerRequestForm.getState().openFor(caseId)}>
+      <Button variant="soft" size="md" data-no-tap className="h-11 flex-1 !px-4 md:h-9 md:flex-none" onClick={() => useLawyerRequestForm.getState().openFor(caseId)}>
         <Scale size={14} />
         Get a lawyer
       </Button>
