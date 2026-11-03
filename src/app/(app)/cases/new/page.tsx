@@ -10,7 +10,11 @@ import { TourHint } from "@/components/tour/tour-hint";
 import type { IntakeDraft } from "@/lib/cases/use-intake-chat";
 import { StepBudget, StepDetails, StepDocuments, StepPeople } from "@/components/wizard/steps";
 import { useSession } from "@/lib/auth/session";
-import { useCreateCaseFromWizard } from "@/lib/cases/new-case";
+import { sendMessage } from "@/lib/cases/api";
+import { EMPTY_BUDGET_DRAFT } from "@/lib/cases/budget";
+import { useFailedUploads } from "@/lib/failed-uploads";
+import { newCaseFromDraft, useCreateCaseFromWizard } from "@/lib/cases/new-case";
+import { uploadAll, useCreateCaseMutation } from "@/lib/cases/queries";
 import { cn } from "@/lib/cn";
 import { usePricingQuery } from "@/lib/pricing";
 import { WIZARD_STEPS, useWizard } from "@/lib/wizard-store";
@@ -29,6 +33,9 @@ function NewCase() {
   const { data: pricing } = usePricingQuery();
   const included = pricing?.case.credits ?? "…";
   const { create, creating, error } = useCreateCaseFromWizard();
+  const createCaseDirect = useCreateCaseMutation();
+  const [chatCreating, setChatCreating] = useState(false);
+  const [chatError, setChatError] = useState("");
 
   const userId = useSession((s) => s.user?.id);
   const [ready, setReady] = useState(false);
@@ -90,6 +97,32 @@ function NewCase() {
     w.addFiles(files);
   };
 
+  // Creating straight from the chat: the regex-guessed draft is only a starting point (the chat's
+  // own slot-filler has no real understanding — see use-intake-chat.ts's doc comment) — the real
+  // case details come from chat-wonder's create_case tool, which reads what the client actually
+  // typed (happened/wants, sent as the case's first message) and corrects/fills in the case's
+  // fields for real. The draft still seeds the initial create call so the case isn't empty while
+  // that first AI reply is in flight.
+  const onChatCreate = async (draft: IntakeDraft, files: File[]) => {
+    if (chatCreating) return;
+    setChatCreating(true);
+    setChatError("");
+    let created;
+    try {
+      created = await createCaseDirect.mutateAsync(newCaseFromDraft({ ...draft, budget: EMPTY_BUDGET_DRAFT }));
+    } catch (err) {
+      setChatCreating(false);
+      setChatError(err instanceof Error && err.message ? err.message : "We couldn't create the case. Try again.");
+      return;
+    }
+    const notUploaded = await uploadAll(created.id, files);
+    useFailedUploads.getState().set(created.id, notUploaded);
+    const text = [draft.happened, draft.wants].filter((s) => s.trim()).join("\n\n");
+    if (text) void sendMessage(created.id, text);
+    setChatCreating(false);
+    router.push(`/cases/${created.id}`);
+  };
+
   if (mode === "chat") {
     return (
       <div className="flex min-h-0 flex-1 flex-col">
@@ -106,12 +139,9 @@ function NewCase() {
           <TourHint className="mt-3" />
         </div>
         <IntakeChat
-          creating={creating}
-          error={error}
-          onCreate={(draft, files) => {
-            loadIntoWizard(draft, files);
-            void create();
-          }}
+          creating={chatCreating}
+          error={chatError}
+          onCreate={onChatCreate}
           onEditDetails={(draft, files) => {
             loadIntoWizard(draft, files);
             useWizard.getState().enter();
