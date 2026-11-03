@@ -9,7 +9,6 @@ import { FilePicker } from "@/components/ui/file-picker";
 import { AiMark } from "@/components/ui/misc";
 import { MicButton, RecorderRow } from "@/components/voice/recorder-row";
 import { LawyerSuggestion } from "@/components/case/lawyer-suggestion";
-import { VoiceReplyPlayer } from "@/components/case/voice-reply-player";
 import { useIntakeQuery, useMessagesQuery, useSendMessageMutation, useSendVoiceMessageMutation, useUploadDocumentsMutation } from "@/lib/cases/queries";
 import { useVoiceRecorder } from "@/lib/cases/voice-recorder";
 import { useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
@@ -202,7 +201,7 @@ export function Consultation({ c }: { c: Case }) {
                 {missing} thing{missing === 1 ? "" : "s"} still to cover — see the Overview tab
               </div>
             )}
-            {messages.map((m, i) =>
+            {messages.map((m) =>
               m.role === "user" ? (
                 <div key={m.id} className="flex max-w-[80%] flex-col items-end gap-1.5 self-end">
                   <div className="rounded-[18px_18px_4px_18px] border border-line bg-bubble px-4 py-3 text-[15px] leading-[1.6]">
@@ -228,25 +227,7 @@ export function Consultation({ c }: { c: Case }) {
                   <AiMark />
                   <div className="flex min-w-0 flex-col gap-2.5 text-[15px] leading-[1.7]">
                     <div className="whitespace-pre-line">{m.text}</div>
-                    {m.audioUrl &&
-                      (m.audioTimings ? (
-                        <VoiceReplyPlayer
-                          audioUrl={m.audioUrl}
-                          text={m.audioTimings.text}
-                          sentenceTimings={m.audioTimings.sentenceTimings}
-                          wordTimings={m.audioTimings.wordTimings}
-                          // Only the reply to a voice-asked question starts itself — the previous
-                          // turn being a voice message (it has its own audioUrl) is how we tell
-                          // "the client was just listening" from "they typed, this just also has
-                          // audio".
-                          autoPlay={messages[i - 1]?.role === "user" && !!messages[i - 1]?.audioUrl}
-                        />
-                      ) : (
-                        // Defensive fallback: an assistant audio reply should always carry its
-                        // speech-mark timings (set together in the same write), but play it plainly
-                        // rather than show nothing if an older row somehow lacks them.
-                        <audio controls src={m.audioUrl} className="h-8 w-56" />
-                      ))}
+                    {m.audioUrl && <audio controls src={m.audioUrl} className="h-8 w-56" />}
                     <div className="text-xs text-muted">I collect and organise your information for a lawyer. I can&apos;t give legal advice.</div>
                   </div>
                 </div>

@@ -221,9 +221,6 @@ importers:
       socket.io-client:
         specifier: ^4.8.3
         version: 4.8.4(supports-color@7.2.0)
-      wavesurfer.js:
-        specifier: 7.8.6
-        version: 7.8.6
       zustand:
         specifier: ^5.0.15
         version: 5.0.15(@types/react@19.3.0)(react@19.3.0)
@@ -2968,9 +2965,6 @@ packages:
         optional: true
       jsdom:
         optional: true
-
-  wavesurfer.js@7.8.6:
-    resolution: {integrity: sha512-EDexkMwkkQBTWruhfWQRkTtvRggtKFTPuJX/oZ5wbIZEfyww9EBeLr2mtkxzA1S8TlWPx6adY5WyjOlNYNyHSg==}
 
   which-boxed-primitive@1.1.1:
     resolution: {integrity: sha512-TbX3mj8n0odCBFVlY8AxkqcHASw3L60jIuF8jFP78az3C2YhmGvqbHBpAjTRH2/xqYunrJ9g1jSyjCjpoWzIAA==}
@@ -5848,8 +5842,6 @@ snapshots:
       '@types/node': 20.19.43
     transitivePeerDependencies:
       - msw
-
-  wavesurfer.js@7.8.6: {}
 
   which-boxed-primitive@1.1.1:
     dependencies:
