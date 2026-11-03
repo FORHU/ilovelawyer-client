@@ -110,17 +110,21 @@ export function TourLayer() {
   // A case page's tours start when the control they open on is on screen, not when the route
   // changes: the case loads first, and the Lawyer tab only exists once a request has been made.
   const onCase = CASE_PATH.test(pathname);
-  const idle = claimed && !tour && !guideOpen;
+  // Not before the cases list has answered: an account that already has cases is marked as having
+  // seen everything (above), and a tour must not start ahead of that.
+  const idle = claimed && cases.data !== undefined && !tour && !guideOpen;
+  const toWatch = !seen.T3 || !seen.T4;
   useEffect(() => {
-    if (!onCase || !idle) return;
+    if (!onCase || !idle || !toWatch) return;
     const id = setInterval(() => {
       if (document.querySelector('[aria-modal="true"]')) return;
+      const { seen: now, start } = useTour.getState();
       const tab = selectedCaseTab();
-      if (tab === "tab-chat" && !seen.T3 && firstVisible("composer")) useTour.getState().start("T3");
-      else if (tab === "tab-lawyer" && !seen.T4 && firstVisible("request-status")) useTour.getState().start("T4");
+      if (tab === "tab-chat" && !now.T3 && firstVisible("composer")) start("T3");
+      else if (tab === "tab-lawyer" && !now.T4 && firstVisible("request-status")) start("T4");
     }, WATCH_MS);
     return () => clearInterval(id);
-  }, [onCase, idle, seen.T3, seen.T4]);
+  }, [onCase, idle, toWatch]);
 
   const tourThisPage = () => {
     const store = useTour.getState();

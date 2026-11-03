@@ -26,10 +26,16 @@ export const TRACK: Record<SeenKey, string> = {
 
 export const SEEN_KEYS = Object.keys(TRACK) as SeenKey[];
 
-/** Which tours the API says this user has been through. */
+/** Which tours the API says this user has been through. A track that fails to answer (one the API
+ * doesn't know yet, a timeout) is left out; the ones that did answer still count. Rejects only if
+ * none did. */
 export async function fetchSeen(): Promise<SeenKey[]> {
-  const states = await Promise.all(SEEN_KEYS.map((key) => apiFetch<TourState>(`/api/users/me/tour/${TRACK[key]}`)));
-  return SEEN_KEYS.filter((_, i) => states[i].status === "COMPLETED" || states[i].status === "DISMISSED");
+  const states = await Promise.allSettled(SEEN_KEYS.map((key) => apiFetch<TourState>(`/api/users/me/tour/${TRACK[key]}`)));
+  if (states.every((s) => s.status === "rejected")) throw states[0].reason;
+  return SEEN_KEYS.filter((_, i) => {
+    const s = states[i];
+    return s.status === "fulfilled" && (s.value.status === "COMPLETED" || s.value.status === "DISMISSED");
+  });
 }
 
 /** Saves one tour's outcome. */
