@@ -35,7 +35,7 @@ export function CaseDetails({ c, defaultOpen }: { c: Case; defaultOpen: boolean 
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
           data-no-tap
-          className="flex min-h-9 min-w-0 flex-1 items-center gap-2 px-1.5 text-left font-medium"
+          className="flex min-h-9 min-w-0 flex-1 items-center gap-2 px-1.5 text-left font-medium max-md:min-h-11"
         >
           <ChevronRight size={16} aria-hidden className={`shrink-0 text-ink-2 transition-transform ${open ? "rotate-90" : ""}`} />
           Case details
@@ -44,7 +44,7 @@ export function CaseDetails({ c, defaultOpen }: { c: Case; defaultOpen: boolean 
           type="button"
           onClick={() => setEditing(true)}
           data-no-tap
-          className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-line bg-white px-3 text-xs font-semibold text-gold hover:text-gold-hover"
+          className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-line bg-white px-3 text-xs font-semibold text-gold hover:text-gold-hover max-md:h-11 max-md:px-4"
         >
           <Pencil size={12} aria-hidden />
           Edit
