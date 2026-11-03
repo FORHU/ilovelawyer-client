@@ -78,6 +78,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 export function IntakeChat({
   creating,
   error,
+  onFirstMessage,
   onCreate,
   onEditDetails,
   hasDraft,
@@ -86,6 +87,8 @@ export function IntakeChat({
   hasDraft: boolean;
   creating: boolean;
   error: string;
+  /** The client's very first message — goes straight to the real case, no scripted Q&A first. */
+  onFirstMessage: (text: string, files: File[]) => void;
   onCreate: (draft: IntakeDraft, files: File[]) => void;
   onEditDetails: (draft: IntakeDraft, files: File[]) => void;
   onUseForm: () => void;
@@ -108,6 +111,12 @@ export function IntakeChat({
 
   const send = () => {
     if (!text.trim() || typing) return;
+    // The first message is the whole point: go straight to the real case, not a scripted
+    // back-and-forth that's just the form wearing chat bubbles.
+    if (empty) {
+      onFirstMessage(text, files);
+      return;
+    }
     chat.submitText(text);
     setText("");
   };
@@ -255,7 +264,7 @@ export function IntakeChat({
                 <div className="text-[12px] text-muted">Not sure where to start?</div>
                 <div className="flex flex-wrap justify-center gap-2">
                   {STARTERS.map((s) => (
-                    <PromptChip key={s} onClick={() => chat.submitText(s)}>
+                    <PromptChip key={s} onClick={() => onFirstMessage(s, [])}>
                       {s}
                     </PromptChip>
                   ))}

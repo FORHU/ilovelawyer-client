@@ -12,6 +12,7 @@ import { StepBudget, StepDetails, StepDocuments, StepPeople } from "@/components
 import { useSession } from "@/lib/auth/session";
 import { sendMessage } from "@/lib/cases/api";
 import { EMPTY_BUDGET_DRAFT } from "@/lib/cases/budget";
+import { describeCasePayload } from "@/lib/cases/describe-case";
 import { useFailedUploads } from "@/lib/failed-uploads";
 import { newCaseFromDraft, useCreateCaseFromWizard } from "@/lib/cases/new-case";
 import { uploadAll, useCreateCaseMutation } from "@/lib/cases/queries";
@@ -97,12 +98,31 @@ function NewCase() {
     w.addFiles(files);
   };
 
-  // Creating straight from the chat: the regex-guessed draft is only a starting point (the chat's
-  // own slot-filler has no real understanding — see use-intake-chat.ts's doc comment) — the real
-  // case details come from chat-wonder's create_case tool, which reads what the client actually
-  // typed (happened/wants, sent as the case's first message) and corrects/fills in the case's
-  // fields for real. The draft still seeds the initial create call so the case isn't empty while
-  // that first AI reply is in flight.
+  // The client's first message IS the submission — no scripted question-by-question gate first.
+  // A bare placeholder case is created immediately (describeCasePayload), the client's own text
+  // runs as its first message, and chat-wonder's create_case tool reads that and writes the real
+  // case details for real, in the background, while the client is already on their case page.
+  const onFirstMessage = async (text: string, files: File[]) => {
+    if (chatCreating || !text.trim()) return;
+    setChatCreating(true);
+    setChatError("");
+    let created;
+    try {
+      created = await createCaseDirect.mutateAsync(describeCasePayload(text));
+    } catch (err) {
+      setChatCreating(false);
+      setChatError(err instanceof Error && err.message ? err.message : "We couldn't create the case. Try again.");
+      return;
+    }
+    const notUploaded = await uploadAll(created.id, files);
+    useFailedUploads.getState().set(created.id, notUploaded);
+    void sendMessage(created.id, text);
+    setChatCreating(false);
+    router.push(`/cases/${created.id}`);
+  };
+
+  // Still used by the scripted review screen reached via "Edit details" — an explicit, opt-in
+  // path for someone who wants to check/adjust fields before anything is created, not the default.
   const onChatCreate = async (draft: IntakeDraft, files: File[]) => {
     if (chatCreating) return;
     setChatCreating(true);
@@ -141,6 +161,7 @@ function NewCase() {
         <IntakeChat
           creating={chatCreating}
           error={chatError}
+          onFirstMessage={onFirstMessage}
           onCreate={onChatCreate}
           onEditDetails={(draft, files) => {
             loadIntoWizard(draft, files);
