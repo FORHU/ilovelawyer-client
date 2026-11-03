@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, ArrowLeft, Trash2 } from "lucide-react";
+import { Archive, ArrowLeft, CircleHelp, Trash2 } from "lucide-react";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { ProgressBar, type ProgressTone } from "@/components/ui/progress-bar";
 import { GetLawyerAction } from "@/components/case/get-lawyer-action";
 import { RemoveCaseModal, type RemoveMode } from "@/components/case/remove-case-modal";
 import { areasLabel, type Case } from "@/lib/types";
 import { usePayment } from "@/lib/payment-store";
+import { useTour } from "@/lib/tour/store";
 import { creditsStatus } from "@/lib/cases/credit-usage";
 import { useCaseCredits } from "./use-case-credits";
 
@@ -77,6 +78,7 @@ export function CaseHeaderDesktop({ c }: { c: Case }) {
           label="More actions"
           tourId="case-menu"
           items={[
+            { label: "Guide", icon: <CircleHelp size={14} />, onSelect: () => useTour.getState().setGuideOpen(true) },
             { label: "Archive case", icon: <Archive size={14} />, onSelect: () => setRemoving("archive") },
             { label: "Delete case", icon: <Trash2 size={14} />, onSelect: () => setRemoving("delete"), danger: true },
           ]}

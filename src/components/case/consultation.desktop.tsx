@@ -3,7 +3,6 @@
 import { ArrowUpRight, FileText, Paperclip, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
-import { PromptChip } from "@/components/ui/chip";
 import { FilePicker } from "@/components/ui/file-picker";
 import { AiMark } from "@/components/ui/misc";
 import { MicButton, RecorderRow } from "@/components/voice/recorder-row";
@@ -30,13 +29,6 @@ export function ConsultationDesktop({ c }: { c: Case }) {
             I&apos;ll ask a few questions, organise what you tell me, and help you get it in front of a lawyer. I
             can&apos;t give legal advice myself.
           </p>
-          <div className="flex max-w-[700px] flex-wrap justify-center gap-2">
-            {PROMPTS.map((p) => (
-              <PromptChip key={p} disabled={out} onClick={() => send(p)}>
-                {p}
-              </PromptChip>
-            ))}
-          </div>
         </div>
       ) : (
         <div ref={scroller} className="flex-1 overflow-y-auto px-4 pb-3 pt-7 md:px-12">
@@ -117,6 +109,23 @@ export function ConsultationDesktop({ c }: { c: Case }) {
           </div>
         )}
         <div className="mx-auto flex max-w-[768px] flex-col gap-2">
+          {/* Starters sit right above the composer, small. */}
+          {messages.length === 0 && !thinking && (
+            <div role="group" aria-label="Ways to start" className="flex flex-wrap justify-center gap-1.5">
+              {PROMPTS.map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  disabled={out}
+                  onClick={() => send(p)}
+                  data-no-tap
+                  className="min-h-8 rounded-full border border-line-chip bg-subtle px-3 text-[12.5px] font-medium text-ink transition-colors hover:border-gold disabled:opacity-40"
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          )}
           {loadError && <ErrorBox message={loadError.message} />}
           {notice && <div className="text-center text-[12.5px] text-ink-2">{notice}</div>}
           {out && (

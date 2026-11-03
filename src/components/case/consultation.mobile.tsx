@@ -21,25 +21,11 @@ export function ConsultationMobile({ c }: { c: Case }) {
   return (
     <ChatScreen>
       {messages.length === 0 && !thinking ? (
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-6">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-6 text-center">
           <h2 className="text-balance font-display text-[26px] font-normal leading-[1.15] tracking-[-0.02em]">Tell me about your situation</h2>
-          <p className="mt-2.5 text-[15px] leading-[1.5] text-ink-2">
+          <p className="mt-2.5 max-w-[320px] text-[15px] leading-[1.5] text-ink-2">
             I&apos;ll ask a few questions, organise what you tell me, and help you get it in front of a lawyer.
           </p>
-          <ul className="mt-6 flex flex-col gap-2">
-            {PROMPTS.map((p) => (
-              <li key={p}>
-                <button
-                  type="button"
-                  disabled={out}
-                  onClick={() => send(p)}
-                  className="min-h-12 w-full rounded-card border border-line-input bg-white px-4 text-left text-[15px] font-medium text-ink active:bg-chip disabled:opacity-40"
-                >
-                  {p}
-                </button>
-              </li>
-            ))}
-          </ul>
         </div>
       ) : (
         <div ref={scroller} role="log" aria-label="Interview" aria-live="polite" className="min-h-0 flex-1 overflow-y-auto">
@@ -95,6 +81,23 @@ export function ConsultationMobile({ c }: { c: Case }) {
       )}
 
       <ChatBar>
+        {/* Starters sit right above the composer, small, in a row that scrolls sideways. */}
+        {messages.length === 0 && !thinking && (
+          <div role="group" aria-label="Ways to start" className="no-scrollbar -mx-3 mb-2 flex gap-1.5 overflow-x-auto px-3">
+            {PROMPTS.map((p) => (
+              <button
+                key={p}
+                type="button"
+                disabled={out}
+                onClick={() => send(p)}
+                data-no-tap
+                className="min-h-9 shrink-0 whitespace-nowrap rounded-full border border-line-chip bg-subtle px-3.5 text-[13px] font-medium text-ink active:bg-chip disabled:opacity-40"
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+        )}
         {loadError && <ErrorBox message={loadError.message} />}
         {notice && <div className="mb-2 px-1 text-[13px] leading-[1.4] text-ink-2">{notice}</div>}
         {out && (
