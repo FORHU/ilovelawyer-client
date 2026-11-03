@@ -9,19 +9,19 @@ import { MicButton, RecorderRow } from "@/components/voice/recorder-row";
 import { LawyerSuggestion } from "@/components/case/lawyer-suggestion";
 import { usePayment } from "@/lib/payment-store";
 import type { Case } from "@/lib/types";
-import { PROMPTS, useConsultation } from "./use-consultation";
+import { PROMPTS, type Consultation } from "./use-consultation";
 
-export function ConsultationDesktop({ c }: { c: Case }) {
+export function ConsultationDesktop({ c, consultation }: { c: Case; consultation: Consultation }) {
   const {
     credits, openRequest, loadError, upload, connected, input, setInput, notice, dragging, scroller, textareaRef, voice,
     messages, documentById, thinking, out, lastFailed, latestAnswer, missing, attachmentPending, failedAttachedIds,
     sendableAttachedIds, attachedIds, removeAttached, send, attach, onDrop, onDragEnter, onDragLeave, onPaste,
-  } = useConsultation(c);
+  } = consultation;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {messages.length === 0 && !thinking ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-5 overflow-y-auto px-4 py-6 md:px-12">
+        <div className="flex flex-1 flex-col items-center justify-center gap-5 overflow-y-auto px-12 py-6">
           <h2 className="text-balance text-center font-display text-[28px] font-normal tracking-[-0.02em]">
             Tell me about your situation
           </h2>
@@ -31,7 +31,7 @@ export function ConsultationDesktop({ c }: { c: Case }) {
           </p>
         </div>
       ) : (
-        <div ref={scroller} className="flex-1 overflow-y-auto px-4 pb-3 pt-7 md:px-12">
+        <div ref={scroller} className="flex-1 overflow-y-auto px-12 pb-3 pt-7">
           <div className="mx-auto flex max-w-[768px] flex-col gap-[22px]">
             {missing > 0 && !thinking && (
               <div className="self-center rounded-full bg-chip px-3 py-1 text-[12px] text-ink-2">
@@ -97,7 +97,7 @@ export function ConsultationDesktop({ c }: { c: Case }) {
 
       <div
         data-tour="sticky-bar"
-        className="relative shrink-0 px-4 pb-[30px] pt-2 md:px-12 md:pb-[18px]"
+        className="relative shrink-0 px-12 pb-[18px] pt-2"
         onDragEnter={onDragEnter}
         onDragOver={(e) => e.preventDefault()}
         onDragLeave={onDragLeave}

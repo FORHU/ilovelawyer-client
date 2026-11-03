@@ -19,22 +19,14 @@ import { useDevice } from "@/components/device/device-provider";
 import { BottomTabBar, MobileTopBar, isImmersive } from "./mobile-nav";
 import { Sidebar } from "./sidebar";
 
-/** The phone's frame. Reads the path (to hide the bars on a chat), so it renders only once the
- * shell is ready: reading the path in AppShell itself would block prerendering. */
-function MobileFrame({ name, banner, onDismiss, overlays, children }: { name: string; banner: string; onDismiss: () => void; overlays: ReactNode; children: ReactNode }) {
-  const immersive = isImmersive(usePathname());
-  return (
-    <div className="flex h-dvh min-h-0 flex-col">
-      <LandingWatcher />
-      {!immersive && <MobileTopBar name={name} />}
-      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
-        {banner && <SuccessBanner message={banner} onDismiss={onDismiss} />}
-        {children}
-      </div>
-      {!immersive && <BottomTabBar />}
-      {overlays}
-    </div>
-  );
+/** The phone's top and bottom bars. They read the path (to step aside on a chat), so they render
+ * only once the shell is ready: reading the path in AppShell itself would block prerendering. */
+function MobileTop({ name }: { name: string }) {
+  return isImmersive(usePathname()) ? null : <MobileTopBar name={name} />;
+}
+
+function MobileBottom() {
+  return isImmersive(usePathname()) ? null : <BottomTabBar />;
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -78,22 +70,20 @@ export function AppShell({ children }: { children: ReactNode }) {
     </>
   );
 
-  if (device === "mobile") {
-    return (
-      <MobileFrame name={user?.name || ""} banner={banner} onDismiss={() => setBanner("")} overlays={overlays}>
-        {children}
-      </MobileFrame>
-    );
-  }
+  const mobile = device === "mobile";
 
+  // One tree for both: only the chrome around the page changes with the device, and the page's own
+  // wrapper keeps its place, so turning a phone or resizing across 768px doesn't remount the route
+  // (and lose what was typed, the open modals or the scroll position).
   return (
-    <div className="flex h-dvh min-h-0">
+    <div className={mobile ? "flex h-dvh min-h-0 flex-col" : "flex h-dvh min-h-0"}>
       <LandingWatcher />
-      <Sidebar />
-      <div className="relative flex min-w-0 flex-1 flex-col">
+      {mobile ? <MobileTop name={user?.name || ""} /> : <Sidebar />}
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
         {banner && <SuccessBanner message={banner} onDismiss={() => setBanner("")} />}
         {children}
       </div>
+      {mobile ? <MobileBottom /> : null}
       {overlays}
     </div>
   );

@@ -11,12 +11,12 @@ import { LawyerSuggestion } from "@/components/case/lawyer-suggestion";
 import { cn } from "@/lib/cn";
 import { usePayment } from "@/lib/payment-store";
 import type { Case } from "@/lib/types";
-import { PROMPTS, useConsultation } from "./use-consultation";
+import { PROMPTS, type Consultation } from "./use-consultation";
 
-export function ConsultationMobile({ c }: { c: Case }) {
+export function ConsultationMobile({ c, consultation }: { c: Case; consultation: Consultation }) {
   const {
     voice, out, thinking, messages, documentById, scroller, missing, openRequest, lastFailed, latestAnswer, connected, loadError, notice, credits, attachedIds, failedAttachedIds, removeAttached, input, setInput, onPaste, textareaRef, attach, upload, attachmentPending, sendableAttachedIds, send,
-  } = useConsultation(c);
+  } = consultation;
 
   return (
     <ChatScreen>

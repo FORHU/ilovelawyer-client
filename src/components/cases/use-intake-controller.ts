@@ -17,6 +17,11 @@ export type IntakeChatProps = {
   onUseForm: () => void;
 };
 
+/** The conversation, held above the per-device views so a device flip (a phone turned sideways)
+ * keeps it. Each view gets it as `controller`. */
+export type IntakeController = ReturnType<typeof useIntakeController>;
+export type IntakeViewProps = IntakeChatProps & { controller: IntakeController };
+
 export const REGIONS: { value: CaseRegion; label: string }[] = [
   ...UK_JURISDICTIONS.map((j) => ({ value: j, label: j })),
   { value: "OUTSIDE_UK", label: "Outside the UK" },

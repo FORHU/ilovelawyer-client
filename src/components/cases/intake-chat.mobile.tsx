@@ -11,7 +11,7 @@ import { MicButton, RecorderRow } from "@/components/voice/recorder-row";
 import { cn } from "@/lib/cn";
 import type { IntakeMessage } from "@/lib/cases/use-intake-chat";
 import { sideLabel } from "@/lib/types";
-import { REGIONS, STARTERS, useIntakeController, type IntakeChatProps } from "./use-intake-controller";
+import { REGIONS, STARTERS, type IntakeViewProps } from "./use-intake-controller";
 
 function AiMessage({ children }: { children: React.ReactNode }) {
   return (
@@ -49,8 +49,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, hasDraft, onUseForm }: IntakeChatProps) {
-  const c = useIntakeController();
+export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, hasDraft, onUseForm, controller: c }: IntakeViewProps) {
   const { chat, areas, step, typing, files, draft, text, setText, voice, rejected, endRef, box, empty } = c;
 
   const showChoices = !typing && c.choiceStep;
@@ -97,7 +96,7 @@ export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, has
               ref={box}
               rows={1}
               value={text}
-              disabled={creating}
+              disabled={c.choiceStep || creating}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={c.onKey}
               placeholder={c.placeholder}
@@ -312,6 +311,16 @@ export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, has
             {composer}
           </>
         )}
+
+        {/* The form stays an option for the whole conversation, not only before the first message. */}
+        <button
+          type="button"
+          onClick={onUseForm}
+          data-no-tap
+          className="mx-auto mt-1 flex min-h-11 items-center justify-center px-3 text-[13px] font-medium text-ink-2 underline underline-offset-4"
+        >
+          {formLink}
+        </button>
       </ChatBar>
     </ChatScreen>
   );

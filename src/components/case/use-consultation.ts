@@ -162,3 +162,7 @@ export function useConsultation(c: Case) {
     removeAttached, send, attach, onDrop, onDragEnter, onDragLeave, onPaste,
   };
 }
+
+/** The Interview chat, held above the per-device views so a device flip (a phone turned sideways)
+ * keeps what was typed. Each view gets it as `consultation`. */
+export type Consultation = ReturnType<typeof useConsultation>;

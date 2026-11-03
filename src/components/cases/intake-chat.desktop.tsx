@@ -10,7 +10,7 @@ import { MicButton, RecorderRow } from "@/components/voice/recorder-row";
 import { cn } from "@/lib/cn";
 import type { IntakeMessage } from "@/lib/cases/use-intake-chat";
 import { sideLabel } from "@/lib/types";
-import { REGIONS, STARTERS, useIntakeController, type IntakeChatProps } from "./use-intake-controller";
+import { REGIONS, STARTERS, type IntakeViewProps } from "./use-intake-controller";
 
 function AiBubble({ children }: { children: React.ReactNode }) {
   return (
@@ -55,11 +55,11 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, hasDraft, onUseForm }: IntakeChatProps) {
+export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, hasDraft, onUseForm, controller }: IntakeViewProps) {
   const {
     areasQuery, areas, chat, step, typing, files, draft, text, setText, voice, rejected, endRef, box,
     send, onKey, addFiles, choiceStep, placeholder, areaNames, titleMissing, canAttach, empty, messages,
-  } = useIntakeController();
+  } = controller;
 
   const composer = (
     <>
@@ -154,9 +154,9 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
     <div className="flex min-h-0 flex-1 flex-col">
       {empty ? (
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-          <div className="mx-auto flex w-full max-w-[768px] flex-1 flex-col justify-center gap-7 px-4 py-8 md:px-6 md:pb-24">
+          <div className="mx-auto flex w-full max-w-[768px] flex-1 flex-col justify-center gap-7 px-6 pb-24 pt-8">
             <div className="flex flex-col items-center gap-3 text-center">
-              <h1 className="font-display text-[34px] font-normal leading-tight tracking-[-0.02em] md:text-[44px]">
+              <h1 className="font-display text-[44px] font-normal leading-tight tracking-[-0.02em]">
                 What&apos;s going on?
               </h1>
               <p className="max-w-[540px] text-[15px] leading-[1.55] text-ink-2">
@@ -204,7 +204,7 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
             aria-live="polite"
             className="min-h-0 flex-1 overflow-y-auto"
           >
-            <div className="mx-auto flex w-full max-w-[768px] flex-col gap-4 px-4 py-6 md:px-6">
+            <div className="mx-auto flex w-full max-w-[768px] flex-col gap-4 px-6 py-6">
               {messages.map((m) => (
                 <Message key={m.id} m={m} />
               ))}
@@ -284,7 +284,7 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
             {!typing && step === "check" && (
               <section
                 aria-label="Check your case"
-                className="flex flex-col gap-4 rounded-modal border border-warn-line bg-warn-bg/40 p-5 md:ml-[42px]"
+                className="flex flex-col gap-4 rounded-modal border border-warn-line bg-warn-bg/40 ml-[42px] p-5"
               >
                 <div className="flex flex-col gap-1">
                   <div className="text-[10px] font-semibold uppercase tracking-[1.2px] text-gold">Check your case</div>
@@ -351,7 +351,7 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
             </div>
           </div>
 
-          <div data-tour="sticky-bar" className="shrink-0 bg-white px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-2 md:px-6">
+          <div data-tour="sticky-bar" className="shrink-0 bg-white px-6 pb-[max(16px,env(safe-area-inset-bottom))] pt-2">
             <div className="mx-auto w-full max-w-[768px]">
               {composer}
               <div className="mt-2 flex flex-col items-center justify-between gap-1 text-[11.5px] text-muted sm:flex-row">
