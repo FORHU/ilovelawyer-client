@@ -26,7 +26,7 @@ export function SignOutButton({ compact = false }: { compact?: boolean }) {
         data-no-tap
         className={cn(
           "flex shrink-0 items-center justify-center gap-1.5 rounded-[10px] text-ink-2 hover:bg-chip disabled:opacity-50",
-          compact ? "size-[34px]" : "h-[30px] px-2 text-[12px]",
+          compact ? "size-11" : "h-[30px] px-2 text-[12px]",
         )}
       >
         <LogOut size={compact ? 16 : 14} aria-hidden />

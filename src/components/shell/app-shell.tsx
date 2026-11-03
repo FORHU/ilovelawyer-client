@@ -1,17 +1,12 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Folder, Scale, SlidersHorizontal } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import { PaymentModal } from "@/components/payment/payment-modal";
 import { LawyerRequestModal } from "@/components/case/lawyer-request-modal";
 import { LandingWatcher } from "@/components/shell/landing-watcher";
-import { SignOutButton } from "@/components/shell/sign-out-button";
-import { GuideButton } from "@/components/tour/guide-button";
 import { TourLayer } from "@/components/tour/tour-layer";
 import { SuccessBanner } from "@/components/ui/banner";
-import { Avatar, Logo, initialsOf } from "@/components/ui/misc";
 import { leaveToLogin } from "@/lib/auth/api";
 import { useRestoreSessionQuery } from "@/lib/auth/mutations";
 import { useSession } from "@/lib/auth/session";
@@ -20,10 +15,23 @@ import { useLawyerRequestSocket } from "@/lib/lawyer-requests/socket";
 import { useAppSocket } from "@/lib/socket";
 import { useApp } from "@/lib/store";
 import { useHydrated } from "@/lib/use-hydrated";
+import { useDevice } from "@/components/device/device-provider";
+import { BottomTabBar, MobileTopBar, isImmersive } from "./mobile-nav";
 import { Sidebar } from "./sidebar";
+
+/** The phone's top and bottom bars. They read the path (to step aside on a chat), so they render
+ * only once the shell is ready: reading the path in AppShell itself would block prerendering. */
+function MobileTop({ name }: { name: string }) {
+  return isImmersive(usePathname()) ? null : <MobileTopBar name={name} />;
+}
+
+function MobileBottom() {
+  return isImmersive(usePathname()) ? null : <BottomTabBar />;
+}
 
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const device = useDevice();
   const ready = useHydrated();
   const status = useSession((s) => s.status);
   const user = useSession((s) => s.user);
@@ -54,35 +62,29 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (!ready || status !== "signedIn") return <div className="h-dvh" />;
 
-  return (
-    <div className="flex h-dvh min-h-0">
-      <LandingWatcher />
-      <Sidebar />
-      <div className="relative flex min-w-0 flex-1 flex-col">
-        {/* Phone top bar */}
-        <div className="flex min-h-[52px] shrink-0 items-center justify-between border-b border-line px-4 py-2 md:hidden">
-          <Logo height={20} />
-          <div className="flex items-center gap-1">
-            {[
-              { href: "/cases", label: "Cases", Icon: Folder },
-              { href: "/lawyers", label: "Find a lawyer", Icon: Scale },
-              { href: "/settings", label: "Settings", Icon: SlidersHorizontal },
-            ].map(({ href, label, Icon }) => (
-              <Link key={href} href={href} aria-label={label} title={label} className="flex size-[34px] items-center justify-center rounded-[10px] text-ink-2 hover:bg-chip hover:text-ink">
-                <Icon size={17} aria-hidden />
-              </Link>
-            ))}
-            <GuideButton variant="bar" />
-            <SignOutButton compact />
-            <Avatar initials={initialsOf(user?.name || "You")} size={36} />
-          </div>
-        </div>
-        {banner && <SuccessBanner message={banner} onDismiss={() => setBanner("")} />}
-        {children}
-      </div>
+  const overlays = (
+    <>
       <PaymentModal />
       <LawyerRequestModal />
       <TourLayer />
+    </>
+  );
+
+  const mobile = device === "mobile";
+
+  // One tree for both: only the chrome around the page changes with the device, and the page's own
+  // wrapper keeps its place, so turning a phone or resizing across 768px doesn't remount the route
+  // (and lose what was typed, the open modals or the scroll position).
+  return (
+    <div className={mobile ? "flex h-dvh min-h-0 flex-col" : "flex h-dvh min-h-0"}>
+      <LandingWatcher />
+      {mobile ? <MobileTop name={user?.name || ""} /> : <Sidebar />}
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+        {banner && <SuccessBanner message={banner} onDismiss={() => setBanner("")} />}
+        {children}
+      </div>
+      {mobile ? <MobileBottom /> : null}
+      {overlays}
     </div>
   );
 }
