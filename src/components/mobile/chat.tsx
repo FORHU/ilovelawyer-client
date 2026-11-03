@@ -22,7 +22,9 @@ export function ChatScreen({ children }: { children: ReactNode }) {
     return () => {
       delete document.documentElement.dataset.keyboard;
     };
-  }, [open, inset]);
+    // Only when the keyboard opens or closes: `inset` also changes as the visual viewport scrolls,
+    // and each change would snap the conversation back to the newest message while it is being read.
+  }, [open]);
 
   return (
     <div

@@ -70,6 +70,8 @@ function Sheet({ onClose, title, children, className }: { onClose: () => void; t
         <div
           className="touch-none select-none"
           onPointerDown={(e) => {
+            // Not on the Close button: capturing the pointer would send its click to this wrapper.
+            if ((e.target as HTMLElement).closest("button")) return;
             start.current = e.clientY;
             setPulling(true);
             e.currentTarget.setPointerCapture(e.pointerId);
@@ -86,7 +88,7 @@ function Sheet({ onClose, title, children, className }: { onClose: () => void; t
             </button>
           </div>
         </div>
-        <div className="min-h-0 overflow-y-auto overscroll-contain px-2 pb-1 pt-1">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-1 pt-1">{children}</div>
       </div>
     </div>
   );
