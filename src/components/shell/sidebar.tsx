@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronRight, Folder, PanelLeft, Plus, Scale, SlidersHorizontal, type LucideIcon } from "lucide-react";
+import { GuideButton } from "@/components/tour/guide-button";
 import { Avatar, Logo, initialsOf } from "@/components/ui/misc";
 import { useSession } from "@/lib/auth/session";
 import { useCasesQuery } from "@/lib/cases/queries";
@@ -85,6 +86,7 @@ export function Sidebar() {
                 {text}
               </Link>
             ))}
+            <GuideButton variant="nav" />
           </nav>
           <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
             {cases.length > 0 && (
@@ -138,6 +140,7 @@ export function Sidebar() {
                 <Icon size={15} />
               </Link>
             ))}
+            <GuideButton variant="rail" />
             {cases.map((c) => {
               const on = activeId === c.id;
               return (

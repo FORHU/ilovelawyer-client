@@ -621,7 +621,7 @@ export function LawyerTab({ c, request }: { c: Case; request: LawyerRequest }) {
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       <div className="mx-auto flex w-full max-w-[1120px] flex-wrap items-start gap-6 px-4 pb-14 pt-7 md:px-10">
         <aside aria-label="Request progress" className="flex min-w-0 flex-[1_1_300px] flex-col gap-4">
-          <section className="flex flex-col gap-4 rounded-card border border-line bg-white p-5">
+          <section data-tour="request-status" className="flex flex-col gap-4 rounded-card border border-line bg-white p-5">
             <div className="flex flex-col gap-0.5">
               <Eyebrow muted>Matched for you</Eyebrow>
               <h2 className="text-base font-semibold">Your lawyer request</h2>

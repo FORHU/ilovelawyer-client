@@ -2,17 +2,20 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Folder, Scale, SlidersHorizontal } from "lucide-react";
 import { PaymentModal } from "@/components/payment/payment-modal";
 import { LawyerRequestModal } from "@/components/case/lawyer-request-modal";
 import { SignOutButton } from "@/components/shell/sign-out-button";
+import { GuideButton } from "@/components/tour/guide-button";
+import { TourLayer } from "@/components/tour/tour-layer";
 import { SuccessBanner } from "@/components/ui/banner";
 import { Avatar, Logo, initialsOf } from "@/components/ui/misc";
 import { leaveToLogin } from "@/lib/auth/api";
 import { useRestoreSessionQuery } from "@/lib/auth/mutations";
 import { useSession } from "@/lib/auth/session";
 import { useChatSocket } from "@/lib/cases/chat-socket";
+import { endLanding, markLanding, resetLanding } from "@/lib/landing";
 import { useLawyerRequestSocket } from "@/lib/lawyer-requests/socket";
 import { useAppSocket } from "@/lib/socket";
 import { useApp } from "@/lib/store";
@@ -21,10 +24,20 @@ import { Sidebar } from "./sidebar";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const ready = useHydrated();
   const status = useSession((s) => s.status);
   const user = useSession((s) => s.user);
   const { banner, setBanner, claimFor } = useApp();
+
+  // The first page of the session decides whether Cases redirects an empty portfolio to the chat
+  // (see lib/landing.ts); moving to another page ends that.
+  markLanding(pathname);
+  const firstPage = useRef(pathname);
+  useEffect(() => {
+    if (pathname !== firstPage.current) endLanding();
+  }, [pathname]);
+  useEffect(() => resetLanding, []);
 
   // A reload starts with no access token in memory: resume from the refresh cookie, if any.
   useRestoreSessionQuery();
@@ -68,6 +81,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Icon size={17} aria-hidden />
               </Link>
             ))}
+            <GuideButton variant="bar" />
             <SignOutButton compact />
             <Avatar initials={initialsOf(user?.name || "You")} size={36} />
           </div>
@@ -77,6 +91,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
       <PaymentModal />
       <LawyerRequestModal />
+      <TourLayer />
     </div>
   );
 }

@@ -32,7 +32,7 @@ interface Placement {
  * off. It flips above the button near the bottom of the window, and closes on Escape, a click
  * outside, a scroll or a resize, and after a pick. Focus returns to the button.
  */
-export function ActionMenu({ label, items, className }: { label: string; items: ActionMenuItem[]; className?: string }) {
+export function ActionMenu({ label, items, className, tourId }: { label: string; items: ActionMenuItem[]; className?: string; tourId?: string }) {
   const [open, setOpen] = useState(false);
   const [placement, setPlacement] = useState<Placement | null>(null);
   const button = useRef<HTMLButtonElement>(null);
@@ -99,6 +99,7 @@ export function ActionMenu({ label, items, className }: { label: string; items: 
         aria-label={label}
         aria-haspopup="menu"
         aria-expanded={open}
+        data-tour={tourId}
         onClick={() => (open ? close(false) : setOpen(true))}
         data-no-tap
         className="flex size-11 shrink-0 items-center justify-center rounded-full border border-line bg-white text-ink-2 transition-colors hover:border-line-hover focus-visible:outline-2 focus-visible:outline-gold md:size-9"

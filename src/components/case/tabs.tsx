@@ -39,6 +39,7 @@ export function Tabs({
             role="tab"
             aria-selected={on}
             onClick={() => onChange(t.id)}
+            data-tour={`tab-${t.id}`}
             data-no-tap
             className={cn(
               "-mb-px flex items-center gap-2 whitespace-nowrap border-b-2 px-2.5 py-[15px] text-sm font-medium md:px-[14px] md:py-3",
