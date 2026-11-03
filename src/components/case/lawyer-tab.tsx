@@ -483,6 +483,8 @@ function PayStage({ c, request, quotation }: { c: Case; request: LawyerRequest; 
   const [intent, setIntent] = useState<PaymentStart["intent"]>(null);
   const [error, setError] = useState("");
   const [checking, setChecking] = useState(false);
+  // Stripe has the payment: its client secret is used up, so the form mustn't mount on it again.
+  const [paid, setPaid] = useState(false);
   const [simulateDecline, setSimulateDecline] = useState(false);
   const first = firstName(request.lawyer?.name) ?? "your lawyer";
   const total = quotation.acceptedAmount ?? quotation.total;
@@ -502,13 +504,15 @@ function PayStage({ c, request, quotation }: { c: Case; request: LawyerRequest; 
 
   // Stripe has the payment: ask the API, which settles it, until it says how it ended.
   async function afterStripe() {
+    setIntent(null);
+    setPaid(true);
     setChecking(true);
     try {
       for (let i = 0; i < PAYMENT_CHECKS; i++) {
         const { payment } = await getQuotationPayment(request.id);
         if (payment?.status === "SUCCEEDED") break;
         if (payment?.status === "FAILED") {
-          setIntent(null);
+          setPaid(false);
           setError(payment.failureReason ?? "Your payment didn't go through. Try again.");
           break;
         }
@@ -533,6 +537,8 @@ function PayStage({ c, request, quotation }: { c: Case; request: LawyerRequest; 
         {error && <ErrorBox message={error} />}
         {checking ? (
           <div className="py-2 text-center text-[13px] text-ink-2">Confirming your payment…</div>
+        ) : paid ? (
+          <div className="py-2 text-center text-[13px] text-ink-2">Stripe has your payment. This updates as soon as it&apos;s confirmed.</div>
         ) : intent ? (
           <StripePaymentElement
             clientSecret={intent.clientSecret}

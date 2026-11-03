@@ -56,9 +56,20 @@ export function StripePaymentElement({
         const payment = elements.create("payment");
         payment.mount(container.current);
         payment.on("ready", () => !cancelled && setState("ready"));
+        // E.g. a client secret whose intent already succeeded or was cancelled. Unhandled, Stripe only logs it.
+        payment.on("loaderror", (event) => {
+          console.error("Stripe's payment form couldn't load", event.error);
+          if (!cancelled) setState("failed");
+        });
         stripeRef.current = stripe;
         elementsRef.current = elements;
-        unmount = () => payment.destroy();
+        unmount = () => {
+          try {
+            payment.destroy();
+          } catch {
+            // Already torn down (after a load error, say): nothing left to clean up.
+          }
+        };
       } catch (err) {
         console.error("Stripe's payment form couldn't load", err);
         if (!cancelled) setState("failed");
