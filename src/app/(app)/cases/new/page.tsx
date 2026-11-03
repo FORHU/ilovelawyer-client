@@ -6,6 +6,7 @@ import { ArrowLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { IntakeChat } from "@/components/cases/intake-chat";
+import { TourHint } from "@/components/tour/tour-hint";
 import type { IntakeDraft } from "@/lib/cases/use-intake-chat";
 import { StepBudget, StepDetails, StepDocuments, StepPeople } from "@/components/wizard/steps";
 import { useSession } from "@/lib/auth/session";
@@ -92,7 +93,7 @@ function NewCase() {
   if (mode === "chat") {
     return (
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="mx-auto w-full max-w-[760px] px-4 pt-5 md:px-6">
+        <div className="mx-auto w-full max-w-[768px] px-4 pt-5 md:px-6">
           <button
             type="button"
             onClick={() => router.push("/cases")}
@@ -102,6 +103,7 @@ function NewCase() {
             <ArrowLeft size={14} aria-hidden="true" />
             Cases
           </button>
+          <TourHint className="mt-3" />
         </div>
         <IntakeChat
           creating={creating}
@@ -200,6 +202,7 @@ function NewCase() {
         </div>
 
         <div className="flex min-w-0 flex-col gap-4">
+          {step === 1 && <TourHint />}
           {step === 1 && <StepDetails />}
           {step === 2 && <StepPeople />}
           {step === 3 && <StepBudget />}

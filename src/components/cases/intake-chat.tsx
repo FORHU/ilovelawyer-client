@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { ArrowUp, FileText, Paperclip, Sparkles, X } from "lucide-react";
+import { ArrowRight, ArrowUp, FileText, Paperclip, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Chip, PromptChip } from "@/components/ui/chip";
 import { ErrorBox } from "@/components/ui/banner";
 import { FilePicker } from "@/components/ui/file-picker";
 import { inputClass, WizardLabel } from "@/components/ui/input";
+import { MicButton, RecorderRow } from "@/components/voice/recorder-row";
 import { cn } from "@/lib/cn";
 import { useCaseAreasQuery } from "@/lib/cases/case-areas";
 import { checkFiles, useLimitsQuery } from "@/lib/cases/limits";
 import { type IntakeDraft, type IntakeMessage, useIntakeChat } from "@/lib/cases/use-intake-chat";
+import { useDictation } from "@/lib/voice/use-dictation";
 import { UK_JURISDICTIONS, sideLabel, type CaseRegion } from "@/lib/types";
 
 const REGIONS: { value: CaseRegion; label: string }[] = [
@@ -95,6 +97,8 @@ export function IntakeChat({
   const { data: limits } = useLimitsQuery();
 
   const [text, setText] = useState("");
+  // Spoken words land in the box, after anything already typed, to be edited before sending.
+  const voice = useDictation({ onText: (spoken) => setText((t) => (t.trim() ? `${t.trim()} ${spoken}` : spoken)) });
   const [rejected, setRejected] = useState<string[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -129,181 +133,19 @@ export function IntakeChat({
   const titleMissing = !draft.title.trim();
   const canAttach = step === "more" || step === "check";
 
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="mx-auto flex min-h-0 w-full max-w-[760px] flex-1 flex-col px-4 md:px-6">
-        <div
-          role="log"
-          aria-label="Conversation with ilovelawyer AI"
-          aria-live="polite"
-          className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto py-6"
-        >
-          {messages.length === 0 ? (
-            <div className="my-auto flex flex-col items-center gap-5 py-6 text-center">
-              <h1 className="font-display text-[34px] font-normal leading-tight tracking-[-0.02em] md:text-[40px]">
-                What&apos;s going on?
-              </h1>
-              <p className="max-w-[460px] text-[14px] leading-[1.6] text-ink-2">
-                Tell us in your own words. We&apos;ll ask a few questions and set up your case. AI guidance,
-                not legal advice.
-              </p>
-              <div className="flex flex-col items-center gap-2.5">
-                <div className="text-[12px] text-muted">Not sure where to start?</div>
-                <div className="flex flex-wrap justify-center gap-2">
-                  {STARTERS.map((s) => (
-                    <PromptChip key={s} onClick={() => chat.submitText(s)}>
-                      {s}
-                    </PromptChip>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ) : (
-            messages.map((m) => <Message key={m.id} m={m} />)
-          )}
+  const empty = messages.length === 0;
 
-          {typing && (
-            <AiBubble>
-              <span className="sr-only">ilovelawyer AI is typing</span>
-              <span aria-hidden="true" className="flex h-[22px] items-center gap-1">
-                {[0, 1, 2].map((i) => (
-                  <span
-                    key={i}
-                    className="size-1.5 rounded-full bg-muted motion-safe:animate-pulse"
-                    style={{ animationDelay: `${i * 150}ms` }}
-                  />
-                ))}
-              </span>
-            </AiBubble>
-          )}
+  // Grows with what's typed, up to a cap, like the composers people already know.
+  const box = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+  }, [text, empty]);
 
-          {!typing && step === "type" && (
-            <div className="flex flex-col gap-3 pl-[42px]" role="group" aria-label="Type of issue">
-              <div className="flex flex-wrap gap-1.5">
-                {areas.map((a) => (
-                  <Chip key={a.code} selected={draft.areas.includes(a.code)} onClick={() => chat.toggleArea(a.code)}>
-                    {a.name}
-                  </Chip>
-                ))}
-              </div>
-              {areasQuery.isError && (
-                <div className="text-xs text-error">Couldn&apos;t load the types of issue. Refresh to try again.</div>
-              )}
-              <Button
-                size="sm"
-                className="self-start"
-                disabled={draft.areas.length === 0}
-                onClick={chat.confirmAreas}
-              >
-                Continue
-              </Button>
-            </div>
-          )}
-
-          {!typing && step === "region" && (
-            <div className="flex flex-wrap gap-1.5 pl-[42px]" role="group" aria-label="Which part of the UK?">
-              {REGIONS.map((r) => (
-                <PromptChip key={r.value} onClick={() => chat.chooseRegion(r.value, r.label)}>
-                  {r.label}
-                </PromptChip>
-              ))}
-            </div>
-          )}
-
-          {!typing && step === "side" && (
-            <div className="flex flex-wrap gap-1.5 pl-[42px]" role="group" aria-label="Which side are you on?">
-              <PromptChip onClick={() => chat.chooseSide("CLAIMANT", "I'm bringing the complaint")}>
-                I&apos;m bringing the complaint
-              </PromptChip>
-              <PromptChip onClick={() => chat.chooseSide("RESPONDENT", "I'm responding to one")}>
-                I&apos;m responding to one
-              </PromptChip>
-              <PromptChip onClick={() => chat.chooseSide("", "Not sure yet")}>Not sure yet</PromptChip>
-            </div>
-          )}
-
-          {!typing && (step === "where" || step === "others" || step === "want") && (
-            <div className="pl-[42px]">
-              <PromptChip onClick={chat.skip}>{step === "others" ? "Done" : "Skip"}</PromptChip>
-            </div>
-          )}
-
-          {!typing && step === "more" && (
-            <div className="flex flex-wrap gap-1.5 pl-[42px]">
-              <PromptChip onClick={chat.confirmFiles}>{files.length ? "Continue" : "No documents"}</PromptChip>
-            </div>
-          )}
-
-          {!typing && step === "check" && (
-            <section
-              aria-label="Check your case"
-              className="flex flex-col gap-4 rounded-modal border border-warn-line bg-warn-bg/40 p-5 md:ml-[42px]"
-            >
-              <div className="flex flex-col gap-1">
-                <div className="text-[10px] font-semibold uppercase tracking-[1.2px] text-gold">Check your case</div>
-                <div className="text-[12.5px] text-ink-2">
-                  Filled in from our chat. Change anything before you create it.
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <WizardLabel htmlFor="intake-title">Case name *</WizardLabel>
-                <input
-                  id="intake-title"
-                  value={draft.title}
-                  maxLength={150}
-                  aria-invalid={titleMissing}
-                  aria-describedby={titleMissing ? "intake-title-err" : undefined}
-                  onChange={(e) => chat.patchDraft({ title: e.target.value })}
-                  className={cn(inputClass, "bg-white font-display text-[17px]", titleMissing && "border-error-field")}
-                />
-                {titleMissing && (
-                  <div id="intake-title-err" className="text-xs text-error">
-                    Give your case a name before creating it.
-                  </div>
-                )}
-              </div>
-
-              <dl className="rounded-input border border-line bg-white px-4">
-                <Row label="Type of issue">{areaNames || "Not set"}</Row>
-                <Row label="Part of the UK">
-                  {draft.region ? (draft.region === "OUTSIDE_UK" ? "Outside the UK" : draft.region) : "Not set"}
-                </Row>
-                {draft.where && <Row label="Town or city">{draft.where}</Row>}
-                <Row label="Your side">{draft.side ? sideLabel(draft.side) : "Not set"}</Row>
-                <Row label="What happened">{draft.happened || "Not set"}</Row>
-                <Row label="What you want">{draft.wants || "Not set"}</Row>
-                {draft.others.length > 0 && (
-                  <Row label="Others involved">{draft.others.map((o) => o.name).join(", ")}</Row>
-                )}
-                {files.length > 0 && <Row label="Attached files">{files.map((f) => f.name).join(", ")}</Row>}
-              </dl>
-
-              {error && <ErrorBox message={error} />}
-
-              <div className="flex flex-wrap items-center gap-2.5">
-                <Button
-                  disabled={creating || titleMissing || draft.areas.length === 0 || !draft.region}
-                  onClick={() => onCreate(draft, files)}
-                  className="px-[26px]"
-                >
-                  {creating ? "Creating…" : "Create case"}
-                </Button>
-                <Button variant="outline" disabled={creating} onClick={() => onEditDetails(draft, files)}>
-                  Edit details
-                </Button>
-              </div>
-              {(draft.areas.length === 0 || !draft.region) && (
-                <div className="text-xs text-error">
-                  A type of issue and a part of the UK are needed. Use Edit details to add them.
-                </div>
-              )}
-            </section>
-          )}
-          <div ref={endRef} />
-        </div>
-
-        <div className="shrink-0 pb-4 pt-2">
+  const composer = (
+    <>
           {rejected.length > 0 && (
             <div role="alert" className="mb-2 text-[13px] text-error">
               {rejected.join(" ")}
@@ -330,48 +172,276 @@ export function IntakeChat({
               ))}
             </ul>
           )}
-          <div className="flex items-end gap-1.5 rounded-composer border border-line-input bg-white p-1.5 focus-within:border-gold">
-            <FilePicker onPick={addFiles}>
-              {(open) => (
-                <button
-                  type="button"
-                  onClick={open}
-                  disabled={!canAttach}
-                  aria-label="Attach documents"
-                  className="flex size-11 shrink-0 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-chip hover:text-ink disabled:opacity-40"
-                >
-                  <Paperclip size={18} aria-hidden="true" />
-                </button>
-              )}
-            </FilePicker>
-            <textarea
-              rows={1}
-              value={text}
-              disabled={choiceStep || creating}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={onKey}
-              placeholder={placeholder}
-              aria-label={placeholder}
-              className="max-h-40 min-h-11 flex-1 resize-none bg-transparent px-2 py-[11px] text-[14px] leading-[1.5] text-ink outline-none placeholder:text-muted disabled:cursor-not-allowed"
-            />
-            <button
-              type="button"
-              onClick={send}
-              disabled={!text.trim() || typing || choiceStep || creating}
-              aria-label="Send"
-              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gold text-white transition-colors hover:bg-gold-hover disabled:opacity-40"
-            >
-              <ArrowUp size={18} aria-hidden="true" />
-            </button>
-          </div>
-          <div className="mt-2 flex flex-col items-center justify-between gap-1 text-[11.5px] text-muted sm:flex-row">
-            <span>AI guidance, not legal advice. Advice comes from the solicitor you choose.</span>
-            <button type="button" onClick={onUseForm} className="min-h-8 underline underline-offset-2 hover:text-ink">
-              {hasDraft ? "Resume your form draft" : "Prefer a form? Fill it in instead"}
-            </button>
+      {voice.error && (
+        <div role="alert" className="mb-2 px-2 text-[13px] text-error">
+          {voice.error}
+        </div>
+      )}
+      <div
+        data-tour="chatbox"
+        className={cn(
+          "flex items-center gap-1.5 rounded-[28px] border border-line-input bg-white p-2 shadow-[0_2px_14px_rgb(0_0_0/0.06)] transition-colors focus-within:border-ink-2",
+        )}
+      >
+        {voice.phase !== "idle" ? (
+          <RecorderRow phase={voice.phase} seconds={voice.seconds} onCancel={voice.cancel} onStop={voice.stop} />
+        ) : (
+          <>
+          <FilePicker onPick={addFiles}>
+            {(open) => (
+              <button
+                type="button"
+                onClick={open}
+                disabled={!canAttach}
+                aria-label="Attach documents"
+                data-no-tap
+                className="flex size-11 shrink-0 items-center justify-center self-end rounded-full text-ink-2 transition-colors hover:bg-chip hover:text-ink disabled:opacity-40"
+              >
+                <Paperclip size={20} aria-hidden="true" />
+              </button>
+            )}
+          </FilePicker>
+          <textarea
+            ref={box}
+            rows={1}
+            value={text}
+            disabled={choiceStep || creating}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={onKey}
+            placeholder={placeholder}
+            aria-label={placeholder}
+            // 24px of text + 10px above and below = 44px, the height of the round buttons beside it.
+            className={cn(
+              "min-h-11 flex-1 resize-none bg-transparent py-2.5 text-base leading-6 text-ink outline-none placeholder:text-muted disabled:cursor-not-allowed",
+              "px-1.5",
+            )}
+          />
+          <MicButton onClick={() => void voice.start()} disabled={choiceStep || creating || typing} />
+          <button
+            type="button"
+            onClick={send}
+            disabled={!text.trim() || typing || choiceStep || creating}
+            aria-label="Send"
+            data-no-tap
+            className="flex size-11 shrink-0 items-center justify-center self-end rounded-full bg-ink text-white transition-colors hover:bg-primary disabled:bg-chip disabled:text-muted"
+          >
+            <ArrowUp size={20} aria-hidden="true" />
+          </button>
+          </>
+        )}
+      </div>
+    </>
+  );
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      {empty ? (
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+          <div className="mx-auto flex w-full max-w-[768px] flex-1 flex-col justify-center gap-7 px-4 py-8 md:px-6 md:pb-24">
+            <div className="flex flex-col items-center gap-3 text-center">
+              <h1 className="font-display text-[34px] font-normal leading-tight tracking-[-0.02em] md:text-[44px]">
+                What&apos;s going on?
+              </h1>
+              <p className="max-w-[540px] text-[15px] leading-[1.55] text-ink-2">
+                Tell us in your own words. We&apos;ll ask a few questions and set up your case. AI guidance, not
+                legal advice.
+              </p>
+            </div>
+
+            <div>{composer}</div>
+
+            <div className="flex flex-col items-center gap-5">
+              <div data-tour="starters" className="flex flex-col items-center gap-2.5">
+                <div className="text-[12px] text-muted">Not sure where to start?</div>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {STARTERS.map((s) => (
+                    <PromptChip key={s} onClick={() => chat.submitText(s)}>
+                      {s}
+                    </PromptChip>
+                  ))}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onUseForm}
+                data-tour="opt-form"
+                data-no-tap
+                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-line-input bg-white px-5 text-[13px] font-medium text-ink hover:border-line-hover"
+              >
+                {hasDraft ? "Resume your form draft" : "Prefer a form? Fill in a form"}
+                <ArrowRight size={14} className="text-gold" aria-hidden="true" />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <>
+          <div
+            role="log"
+            aria-label="Conversation with ilovelawyer AI"
+            aria-live="polite"
+            className="min-h-0 flex-1 overflow-y-auto"
+          >
+            <div className="mx-auto flex w-full max-w-[768px] flex-col gap-4 px-4 py-6 md:px-6">
+              {messages.map((m) => (
+                <Message key={m.id} m={m} />
+              ))}
+
+            {typing && (
+              <AiBubble>
+                <span className="sr-only">ilovelawyer AI is typing</span>
+                <span aria-hidden="true" className="flex h-[22px] items-center gap-1">
+                  {[0, 1, 2].map((i) => (
+                    <span
+                      key={i}
+                      className="size-1.5 rounded-full bg-muted motion-safe:animate-pulse"
+                      style={{ animationDelay: `${i * 150}ms` }}
+                    />
+                  ))}
+                </span>
+              </AiBubble>
+            )}
+
+            {!typing && step === "type" && (
+              <div className="flex flex-col gap-3 pl-[42px]" role="group" aria-label="Type of issue">
+                <div className="flex flex-wrap gap-1.5">
+                  {areas.map((a) => (
+                    <Chip key={a.code} selected={draft.areas.includes(a.code)} onClick={() => chat.toggleArea(a.code)}>
+                      {a.name}
+                    </Chip>
+                  ))}
+                </div>
+                {areasQuery.isError && (
+                  <div className="text-xs text-error">Couldn&apos;t load the types of issue. Refresh to try again.</div>
+                )}
+                <Button
+                  size="sm"
+                  className="self-start"
+                  disabled={draft.areas.length === 0}
+                  onClick={chat.confirmAreas}
+                >
+                  Continue
+                </Button>
+              </div>
+            )}
+
+            {!typing && step === "region" && (
+              <div className="flex flex-wrap gap-1.5 pl-[42px]" role="group" aria-label="Which part of the UK?">
+                {REGIONS.map((r) => (
+                  <PromptChip key={r.value} onClick={() => chat.chooseRegion(r.value, r.label)}>
+                    {r.label}
+                  </PromptChip>
+                ))}
+              </div>
+            )}
+
+            {!typing && step === "side" && (
+              <div className="flex flex-wrap gap-1.5 pl-[42px]" role="group" aria-label="Which side are you on?">
+                <PromptChip onClick={() => chat.chooseSide("CLAIMANT", "I'm bringing the complaint")}>
+                  I&apos;m bringing the complaint
+                </PromptChip>
+                <PromptChip onClick={() => chat.chooseSide("RESPONDENT", "I'm responding to one")}>
+                  I&apos;m responding to one
+                </PromptChip>
+                <PromptChip onClick={() => chat.chooseSide("", "Not sure yet")}>Not sure yet</PromptChip>
+              </div>
+            )}
+
+            {!typing && (step === "where" || step === "others" || step === "want") && (
+              <div className="pl-[42px]">
+                <PromptChip onClick={chat.skip}>{step === "others" ? "Done" : "Skip"}</PromptChip>
+              </div>
+            )}
+
+            {!typing && step === "more" && (
+              <div className="flex flex-wrap gap-1.5 pl-[42px]">
+                <PromptChip onClick={chat.confirmFiles}>{files.length ? "Continue" : "No documents"}</PromptChip>
+              </div>
+            )}
+
+            {!typing && step === "check" && (
+              <section
+                aria-label="Check your case"
+                className="flex flex-col gap-4 rounded-modal border border-warn-line bg-warn-bg/40 p-5 md:ml-[42px]"
+              >
+                <div className="flex flex-col gap-1">
+                  <div className="text-[10px] font-semibold uppercase tracking-[1.2px] text-gold">Check your case</div>
+                  <div className="text-[12.5px] text-ink-2">
+                    Filled in from our chat. Change anything before you create it.
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <WizardLabel htmlFor="intake-title">Case name *</WizardLabel>
+                  <input
+                    id="intake-title"
+                    value={draft.title}
+                    maxLength={150}
+                    aria-invalid={titleMissing}
+                    aria-describedby={titleMissing ? "intake-title-err" : undefined}
+                    onChange={(e) => chat.patchDraft({ title: e.target.value })}
+                    className={cn(inputClass, "bg-white font-display text-[17px]", titleMissing && "border-error-field")}
+                  />
+                  {titleMissing && (
+                    <div id="intake-title-err" className="text-xs text-error">
+                      Give your case a name before creating it.
+                    </div>
+                  )}
+                </div>
+
+                <dl className="rounded-input border border-line bg-white px-4">
+                  <Row label="Type of issue">{areaNames || "Not set"}</Row>
+                  <Row label="Part of the UK">
+                    {draft.region ? (draft.region === "OUTSIDE_UK" ? "Outside the UK" : draft.region) : "Not set"}
+                  </Row>
+                  {draft.where && <Row label="Town or city">{draft.where}</Row>}
+                  <Row label="Your side">{draft.side ? sideLabel(draft.side) : "Not set"}</Row>
+                  <Row label="What happened">{draft.happened || "Not set"}</Row>
+                  <Row label="What you want">{draft.wants || "Not set"}</Row>
+                  {draft.others.length > 0 && (
+                    <Row label="Others involved">{draft.others.map((o) => o.name).join(", ")}</Row>
+                  )}
+                  {files.length > 0 && <Row label="Attached files">{files.map((f) => f.name).join(", ")}</Row>}
+                </dl>
+
+                {error && <ErrorBox message={error} />}
+
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <Button
+                    disabled={creating || titleMissing || draft.areas.length === 0 || !draft.region}
+                    onClick={() => onCreate(draft, files)}
+                    className="px-[26px]"
+                  >
+                    {creating ? "Creating…" : "Create case"}
+                  </Button>
+                  <Button variant="outline" disabled={creating} onClick={() => onEditDetails(draft, files)}>
+                    Edit details
+                  </Button>
+                </div>
+                {(draft.areas.length === 0 || !draft.region) && (
+                  <div className="text-xs text-error">
+                    A type of issue and a part of the UK are needed. Use Edit details to add them.
+                  </div>
+                )}
+              </section>
+            )}
+            <div ref={endRef} />
+            </div>
+          </div>
+
+          <div data-tour="sticky-bar" className="shrink-0 bg-white px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-2 md:px-6">
+            <div className="mx-auto w-full max-w-[768px]">
+              {composer}
+              <div className="mt-2 flex flex-col items-center justify-between gap-1 text-[11.5px] text-muted sm:flex-row">
+                <span>AI guidance, not legal advice. Advice comes from the solicitor you choose.</span>
+                <button type="button" onClick={onUseForm} className="min-h-8 underline underline-offset-2 hover:text-ink">
+                  {hasDraft ? "Resume your form draft" : "Prefer a form? Fill it in instead"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
