@@ -12,7 +12,7 @@ export function TabsDesktop({ tabs, active, onChange }: TabsProps) {
   return (
     <div
       role="tablist"
-      className="no-scrollbar flex shrink-0 gap-1 overflow-x-auto border-b border-line px-4 md:px-10"
+      className="no-scrollbar flex shrink-0 gap-1 overflow-x-auto border-b border-line px-10"
     >
       {tabs.map((t) => {
         const on = t.id === active;
@@ -26,7 +26,7 @@ export function TabsDesktop({ tabs, active, onChange }: TabsProps) {
             data-tour={`tab-${t.id}`}
             data-no-tap
             className={cn(
-              "-mb-px flex items-center gap-2 whitespace-nowrap border-b-2 px-2.5 py-[15px] text-sm font-medium md:px-[14px] md:py-3",
+              "-mb-px flex items-center gap-2 whitespace-nowrap border-b-2 px-[14px] py-3 text-sm font-medium",
               on ? "border-gold text-ink" : "border-transparent text-ink-2 hover:text-ink",
             )}
           >

@@ -1,15 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, ArrowLeft, CircleHelp, Trash2 } from "lucide-react";
+import { ArrowLeft, TriangleAlert } from "lucide-react";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { GetLawyerAction } from "@/components/case/get-lawyer-action";
-import { RemoveCaseModal, type RemoveMode } from "@/components/case/remove-case-modal";
 import { cn } from "@/lib/cn";
 import { areasLabel, type Case } from "@/lib/types";
 import { usePayment } from "@/lib/payment-store";
-import { useTour } from "@/lib/tour/store";
+import { useCaseActions } from "./use-case-actions";
 import { useCaseCredits } from "./use-case-credits";
 
 const CREDITS_TONE = {
@@ -19,12 +17,15 @@ const CREDITS_TONE = {
 } as const;
 
 /** The phone's case header: one row (back, title, credits, menu), plus a full-width "Get a lawyer"
- * row only when there is one. The credits chip opens the top-up; its colour carries the warning
- * and its label the words, so it never needs a second line. */
+ * row only when there is one. The credits chip opens the top-up. A low balance is shown by its
+ * colour and by an icon, and the chip's label says so for a screen reader, so colour is not the
+ * only sign. */
 export function CaseHeaderMobile({ c }: { c: Case }) {
   const router = useRouter();
-  const [removing, setRemoving] = useState<RemoveMode | null>(null);
-  const { status } = useCaseCredits(c);
+  const { items, modal } = useCaseActions(c);
+  const { percent, status } = useCaseCredits(c);
+  const low = status !== "normal";
+  const usage = low && percent !== null ? `, ${percent}% used` : "";
 
   return (
     <div className="keyboard-hide shrink-0 border-b border-line px-3 py-2">
@@ -50,26 +51,19 @@ export function CaseHeaderMobile({ c }: { c: Case }) {
           onClick={() => usePayment.getState().openFor(c.id)}
           data-tour="case-credits"
           data-no-tap
-          aria-label={`${c.credits} credits left. Top up`}
+          aria-label={`${c.credits} credits left${usage}${low ? ", running low" : ""}. Top up`}
           className={cn("flex min-h-11 shrink-0 items-center rounded-full border px-3 text-[13px] font-semibold tabular-nums", CREDITS_TONE[status])}
         >
+          {low && <TriangleAlert size={13} aria-hidden="true" className="mr-1 shrink-0" />}
           {c.credits}
           <span className="ml-1 font-medium">credits</span>
         </button>
-        <ActionMenu
-          label="More actions"
-          tourId="case-menu"
-          items={[
-            { label: "Guide", icon: <CircleHelp size={14} />, onSelect: () => useTour.getState().setGuideOpen(true) },
-            { label: "Archive case", icon: <Archive size={14} />, onSelect: () => setRemoving("archive") },
-            { label: "Delete case", icon: <Trash2 size={14} />, onSelect: () => setRemoving("delete"), danger: true },
-          ]}
-        />
+        <ActionMenu label="More actions" tourId="case-menu" items={items} />
       </div>
       <div className="flex empty:hidden [&:not(:empty)]:mt-2">
         <GetLawyerAction caseId={c.id} />
       </div>
-      {removing && <RemoveCaseModal c={c} mode={removing} onClose={() => setRemoving(null)} />}
+      {modal}
     </div>
   );
 }

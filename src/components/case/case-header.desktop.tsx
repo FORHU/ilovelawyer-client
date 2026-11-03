@@ -1,16 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, ArrowLeft, CircleHelp, Trash2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { ProgressBar, type ProgressTone } from "@/components/ui/progress-bar";
 import { GetLawyerAction } from "@/components/case/get-lawyer-action";
-import { RemoveCaseModal, type RemoveMode } from "@/components/case/remove-case-modal";
 import { areasLabel, type Case } from "@/lib/types";
 import { usePayment } from "@/lib/payment-store";
-import { useTour } from "@/lib/tour/store";
 import { creditsStatus } from "@/lib/cases/credit-usage";
+import { useCaseActions } from "./use-case-actions";
 import { useCaseCredits } from "./use-case-credits";
 
 const TONE_BY_STATUS: Record<ReturnType<typeof creditsStatus>, ProgressTone> = {
@@ -27,17 +25,17 @@ const TEXT_CLASS_BY_STATUS: Record<ReturnType<typeof creditsStatus>, string> = {
 
 export function CaseHeaderDesktop({ c }: { c: Case }) {
   const router = useRouter();
-  const [removing, setRemoving] = useState<RemoveMode | null>(null);
+  const { items, modal } = useCaseActions(c);
   const { percent, status } = useCaseCredits(c);
 
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2.5 border-b border-line px-4 py-3 md:px-6 md:py-[14px]">
+    <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2.5 border-b border-line px-6 py-[14px]">
       <button
         type="button"
         aria-label="Back to cases"
         onClick={() => router.push("/cases")}
         data-no-tap
-        className="flex size-11 shrink-0 items-center justify-center rounded-full border border-line bg-white md:size-9"
+        className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line bg-white"
       >
         <ArrowLeft size={15} />
       </button>
@@ -46,17 +44,17 @@ export function CaseHeaderDesktop({ c }: { c: Case }) {
           {areasLabel(c.areas)}
           {` · ${c.where || c.ukJurisdiction || "Outside the UK"}`}
         </div>
-        <div className="font-display text-xl leading-[1.25] tracking-[-0.02em] md:truncate">
+        <div className="font-display text-xl leading-[1.25] tracking-[-0.02em] truncate">
           {c.title}
         </div>
       </div>
-      <div className="flex w-full shrink-0 gap-2 md:w-auto">
+      <div className="flex shrink-0 gap-2">
         <button
           type="button"
           onClick={() => usePayment.getState().openFor(c.id)}
           data-tour="case-credits"
           data-no-tap
-          className="flex flex-1 shrink-0 flex-col gap-1.5 rounded-card border border-line bg-subtle px-3.5 py-2 text-[12.5px] font-medium text-ink md:w-[230px] md:flex-none"
+          className="flex w-[230px] shrink-0 flex-col gap-1.5 rounded-card border border-line bg-subtle px-3.5 py-2 text-[12.5px] font-medium text-ink"
         >
           <span className="flex items-center justify-between gap-2">
             <span>{c.credits} credits</span>
@@ -77,14 +75,10 @@ export function CaseHeaderDesktop({ c }: { c: Case }) {
         <ActionMenu
           label="More actions"
           tourId="case-menu"
-          items={[
-            { label: "Guide", icon: <CircleHelp size={14} />, onSelect: () => useTour.getState().setGuideOpen(true) },
-            { label: "Archive case", icon: <Archive size={14} />, onSelect: () => setRemoving("archive") },
-            { label: "Delete case", icon: <Trash2 size={14} />, onSelect: () => setRemoving("delete"), danger: true },
-          ]}
+          items={items}
         />
       </div>
-      {removing && <RemoveCaseModal c={c} mode={removing} onClose={() => setRemoving(null)} />}
+      {modal}
     </div>
   );
 }

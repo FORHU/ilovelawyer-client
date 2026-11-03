@@ -14,8 +14,8 @@ import { areasLabel } from "@/lib/types";
 import { startNewCase } from "@/lib/wizard-store";
 import { SORT_FIELDS, SORT_LABELS, formatDate, notesLine, useCasesList, type SortField, type SortOrder } from "./use-cases-list";
 
-/** Name, created, updated, lawyer, menu. Stacked into a card below md. */
-const GRID = "md:grid md:grid-cols-[minmax(180px,2fr)_104px_104px_150px_44px] md:items-center md:gap-4";
+/** Name, created, updated, lawyer, menu. */
+const GRID = "grid grid-cols-[minmax(180px,2fr)_104px_104px_150px_44px] items-center gap-4";
 
 const toggleTrack = "flex items-center gap-1 rounded-full border border-line bg-subtle p-1";
 const toggleButton = (active: boolean) =>
@@ -48,14 +48,14 @@ function ListSkeleton() {
   return (
     <div aria-hidden>
       {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className={cn("flex flex-col gap-3 border-b border-line px-4 py-4", GRID)}>
+        <div key={i} className={cn("border-b border-line px-4 py-4", GRID)}>
           <div className="flex flex-col gap-2">
             <div className="h-4 w-3/5 animate-pulse rounded bg-chip" />
             <div className="h-3 w-2/5 animate-pulse rounded bg-chip" />
           </div>
           <div className="h-3 w-20 animate-pulse rounded bg-chip" />
-          <div className="hidden h-3 w-20 animate-pulse rounded bg-chip md:block" />
-          <div className="hidden h-3 w-24 animate-pulse rounded bg-chip md:block" />
+          <div className="h-3 w-20 animate-pulse rounded bg-chip" />
+          <div className="h-3 w-24 animate-pulse rounded bg-chip" />
           <div className="size-8 animate-pulse justify-self-end rounded-full bg-chip" />
         </div>
       ))}
@@ -74,7 +74,7 @@ export function CasesListDesktop() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-      <div className="mx-auto flex w-full max-w-[1080px] flex-1 flex-col gap-6 px-4 pt-8 md:px-10 md:pb-8">
+      <div className="mx-auto flex w-full max-w-[1080px] flex-1 flex-col gap-6 px-10 pb-8 pt-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex flex-col gap-1.5">
             <Eyebrow>Case portfolio</Eyebrow>
@@ -99,7 +99,7 @@ export function CasesListDesktop() {
                 onChange={(e) => updateSearch(e.target.value)}
                 placeholder="Search your cases"
                 aria-label="Search your cases"
-                className="box-border h-11 w-full rounded-full border border-line-input bg-white pl-11 pr-9 text-base text-ink outline-none transition-colors hover:border-line-hover focus:border-ink-2 md:h-10 md:text-[13px]"
+                className="box-border h-11 w-full rounded-full border border-line-input bg-white pl-11 pr-9 text-base text-ink outline-none transition-colors hover:border-line-hover focus:border-ink-2 h-10 text-[13px]"
               />
               {searching && (
                 <button
@@ -130,8 +130,8 @@ export function CasesListDesktop() {
         {list.isPending && <ListSkeleton />}
 
         {!list.isPending && !list.error && shown.length > 0 && (
-          <div className="md:overflow-x-auto">
-            <div className={cn("hidden border-b border-line px-4 py-3 text-[10px] font-semibold uppercase tracking-[1px] text-muted md:min-w-[720px]", GRID)}>
+          <div className="overflow-x-auto">
+            <div className={cn("min-w-[720px] border-b border-line px-4 py-3 text-[10px] font-semibold uppercase tracking-[1px] text-muted", GRID)}>
               <span>Case</span>
               {SORT_FIELDS.map((f) => (
                 <SortHeader key={f} field={f} sort={sort} onSort={switchSort} />
@@ -139,7 +139,7 @@ export function CasesListDesktop() {
               <span>Lawyer</span>
               <span />
             </div>
-            <div className="md:min-w-[720px]">
+            <div className="min-w-[720px]">
               {shown.map((c) => {
                 const openRequest = openRequests?.get(c.id);
                 const note = notesLine(c.notes);
@@ -163,7 +163,7 @@ export function CasesListDesktop() {
                   <div
                     key={c.id}
                     className={cn(
-                      "flex flex-col gap-3 border-b border-line px-4 py-4 transition-colors md:rounded-lg md:hover:bg-subtle",
+                      "rounded-lg border-b border-line px-4 py-4 transition-colors hover:bg-subtle",
                       GRID,
                     )}
                   >
@@ -174,18 +174,12 @@ export function CasesListDesktop() {
                     ) : (
                       <div className="flex min-w-0 flex-col gap-1">{title}</div>
                     )}
-                    <div className="flex basis-full flex-wrap gap-x-4 gap-y-0.5 text-[12px] text-muted md:contents">
-                      <span className="md:text-[13px] md:text-ink">
-                        <span className="md:hidden">Created </span>
-                        {formatDate(c.createdAt)}
-                      </span>
-                      <span className="md:text-[13px] md:text-ink">
-                        <span className="md:hidden">Updated </span>
-                        {formatDate(c.updatedAt)}
-                      </span>
+                    <div className="contents">
+                      <span className="text-[13px] text-ink">{formatDate(c.createdAt)}</span>
+                      <span className="text-[13px] text-ink">{formatDate(c.updatedAt)}</span>
                     </div>
-                    <div className="flex items-center justify-between gap-3 md:contents">
-                      <span className={cn("text-[12px] md:text-[13px]", openRequest ? "text-gold" : "text-muted")}>
+                    <div className="contents">
+                      <span className={cn("text-[13px]", openRequest ? "text-gold" : "text-muted")}>
                         {openRequest ? clientRequestStatusLabel(openRequest.status) : status === "ACTIVE" ? "No request" : "Archived"}
                       </span>
                       <ActionMenu label={`Actions for ${c.title}`} items={menuFor(c)} className="justify-self-end" />
