@@ -1,0 +1,84 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
+import { ActionMenu } from "@/components/ui/action-menu";
+import { ProgressBar, type ProgressTone } from "@/components/ui/progress-bar";
+import { GetLawyerAction } from "@/components/case/get-lawyer-action";
+import { areasLabel, type Case } from "@/lib/types";
+import { usePayment } from "@/lib/payment-store";
+import { creditsStatus } from "@/lib/cases/credit-usage";
+import { useCaseActions } from "./use-case-actions";
+import { useCaseCredits } from "./use-case-credits";
+
+const TONE_BY_STATUS: Record<ReturnType<typeof creditsStatus>, ProgressTone> = {
+  normal: "gold",
+  warning: "warning",
+  critical: "critical",
+};
+
+const TEXT_CLASS_BY_STATUS: Record<ReturnType<typeof creditsStatus>, string> = {
+  normal: "text-ink-2",
+  warning: "text-amber-600",
+  critical: "text-error-ink",
+};
+
+export function CaseHeaderDesktop({ c }: { c: Case }) {
+  const router = useRouter();
+  const { items, modal } = useCaseActions(c);
+  const { percent, status } = useCaseCredits(c);
+
+  return (
+    <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2.5 border-b border-line px-6 py-[14px]">
+      <button
+        type="button"
+        aria-label="Back to cases"
+        onClick={() => router.push("/cases")}
+        data-no-tap
+        className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line bg-white"
+      >
+        <ArrowLeft size={15} />
+      </button>
+      <div className="min-w-0 flex-1">
+        <div className="text-[10px] font-semibold uppercase tracking-[1px] text-gold">
+          {areasLabel(c.areas)}
+          {` · ${c.where || c.ukJurisdiction || "Outside the UK"}`}
+        </div>
+        <div className="font-display text-xl leading-[1.25] tracking-[-0.02em] truncate">
+          {c.title}
+        </div>
+      </div>
+      <div className="flex shrink-0 gap-2">
+        <button
+          type="button"
+          onClick={() => usePayment.getState().openFor(c.id)}
+          data-tour="case-credits"
+          data-no-tap
+          className="flex w-[230px] shrink-0 flex-col gap-1.5 rounded-card border border-line bg-subtle px-3.5 py-2 text-[12.5px] font-medium text-ink"
+        >
+          <span className="flex items-center justify-between gap-2">
+            <span>{c.credits} credits</span>
+            <span className="font-semibold text-gold">Top up</span>
+          </span>
+          {percent !== null && (
+            <span className="flex items-center gap-2">
+              <ProgressBar value={percent} tone={TONE_BY_STATUS[status]} className="h-1 flex-1" />
+              {status !== "normal" && (
+                <span className={`shrink-0 text-[10.5px] font-semibold tabular-nums ${TEXT_CLASS_BY_STATUS[status]}`}>
+                  {percent}% used
+                </span>
+              )}
+            </span>
+          )}
+        </button>
+        <GetLawyerAction caseId={c.id} />
+        <ActionMenu
+          label="More actions"
+          tourId="case-menu"
+          items={items}
+        />
+      </div>
+      {modal}
+    </div>
+  );
+}

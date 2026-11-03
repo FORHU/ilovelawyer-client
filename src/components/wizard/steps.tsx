@@ -437,11 +437,11 @@ export function StepBudget() {
   );
 }
 
-export function StepDocuments() {
-  const { title, side, others, budget, files, addFiles, removeFile } = useWizard();
+/** The documents step's picking and checking, shared by its desktop and mobile views. */
+export function useWizardFiles() {
+  const { files, addFiles, removeFile } = useWizard();
   const { data: limits } = useLimitsQuery();
   const [rejected, setRejected] = useState<string[]>([]);
-  const named = others.map((o) => o.name.trim()).filter(Boolean);
 
   // Files the file dialog would have filtered out can still arrive by drag and drop.
   const add = (picked: File[]) => {
@@ -449,6 +449,13 @@ export function StepDocuments() {
     setRejected(turnedAway);
     if (accepted.length) addFiles(accepted);
   };
+  return { files, removeFile, limits, rejected, add };
+}
+
+export function StepDocuments() {
+  const { title, side, others, budget } = useWizard();
+  const { files, removeFile, limits, rejected, add } = useWizardFiles();
+  const named = others.map((o) => o.name.trim()).filter(Boolean);
 
   return (
     <Section
