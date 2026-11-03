@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Folder, Scale, SlidersHorizontal } from "lucide-react";
 import { PaymentModal } from "@/components/payment/payment-modal";
 import { LawyerRequestModal } from "@/components/case/lawyer-request-modal";
+import { LandingWatcher } from "@/components/shell/landing-watcher";
 import { SignOutButton } from "@/components/shell/sign-out-button";
 import { GuideButton } from "@/components/tour/guide-button";
 import { TourLayer } from "@/components/tour/tour-layer";
@@ -15,7 +16,6 @@ import { leaveToLogin } from "@/lib/auth/api";
 import { useRestoreSessionQuery } from "@/lib/auth/mutations";
 import { useSession } from "@/lib/auth/session";
 import { useChatSocket } from "@/lib/cases/chat-socket";
-import { endLanding, markLanding, resetLanding } from "@/lib/landing";
 import { useLawyerRequestSocket } from "@/lib/lawyer-requests/socket";
 import { useAppSocket } from "@/lib/socket";
 import { useApp } from "@/lib/store";
@@ -24,20 +24,10 @@ import { Sidebar } from "./sidebar";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const pathname = usePathname();
   const ready = useHydrated();
   const status = useSession((s) => s.status);
   const user = useSession((s) => s.user);
   const { banner, setBanner, claimFor } = useApp();
-
-  // The first page of the session decides whether Cases redirects an empty portfolio to the chat
-  // (see lib/landing.ts); moving to another page ends that.
-  markLanding(pathname);
-  const firstPage = useRef(pathname);
-  useEffect(() => {
-    if (pathname !== firstPage.current) endLanding();
-  }, [pathname]);
-  useEffect(() => resetLanding, []);
 
   // A reload starts with no access token in memory: resume from the refresh cookie, if any.
   useRestoreSessionQuery();
@@ -66,6 +56,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-dvh min-h-0">
+      <LandingWatcher />
       <Sidebar />
       <div className="relative flex min-w-0 flex-1 flex-col">
         {/* Phone top bar */}
