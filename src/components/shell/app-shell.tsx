@@ -6,7 +6,10 @@ import { useRouter } from "next/navigation";
 import { Folder, Scale, SlidersHorizontal } from "lucide-react";
 import { PaymentModal } from "@/components/payment/payment-modal";
 import { LawyerRequestModal } from "@/components/case/lawyer-request-modal";
+import { LandingWatcher } from "@/components/shell/landing-watcher";
 import { SignOutButton } from "@/components/shell/sign-out-button";
+import { GuideButton } from "@/components/tour/guide-button";
+import { TourLayer } from "@/components/tour/tour-layer";
 import { SuccessBanner } from "@/components/ui/banner";
 import { Avatar, Logo, initialsOf } from "@/components/ui/misc";
 import { leaveToLogin } from "@/lib/auth/api";
@@ -53,6 +56,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-dvh min-h-0">
+      <LandingWatcher />
       <Sidebar />
       <div className="relative flex min-w-0 flex-1 flex-col">
         {/* Phone top bar */}
@@ -68,6 +72,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Icon size={17} aria-hidden />
               </Link>
             ))}
+            <GuideButton variant="bar" />
             <SignOutButton compact />
             <Avatar initials={initialsOf(user?.name || "You")} size={36} />
           </div>
@@ -77,6 +82,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
       <PaymentModal />
       <LawyerRequestModal />
+      <TourLayer />
     </div>
   );
 }

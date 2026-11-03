@@ -100,7 +100,7 @@ export function LawyerMessages({
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-modal border border-line p-4">
+    <div data-tour="lawyer-messages" className="flex flex-col gap-3 rounded-modal border border-line p-4">
       <div className="flex items-center gap-2 text-[13px] font-medium text-ink">
         <MessageCircleMore size={16} className="text-muted" aria-hidden="true" />
         Messages with {lawyerName}

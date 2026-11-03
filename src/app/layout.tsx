@@ -25,6 +25,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // The tour keeps its control bar clear of the phone's home indicator (env(safe-area-inset-bottom)).
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

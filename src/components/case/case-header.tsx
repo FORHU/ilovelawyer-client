@@ -58,6 +58,7 @@ export function CaseHeader({ c }: { c: Case }) {
         <button
           type="button"
           onClick={() => usePayment.getState().openFor(c.id)}
+          data-tour="case-credits"
           data-no-tap
           className="flex flex-1 shrink-0 flex-col gap-1.5 rounded-card border border-line bg-subtle px-3.5 py-2 text-[12.5px] font-medium text-ink md:w-[230px] md:flex-none"
         >
@@ -79,6 +80,7 @@ export function CaseHeader({ c }: { c: Case }) {
         <GetLawyerAction caseId={c.id} />
         <ActionMenu
           label="More actions"
+          tourId="case-menu"
           items={[
             { label: "Archive case", icon: <Archive size={14} />, onSelect: () => setRemoving("archive") },
             { label: "Delete case", icon: <Trash2 size={14} />, onSelect: () => setRemoving("delete"), danger: true },

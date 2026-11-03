@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Archive, ArrowDown, ArrowUp, ArrowUpDown, FolderPlus, Pencil, Plus, RotateCcw, Search, Trash2, X } from "lucide-react";
@@ -11,6 +11,7 @@ import { Button, buttonClass } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { Eyebrow } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
+import { isLanding } from "@/lib/landing";
 import { parseNotes } from "@/lib/cases/notes";
 import { useArchivedCasesQuery, useCasesQuery, useUnarchiveCaseMutation } from "@/lib/cases/queries";
 import { clientRequestStatusLabel, useOpenLawyerRequestsQuery } from "@/lib/lawyer-requests/api";
@@ -109,6 +110,14 @@ export default function CasesPage() {
   const { data: pricing } = usePricingQuery();
   const restore = useUnarchiveCaseMutation();
 
+  // Landing here with no cases goes straight to the chat that starts one (lib/landing.ts). Until
+  // the list has loaded, and while it is empty, nothing is drawn so the empty page never flashes.
+  const landing = isLanding();
+  const noCases = active.data?.length === 0;
+  useEffect(() => {
+    if (landing && noCases) router.replace("/cases/new");
+  }, [landing, noCases, router]);
+
   const included = pricing?.case.credits ?? "…";
   const total = active.data?.length ?? 0;
   const count = active.isPending ? "Loading your cases…" : `${total} ${total === 1 ? "case" : "cases"}`;
@@ -158,6 +167,8 @@ export default function CasesPage() {
   const searching = search.trim() !== "";
   const emptyAll = !list.isPending && !list.error && (list.data?.length ?? 0) === 0;
 
+  if (landing && (active.isPending || noCases)) return <div className="flex-1" />;
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       <div className="mx-auto flex w-full max-w-[1080px] flex-1 flex-col gap-6 px-4 pt-8 md:px-10 md:pb-8">
@@ -165,11 +176,11 @@ export default function CasesPage() {
           <div className="flex flex-col gap-1.5">
             <Eyebrow>Case portfolio</Eyebrow>
             <h1 className="font-display text-[32px] font-normal tracking-[-0.02em]">Your cases</h1>
-            <div className="text-sm text-ink-2">
+            <div data-tour="cases-credits" className="text-sm text-ink-2">
               {count}. Each case is free and includes {included} chat credits.
             </div>
           </div>
-          <Link href="/cases/new" onClick={startNewCase} className={buttonClass("primary", "md", "max-md:hidden no-underline text-white hover:text-white")}>
+          <Link href="/cases/new" onClick={startNewCase} data-tour="new-case" className={buttonClass("primary", "md", "max-md:hidden no-underline text-white hover:text-white")}>
             <Plus size={15} />
             New case
           </Link>
@@ -349,8 +360,8 @@ export default function CasesPage() {
         {removing && <RemoveCaseModal c={removing.c} mode={removing.mode} onClose={() => setRemoving(null)} />}
 
         {/* Phone: sticky bottom CTA */}
-        <div className="sticky bottom-0 z-[2] -mx-4 mt-auto border-t border-line bg-white px-4 pb-[30px] pt-3 md:hidden">
-          <Button size="xl" className="w-full" onClick={newCase}>
+        <div data-tour="sticky-bar" className="sticky bottom-0 z-[2] -mx-4 mt-auto border-t border-line bg-white px-4 pb-[30px] pt-3 md:hidden">
+          <Button size="xl" className="w-full" data-tour="new-case" onClick={newCase}>
             <Plus size={16} />
             New case
           </Button>

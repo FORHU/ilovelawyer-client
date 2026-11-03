@@ -81,7 +81,10 @@ async function send(path: string, options: FetchOptions): Promise<Response> {
   const { skipAuthRefresh, headers, ...init } = options;
   void skipAuthRefresh; // apiFetch's own option, not a fetch() one
   try {
-    return await fetch(resolveUrl(path), { ...init, credentials: "include", headers: buildHeaders(headers) });
+    const built = buildHeaders(headers);
+    // A multipart body (a recording) needs the browser's own Content-Type, with its boundary.
+    if (init.body instanceof FormData) delete built["Content-Type"];
+    return await fetch(resolveUrl(path), { ...init, credentials: "include", headers: built });
   } catch {
     throw new ApiError("Couldn't reach ilovelawyer. Check your connection and try again.", 0);
   }
