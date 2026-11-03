@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { Check, MessageCircleMore } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Check, CircleCheck, MessageCircleMore, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { Avatar, Eyebrow, initialsOf } from "@/components/ui/misc";
@@ -725,7 +725,53 @@ const VISIBILITY = (engaged: boolean, since?: string | null) => [
   { text: "Your case, documents and interview (read-only)", when: engaged ? (since ? `Since ${day(since)}` : "Now") : "Once you pay", yes: engaged },
 ];
 
+/**
+ * Whether the client has just paid: true once the request goes from waiting on their payment to
+ * ENGAGED while this tab is open, until they dismiss it. Watched here rather than in PayStage, which
+ * is gone by then: Stripe's webhook often engages the request (and the socket swaps the stage)
+ * before the Payment Element's confirm has even returned.
+ */
+function useJustPaid(request: LawyerRequest): [boolean, () => void] {
+  const awaiting = request.status === "CONFIRMED" && request.awaitingPayment;
+  const wasAwaiting = useRef(awaiting);
+  const [justPaid, setJustPaid] = useState(false);
+  useEffect(() => {
+    if (awaiting) {
+      wasAwaiting.current = true;
+      return;
+    }
+    if (!wasAwaiting.current || request.status !== "ENGAGED") return;
+    wasAwaiting.current = false;
+    setJustPaid(true);
+  }, [awaiting, request.status]);
+  return [justPaid, () => setJustPaid(false)];
+}
+
+/** "Payment successful", at the top of the engaged stage, right after the client pays. */
+function PaymentSuccess({ request, onDismiss }: { request: LawyerRequest; onDismiss: () => void }) {
+  const paid = request.quotation?.acceptedAmount ?? request.quotation?.total;
+  const paidAt = request.quotation?.paidAt ?? request.engagedAt;
+  const lawyerName = request.lawyer?.name ?? "your lawyer";
+  const first = firstName(request.lawyer?.name) ?? "your lawyer";
+  return (
+    <section role="status" className="flex items-start gap-3 rounded-card border border-success-line bg-success-bg px-5 py-4 text-success-ink">
+      <CircleCheck size={22} className="mt-0.5 shrink-0" aria-hidden />
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <h2 className="text-[15px] font-semibold">Payment successful</h2>
+        <p className="text-[13px] leading-[1.5]">
+          You paid {paid ? money(paid) : "your quote"} to {lawyerName}. {first} can now see your case and message you here.
+        </p>
+        {paidAt && <p className="text-xs opacity-80">Paid {formatDateTime(paidAt)}</p>}
+      </div>
+      <button type="button" aria-label="Dismiss" onClick={onDismiss} className="flex shrink-0 items-center justify-center text-success-ink">
+        <X size={16} />
+      </button>
+    </section>
+  );
+}
+
 export function LawyerTab({ c, request }: { c: Case; request: LawyerRequest }) {
+  const [justPaid, dismissPaid] = useJustPaid(request);
   const confirm = useConfirmLawyerRequestMutation(c.id);
   const decline = useDeclineLawyerRequestMutation(c.id);
   const withdraw = useWithdrawLawyerRequestMutation(c.id);
@@ -773,6 +819,7 @@ export function LawyerTab({ c, request }: { c: Case; request: LawyerRequest }) {
         <div className="flex min-w-0 flex-[999_1_520px] flex-col gap-4">
           {(phase === "sent" || phase === "finding" || phase === "reviewing") && <StageCard c={c} request={request} phase={phase} />}
           {(phase === "quote" || phase === "finalising") && <QuoteStage c={c} request={request} finalising={phase === "finalising"} confirm={confirm} decline={decline} locked={withdraw.isPending} />}
+          {phase === "engaged" && justPaid && <PaymentSuccess request={request} onDismiss={dismissPaid} />}
           {phase === "engaged" && <EngagedStage c={c} request={request} />}
           {phase === "closed" && <ClosedStage c={c} request={request} />}
           {phase === "expired" && <ExpiredStage caseId={c.id} />}
