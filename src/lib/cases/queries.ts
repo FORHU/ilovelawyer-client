@@ -14,6 +14,7 @@ import {
   refreshIntake,
   retryDocument,
   sendMessage,
+  sendVoiceMessage,
   unarchiveCase,
   updateCase,
   uploadDocument,
@@ -158,6 +159,17 @@ export function useSendMessageMutation(caseId: string) {
   return useMutation({
     mutationFn: ({ text, documentIds }: { text: string; documentIds?: string[] }) => sendMessage(caseId, text, documentIds),
     // The case too: sending used a credit.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: caseKeys.all(userId) }),
+  });
+}
+
+/** Same credit/queue path as useSendMessageMutation — the reply (and its transcript, ahead of
+ * that) arrive the same way, over chat:voice-transcribed/chat:done (useChatSocket). */
+export function useSendVoiceMessageMutation(caseId: string) {
+  const queryClient = useQueryClient();
+  const userId = useUserId();
+  return useMutation({
+    mutationFn: (blob: Blob) => sendVoiceMessage(caseId, blob),
     onSettled: () => queryClient.invalidateQueries({ queryKey: caseKeys.all(userId) }),
   });
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent } from "react";
-import { ArrowUpRight, FileText, Paperclip, X } from "lucide-react";
+import { ArrowUpRight, FileText, Mic, Paperclip, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { PromptChip } from "@/components/ui/chip";
@@ -9,7 +9,9 @@ import { FilePicker } from "@/components/ui/file-picker";
 import { AiMark } from "@/components/ui/misc";
 import { MicButton, RecorderRow } from "@/components/voice/recorder-row";
 import { LawyerSuggestion } from "@/components/case/lawyer-suggestion";
-import { useIntakeQuery, useMessagesQuery, useSendMessageMutation, useUploadDocumentsMutation } from "@/lib/cases/queries";
+import { VoiceReplyPlayer } from "@/components/case/voice-reply-player";
+import { useIntakeQuery, useMessagesQuery, useSendMessageMutation, useSendVoiceMessageMutation, useUploadDocumentsMutation } from "@/lib/cases/queries";
+import { useVoiceRecorder } from "@/lib/cases/voice-recorder";
 import { useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
 import { usePayment } from "@/lib/payment-store";
 import { useSocketConnected } from "@/lib/socket";
@@ -32,6 +34,7 @@ export function Consultation({ c }: { c: Case }) {
   const { data, error: loadError } = useMessagesQuery(c.id);
   const { data: intake } = useIntakeQuery(c.id, c.documents.some((d) => d.status === "PENDING"));
   const sendMessage = useSendMessageMutation(c.id);
+  const sendVoice = useSendVoiceMessageMutation(c.id);
   const upload = useUploadDocumentsMutation(c.id);
   // The reply arrives over the socket, so while it's down the wait is the connection's, not the AI's.
   const connected = useSocketConnected();
@@ -45,6 +48,12 @@ export function Consultation({ c }: { c: Case }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   // Spoken words land in the box, after anything already typed, to be edited before sending.
   const voice = useDictation({ onText: (spoken) => setInput((t) => (t.trim() ? `${t.trim()} ${spoken}` : spoken)) });
+
+  const recorder = useVoiceRecorder((blob) =>
+    sendVoice.mutate(blob, {
+      onError: (err) => setNotice(err instanceof Error ? err.message : "Couldn't send that recording. Try again."),
+    }),
+  );
 
   const messages = data?.messages ?? [];
   const documentById = new Map(c.documents.map((d) => [d.id, d]));
@@ -193,12 +202,13 @@ export function Consultation({ c }: { c: Case }) {
                 {missing} thing{missing === 1 ? "" : "s"} still to cover — see the Overview tab
               </div>
             )}
-            {messages.map((m) =>
+            {messages.map((m, i) =>
               m.role === "user" ? (
                 <div key={m.id} className="flex max-w-[80%] flex-col items-end gap-1.5 self-end">
                   <div className="rounded-[18px_18px_4px_18px] border border-line bg-bubble px-4 py-3 text-[15px] leading-[1.6]">
                     {m.text}
                   </div>
+                  {m.audioUrl && <audio controls src={m.audioUrl} className="h-8 w-56" />}
                   {(m.documentIds ?? []).length > 0 && (
                     <div className="flex flex-wrap justify-end gap-1.5">
                       {(m.documentIds ?? []).map((id) => {
@@ -218,6 +228,25 @@ export function Consultation({ c }: { c: Case }) {
                   <AiMark />
                   <div className="flex min-w-0 flex-col gap-2.5 text-[15px] leading-[1.7]">
                     <div className="whitespace-pre-line">{m.text}</div>
+                    {m.audioUrl &&
+                      (m.audioTimings ? (
+                        <VoiceReplyPlayer
+                          audioUrl={m.audioUrl}
+                          text={m.audioTimings.text}
+                          sentenceTimings={m.audioTimings.sentenceTimings}
+                          wordTimings={m.audioTimings.wordTimings}
+                          // Only the reply to a voice-asked question starts itself — the previous
+                          // turn being a voice message (it has its own audioUrl) is how we tell
+                          // "the client was just listening" from "they typed, this just also has
+                          // audio".
+                          autoPlay={messages[i - 1]?.role === "user" && !!messages[i - 1]?.audioUrl}
+                        />
+                      ) : (
+                        // Defensive fallback: an assistant audio reply should always carry its
+                        // speech-mark timings (set together in the same write), but play it plainly
+                        // rather than show nothing if an older row somehow lacks them.
+                        <audio controls src={m.audioUrl} className="h-8 w-56" />
+                      ))}
                     <div className="text-xs text-muted">I collect and organise your information for a lawyer. I can&apos;t give legal advice.</div>
                   </div>
                 </div>
@@ -266,6 +295,7 @@ export function Consultation({ c }: { c: Case }) {
         <div className="mx-auto flex max-w-[768px] flex-col gap-2">
           {loadError && <ErrorBox message={loadError.message} />}
           {notice && <div className="text-center text-[12.5px] text-ink-2">{notice}</div>}
+          {recorder.error && <div className="text-center text-[12.5px] text-error">{recorder.error}</div>}
           {out && (
             <div className="flex flex-wrap items-center gap-3 rounded-card border border-line bg-subtle px-4 py-3">
               <div className="min-w-[180px] flex-1 text-[13px] leading-[1.5]">
@@ -320,59 +350,94 @@ export function Consultation({ c }: { c: Case }) {
             data-tour="composer"
             className={`flex items-end gap-1.5 rounded-composer border border-line bg-subtle p-2 ${out ? "pointer-events-none opacity-50" : ""}`}
           >
-            {voice.phase !== "idle" ? (
-              <RecorderRow phase={voice.phase} seconds={voice.seconds} onCancel={voice.cancel} onStop={voice.stop} />
-            ) : (
+            <FilePicker onPick={attach}>
+              {(open) => (
+                <button
+                  type="button"
+                  title="Attach a document"
+                  aria-label="Attach a document"
+                  disabled={out || upload.isPending}
+                  onClick={open}
+                  data-no-tap
+                  className="flex size-9 shrink-0 items-center justify-center self-end rounded-full border border-line text-muted disabled:opacity-60"
+                >
+                  <Paperclip size={15} />
+                </button>
+              )}
+            </FilePicker>
+            {recorder.state === "recording" ? (
               <>
-              <FilePicker onPick={attach}>
-                {(open) => (
-                  <button
-                    type="button"
-                    title="Attach a document"
-                    aria-label="Attach a document"
-                    disabled={out || upload.isPending}
-                    onClick={open}
-                    data-no-tap
-                    className="flex size-9 shrink-0 items-center justify-center self-end rounded-full border border-line text-muted disabled:opacity-60"
-                  >
-                    <Paperclip size={15} />
-                  </button>
-                )}
-              </FilePicker>
-              <textarea
-                ref={textareaRef}
-                value={input}
-                disabled={out}
-                rows={1}
-                onChange={(e) => setInput(e.target.value)}
-                onPaste={onPaste}
-                onKeyDown={(e) => {
-                  // isComposing is true while an IME (Japanese/Chinese/Korean input, etc.) is still
-                  // resolving a character — Enter there confirms the composition, it doesn't submit.
-                  if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-                    e.preventDefault();
-                    send(input);
-                  }
-                }}
-                placeholder="Tell me what's going on…"
-                aria-label="Tell me what's going on"
-                className="my-1.5 min-w-0 flex-1 resize-none bg-transparent px-3.5 text-[15px] leading-[1.5] text-ink outline-none"
-              />
-              <MicButton onClick={() => void voice.start()} disabled={out || upload.isPending} compact />
-              <span className="mb-1.5 whitespace-nowrap self-end text-[11px] text-muted">
-                {upload.isPending || attachmentPending ? "Uploading…" : `${credits} credits`}
-              </span>
-              <button
-                type="submit"
-                aria-label="Send"
-                disabled={out || thinking || attachmentPending || (!input.trim() && sendableAttachedIds.length === 0)}
-                data-no-tap
-                className="flex size-9 shrink-0 items-center justify-center self-end rounded-full bg-gold text-white disabled:opacity-60"
-              >
-                <ArrowUpRight size={14} />
-              </button>
+                <button
+                  type="button"
+                  title="Cancel recording"
+                  aria-label="Cancel recording"
+                  onClick={recorder.cancel}
+                  data-no-tap
+                  className="flex size-9 shrink-0 items-center justify-center self-end rounded-full border border-line text-muted"
+                >
+                  <X size={15} />
+                </button>
+                <button
+                  type="button"
+                  title="Stop and send"
+                  aria-label="Stop and send recording"
+                  onClick={recorder.stop}
+                  data-no-tap
+                  className="flex size-9 shrink-0 animate-pulse items-center justify-center self-end rounded-full bg-error text-white"
+                >
+                  <Square size={13} />
+                </button>
               </>
+            ) : (
+              <button
+                type="button"
+                title="Record a voice message"
+                aria-label="Record a voice message"
+                disabled={out || thinking || recorder.state === "requesting" || sendVoice.isPending}
+                onClick={recorder.start}
+                data-no-tap
+                className="flex size-9 shrink-0 items-center justify-center self-end rounded-full border border-line text-muted disabled:opacity-60"
+              >
+                <Mic size={15} />
+              </button>
             )}
+            <textarea
+              ref={textareaRef}
+              value={input}
+              disabled={out}
+              rows={1}
+              onChange={(e) => setInput(e.target.value)}
+              onPaste={onPaste}
+              onKeyDown={(e) => {
+                // isComposing is true while an IME (Japanese/Chinese/Korean input, etc.) is still
+                // resolving a character — Enter there confirms the composition, it doesn't submit.
+                if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  send(input);
+                }
+              }}
+              placeholder="Tell me what's going on…"
+              aria-label="Tell me what's going on"
+              className="my-1.5 min-w-0 flex-1 resize-none bg-transparent px-3.5 text-[15px] leading-[1.5] text-ink outline-none"
+            />
+            <span className="mb-1.5 whitespace-nowrap self-end text-[11px] text-muted">
+              {recorder.state === "recording"
+                ? "Recording…"
+                : sendVoice.isPending
+                  ? "Sending…"
+                  : upload.isPending || attachmentPending
+                    ? "Uploading…"
+                    : `${credits} credits`}
+            </span>
+            <button
+              type="submit"
+              aria-label="Send"
+              disabled={out || thinking || attachmentPending || (!input.trim() && sendableAttachedIds.length === 0)}
+              data-no-tap
+              className="flex size-9 shrink-0 items-center justify-center self-end rounded-full bg-gold text-white disabled:opacity-60"
+            >
+              <ArrowUpRight size={14} />
+            </button>
           </form>
           <div className="text-center text-[11px] text-muted">
             I collect and organise your information for a lawyer; I&apos;m not a lawyer myself. Each message uses 1 credit.

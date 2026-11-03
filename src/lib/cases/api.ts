@@ -89,6 +89,24 @@ export function sendMessage(caseId: string, text: string, documentIds?: string[]
   return post<{ messageId: string }>(`/api/client/cases/${caseId}/messages`, { text, documentIds });
 }
 
+/** Records a voice message: the API signs an S3 URL, the browser PUTs the recording straight to
+ * S3, then the API transcribes it and answers like any other message — same two-step shape as
+ * uploadDocument above. */
+export async function sendVoiceMessage(caseId: string, blob: Blob): Promise<{ messageId: string }> {
+  const contentType = blob.type || "audio/webm";
+  const { uploadUrl, key } = await post<{ uploadUrl: string; key: string }>(`/api/client/cases/${caseId}/voice-messages/presign`, {
+    contentType,
+    fileSize: blob.size,
+  });
+  const put = await fetch(uploadUrl, { method: "PUT", body: blob, headers: { "Content-Type": contentType } }).catch((err: unknown) => {
+    console.error("Voice message upload to S3 failed", err);
+    return null;
+  });
+  if (put && !put.ok) console.error(`Voice message upload to S3 failed with ${put.status}`);
+  if (!put?.ok) throw new Error("Couldn't send that recording. Try again.");
+  return post<{ messageId: string }>(`/api/client/cases/${caseId}/voice-messages`, { key });
+}
+
 /** Removes the document from the case for good. If it was READY, the overview turns STALE. */
 export function deleteDocument(caseId: string, documentId: string) {
   return apiFetch<void>(`/api/client/cases/${caseId}/documents/${documentId}`, { method: "DELETE" });
