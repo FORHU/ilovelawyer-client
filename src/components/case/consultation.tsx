@@ -52,6 +52,11 @@ export function Consultation({ c }: { c: Case }) {
   const out = credits <= 0;
   const lastFailed = messages.at(-1)?.replyStatus === "FAILED";
   const latestAnswer = messages.findLast((m) => m.role === "ai");
+  // Showing "here's what's still missing" as a checklist card on the very first reply, right
+  // after the client's first message, reads as another form to fill out — the whole point of
+  // describing the case in free text was not having to do that. It's useful from the second
+  // reply on, once the conversation is actually under way.
+  const pastFirstAnswer = messages.filter((m) => m.role === "ai").length > 1;
   const missing = intake?.missing.length ?? 0;
   // A just-dropped/pasted file is attached right away but may still be reading; sending before
   // that finishes would just bounce off the API's READY check.
@@ -223,7 +228,7 @@ export function Consultation({ c }: { c: Case }) {
                 That didn&apos;t go through. Try asking again.
               </div>
             )}
-            {latestAnswer && !thinking && !openRequest && (
+            {latestAnswer && !thinking && !openRequest && pastFirstAnswer && (
               <LawyerSuggestion caseId={c.id} latestAnswerId={latestAnswer.id} />
             )}
             {thinking && (
