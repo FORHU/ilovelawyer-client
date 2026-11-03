@@ -43,13 +43,15 @@ const EMPTY: IntakeDraft = { title: "", happened: "", wants: "", areas: [], regi
 
 // Words that suggest a kind of issue, matched against the admin-managed area names.
 const AREA_HINTS: [RegExp, RegExp][] = [
-  [/\b(job|fired|dismiss\w*|redundan\w*|employer|work|boss|wage|salary|sacked)\b/i, /employ/i],
+  // Only words that mean the kind of issue on their own: not "work", "contract" or "will", which are
+  // everyday words ("the machine doesn't work", "my landlord will not...").
+  [/\b(job|fired|dismiss\w*|redundan\w*|employer|boss|wage|salary|sacked|unfair dismissal|work(?:ed|ing)? for)\b/i, /employ/i],
   [/\b(landlord|rent|tenan\w*|evict\w*|flat|house|mortgage|property|neighbou?r)\b/i, /property|housing|landlord/i],
   [/\b(divorce|custody|child|children|partner|marriage|separat\w*)\b/i, /family/i],
-  [/\b(refund|faulty|shop|bought|supplier|scam\w*|owes? me|invoice|contract)\b/i, /consumer|contract|debt/i],
+  [/\b(refund|faulty|shop|bought|supplier|scam\w*|owes? me|invoice|breach of contract)\b/i, /consumer|contract|debt/i],
   [/\b(visa|immigra\w*|asylum|leave to remain|deport\w*)\b/i, /immigra/i],
   [/\b(police|arrest\w*|charged|prosecut\w*)\b/i, /crimin/i],
-  [/\b(will|probate|inherit\w*|estate|died)\b/i, /will|probate/i],
+  [/\b(?:(?:a|my|his|her|their|the late \w+'s) will|probate|inherit\w*|executor|died|passed away|deceased)\b/i, /will|probate/i],
   [/\b(defam\w*|libel|slander|privacy|online abuse|harass\w*)\b/i, /reputation|privacy|defam/i],
 ];
 
@@ -103,9 +105,12 @@ function guessOthers(text: string): string[] {
   return [...text.matchAll(re)].map((m) => m[1]?.trim() ?? "").filter(Boolean);
 }
 
+/** An answer to "Is anyone else involved?" that names nobody. */
+const NO_ONE = /^\s*(?:no(?:pe| one| body)?|none|nobody|nothing|n\/?a|not really)\s*[.!]?\s*$/i;
+
 /** "I want my job back." → the whole sentence. */
 function guessWants(text: string): string {
-  const m = /(?:^|[.!?]\s+)((?:i (?:want|would like|'d like|hope|need)|i(?:'m| am) hoping|i(?:'m| am) looking)[^.!?\n]*)/i.exec(text);
+  const m = /(?:^|[.!?]\s+)((?:i(?: want| would like|['’]d like| hope| need)|i(?:['’]m| am) hoping|i(?:['’]m| am) looking)[^.!?\n]*)/i.exec(text);
   return m?.[1]?.trim() ?? "";
 }
 
@@ -133,13 +138,14 @@ function addOthers(d: IntakeDraft, names: string[]): IntakeDraft {
  * Reads one message for anything the form asks, filling only what is still empty (never
  * overwriting an answer already given). Returns the new draft and a note of what it picked up.
  */
-function absorb(text: string, d: IntakeDraft, areas: CaseArea[]): { draft: IntakeDraft; got: string[] } {
+function absorb(text: string, d: IntakeDraft, areas: CaseArea[], areasConfirmed: boolean): { draft: IntakeDraft; got: string[] } {
   const got: string[] = [];
   let next = d;
 
-  if (!next.areas.length) {
+  // The type of issue is a guess until the client confirms it, so a later, clearer message revises it.
+  if (!next.areas.length || !areasConfirmed) {
     const guess = guessAreas(text, areas);
-    if (guess.length) {
+    if (guess.length && guess.map((a) => a.code).join() !== next.areas.join()) {
       next = { ...next, areas: guess.map((a) => a.code) };
       got.push(guess.map((a) => a.name).join(" and "));
     }
@@ -269,18 +275,19 @@ export function useIntakeChat({ areas }: { areas: CaseArea[] }) {
     push("user", text);
 
     // Anything the message says about any field is picked up, whatever question was open.
-    const { draft: read, got } = absorb(text, draft, areas);
+    const { draft: read, got } = absorb(text, draft, areas, asked.current.has("type"));
 
     switch (step) {
       case "start": {
         const words = text.split(/\s+/).length;
         // Too thin to work with: ask for more rather than marching on to the questions.
         if (words < 4 && !got.length) {
-          update({ ...draft, happened: text });
+          update({ ...draft, happened: [draft.happened, text].filter(Boolean).join("\n") });
           say("Could you tell me a bit more about what happened? A sentence or two is plenty.", "start");
           return;
         }
-        const d = update({ ...read, happened: text, title: draft.title || titleFrom(text) });
+        // A thin first message that was kept stays in what happened, with this one after it.
+        const d = update({ ...read, happened: [draft.happened, text].filter(Boolean).join("\n"), title: draft.title || titleFrom(text) });
         const lead = "Thanks, and I'm sorry you're dealing with this. ";
         ahead(d, got.length ? `${lead}I've noted: ${got.join(", ")}. ` : lead);
         return;
@@ -324,10 +331,17 @@ export function useIntakeChat({ areas }: { areas: CaseArea[] }) {
       }
       case "others": {
         asked.current.add("others");
+        // "No one" is an answer, not a name. Split on commas and new lines only, since "and" is
+        // part of names ("Marks and Spencer"), and skip what absorb already read out of the same
+        // text ("my landlord John Smith" -> "John Smith").
+        if (NO_ONE.test(text)) {
+          ahead(update(read), "Okay. ");
+          return;
+        }
         const names = text
-          .split(/,|\band\b|\n/i)
+          .split(/[,;\n]/)
           .map((n) => n.trim())
-          .filter(Boolean);
+          .filter((n) => n && !read.others.some((o) => n.toLowerCase().includes(o.name.toLowerCase())));
         const d = update(addOthers(read, names));
         ahead(d, ack(d.others.map((o) => o.name)));
         return;
