@@ -10,7 +10,7 @@ const variants = {
   /** The collapsed sidebar's round buttons. */
   rail: "flex size-[34px] shrink-0 items-center justify-center rounded-full border border-line bg-white text-ink",
   /** The phone's top bar. */
-  bar: "flex size-[34px] items-center justify-center rounded-[10px] text-ink-2 hover:bg-chip hover:text-ink",
+  bar: "flex size-11 items-center justify-center rounded-full text-ink-2 active:bg-chip",
 } as const;
 
 /** Opens the guide. Rendered in the sidebar and the phone top bar; only the visible one is the
