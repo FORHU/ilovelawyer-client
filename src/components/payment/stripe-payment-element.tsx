@@ -7,11 +7,21 @@ import { ErrorBox } from "@/components/ui/banner";
 
 const stripes = new Map<string, Promise<Stripe | null>>();
 
-/** One Stripe.js per publishable key, loaded on first use (it's a script from js.stripe.com). */
+/** One Stripe.js per publishable key, loaded on first use (it's a script from js.stripe.com). A load
+ * that fails (a network blip, an ad blocker) isn't kept, so the next attempt loads it again. */
 function stripeFor(publishableKey: string) {
   let stripe = stripes.get(publishableKey);
   if (!stripe) {
-    stripe = loadStripe(publishableKey);
+    stripe = loadStripe(publishableKey).then(
+      (loaded) => {
+        if (!loaded) stripes.delete(publishableKey);
+        return loaded;
+      },
+      (err: unknown) => {
+        stripes.delete(publishableKey);
+        throw err;
+      },
+    );
     stripes.set(publishableKey, stripe);
   }
   return stripe;
@@ -22,7 +32,8 @@ function stripeFor(publishableKey: string) {
  * types their card into Stripe's iframe, so card details never reach our code or our API. Confirming
  * stays on the page for cards; a method that has to leave the page comes back to `returnUrl`. Calls
  * onPaid once Stripe has the payment (or is still processing it); the caller then asks the API, which
- * settles it.
+ * settles it. Calls onFailed when the form can't load (the intent has already ended, or Stripe.js
+ * didn't load), so the caller can offer to start again.
  */
 export function StripePaymentElement({
   clientSecret,
@@ -30,12 +41,14 @@ export function StripePaymentElement({
   returnUrl,
   payLabel,
   onPaid,
+  onFailed,
 }: {
   clientSecret: string;
   publishableKey: string;
   returnUrl: string;
   payLabel: string;
   onPaid: () => void;
+  onFailed?: () => void;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const stripeRef = useRef<Stripe | null>(null);
@@ -43,8 +56,17 @@ export function StripePaymentElement({
   const [state, setState] = useState<"loading" | "ready" | "failed">("loading");
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState("");
+  // The latest onFailed, read by the loading effect without making it run again.
+  const onFailedRef = useRef(onFailed);
+  useEffect(() => {
+    onFailedRef.current = onFailed;
+  });
 
   useEffect(() => {
+    const failed = () => {
+      setState("failed");
+      onFailedRef.current?.();
+    };
     let cancelled = false;
     let unmount: (() => void) | null = null;
     void (async () => {
@@ -59,7 +81,7 @@ export function StripePaymentElement({
         // E.g. a client secret whose intent already succeeded or was cancelled. Unhandled, Stripe only logs it.
         payment.on("loaderror", (event) => {
           console.error("Stripe's payment form couldn't load", event.error);
-          if (!cancelled) setState("failed");
+          if (!cancelled) failed();
         });
         stripeRef.current = stripe;
         elementsRef.current = elements;
@@ -72,7 +94,7 @@ export function StripePaymentElement({
         };
       } catch (err) {
         console.error("Stripe's payment form couldn't load", err);
-        if (!cancelled) setState("failed");
+        if (!cancelled) failed();
       }
     })();
     return () => {
@@ -87,11 +109,19 @@ export function StripePaymentElement({
     if (!stripe || !elements) return;
     setPaying(true);
     setError("");
-    const { error: failed } = await stripe.confirmPayment({ elements, redirect: "if_required", confirmParams: { return_url: returnUrl } });
-    setPaying(false);
-    if (failed) {
-      setError(failed.message ?? "Your payment didn't go through. Try another card.");
+    try {
+      const { error: failed } = await stripe.confirmPayment({ elements, redirect: "if_required", confirmParams: { return_url: returnUrl } });
+      if (failed) {
+        setError(failed.message ?? "Your payment didn't go through. Try another card.");
+        return;
+      }
+    } catch (err) {
+      // Stripe threw rather than answering (the form was torn down, or an integration error).
+      console.error("Stripe's payment confirmation failed", err);
+      setError("Your payment couldn't be sent. Try again.");
       return;
+    } finally {
+      setPaying(false);
     }
     onPaid();
   }
