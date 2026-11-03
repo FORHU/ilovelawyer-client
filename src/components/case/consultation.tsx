@@ -201,7 +201,7 @@ export function Consultation({ c }: { c: Case }) {
                 {missing} thing{missing === 1 ? "" : "s"} still to cover — see the Overview tab
               </div>
             )}
-            {messages.map((m, i) =>
+            {messages.map((m) =>
               m.role === "user" ? (
                 <div key={m.id} className="flex max-w-[80%] flex-col items-end gap-1.5 self-end">
                   <div className="rounded-[18px_18px_4px_18px] border border-line bg-bubble px-4 py-3 text-[15px] leading-[1.6]">
@@ -227,18 +227,7 @@ export function Consultation({ c }: { c: Case }) {
                   <AiMark />
                   <div className="flex min-w-0 flex-col gap-2.5 text-[15px] leading-[1.7]">
                     <div className="whitespace-pre-line">{m.text}</div>
-                    {m.audioUrl && (
-                      <audio
-                        controls
-                        src={m.audioUrl}
-                        className="h-8 w-56"
-                        // Only the reply to a voice-asked question starts itself — the previous
-                        // turn being a voice message (it has its own audioUrl) is how we tell
-                        // "the client was just listening" from "they typed, this just also has
-                        // audio".
-                        autoPlay={messages[i - 1]?.role === "user" && !!messages[i - 1]?.audioUrl}
-                      />
-                    )}
+                    {m.audioUrl && <audio controls src={m.audioUrl} className="h-8 w-56" />}
                     <div className="text-xs text-muted">I collect and organise your information for a lawyer. I can&apos;t give legal advice.</div>
                   </div>
                 </div>

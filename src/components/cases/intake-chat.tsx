@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { ArrowRight, ArrowUp, FileText, Paperclip, Sparkles, X } from "lucide-react";
+import { ArrowRight, ArrowUp, FileText, Paperclip, Sparkles, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Chip, PromptChip } from "@/components/ui/chip";
 import { ErrorBox } from "@/components/ui/banner";
@@ -12,6 +12,7 @@ import { cn } from "@/lib/cn";
 import { useCaseAreasQuery } from "@/lib/cases/case-areas";
 import { checkFiles, useLimitsQuery } from "@/lib/cases/limits";
 import { type IntakeDraft, type IntakeMessage, useIntakeChat } from "@/lib/cases/use-intake-chat";
+import { useVoiceRecorder } from "@/lib/cases/voice-recorder";
 import { useDictation } from "@/lib/voice/use-dictation";
 import { UK_JURISDICTIONS, sideLabel, type CaseRegion } from "@/lib/types";
 
@@ -79,6 +80,7 @@ export function IntakeChat({
   creating,
   error,
   onFirstMessage,
+  onFirstVoiceMessage,
   onCreate,
   onEditDetails,
   hasDraft,
@@ -89,6 +91,10 @@ export function IntakeChat({
   error: string;
   /** The client's very first message — goes straight to the real case, no scripted Q&A first. */
   onFirstMessage: (text: string, files: File[]) => void;
+  /** Same, but the first message is a recording instead of typed/dictated text — sent as a voice
+   * message to the newly created case, same pipeline an existing case's Interview tab uses (the
+   * reply comes back with its own playable audio, not just a transcript). */
+  onFirstVoiceMessage: (blob: Blob) => void;
   onCreate: (draft: IntakeDraft, files: File[]) => void;
   onEditDetails: (draft: IntakeDraft, files: File[]) => void;
   onUseForm: () => void;
@@ -101,7 +107,10 @@ export function IntakeChat({
 
   const [text, setText] = useState("");
   // Spoken words land in the box, after anything already typed, to be edited before sending.
+  // Only used once a case already exists (the step-by-step Q&A below) — the very first message
+  // records and sends straight away instead, via `recorder`.
   const voice = useDictation({ onText: (spoken) => setText((t) => (t.trim() ? `${t.trim()} ${spoken}` : spoken)) });
+  const recorder = useVoiceRecorder(onFirstVoiceMessage);
   const [rejected, setRejected] = useState<string[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -181,9 +190,9 @@ export function IntakeChat({
               ))}
             </ul>
           )}
-      {voice.error && (
+      {(empty ? recorder.error : voice.error) && (
         <div role="alert" className="mb-2 px-2 text-[13px] text-error">
-          {voice.error}
+          {empty ? recorder.error : voice.error}
         </div>
       )}
       <div
@@ -192,7 +201,32 @@ export function IntakeChat({
           "flex items-center gap-1.5 rounded-[28px] border border-line-input bg-white p-2 shadow-[0_2px_14px_rgb(0_0_0/0.06)] transition-colors focus-within:border-ink-2",
         )}
       >
-        {voice.phase !== "idle" ? (
+        {empty && recorder.state === "recording" ? (
+          <>
+            <button
+              type="button"
+              onClick={recorder.cancel}
+              aria-label="Cancel recording"
+              data-no-tap
+              className="flex size-11 shrink-0 items-center justify-center rounded-full border border-line-input text-ink-2 hover:border-line-hover hover:text-ink"
+            >
+              <X size={18} aria-hidden="true" />
+            </button>
+            <div role="status" aria-label="Recording" className="flex min-h-11 flex-1 items-center justify-center gap-2.5 text-[14px]">
+              <span aria-hidden className="size-2.5 rounded-full bg-error motion-safe:animate-pulse" />
+              <span className="text-ink-2">Recording</span>
+            </div>
+            <button
+              type="button"
+              onClick={recorder.stop}
+              aria-label="Stop and send"
+              data-no-tap
+              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gold text-white hover:bg-gold-hover"
+            >
+              <Square size={14} className="fill-current" aria-hidden="true" />
+            </button>
+          </>
+        ) : !empty && voice.phase !== "idle" ? (
           <RecorderRow phase={voice.phase} seconds={voice.seconds} onCancel={voice.cancel} onStop={voice.stop} />
         ) : (
           <>
@@ -225,7 +259,10 @@ export function IntakeChat({
               "px-1.5",
             )}
           />
-          <MicButton onClick={() => void voice.start()} disabled={choiceStep || creating || typing} />
+          <MicButton
+            onClick={() => (empty ? recorder.start() : void voice.start())}
+            disabled={choiceStep || creating || typing || (empty && recorder.state === "requesting")}
+          />
           <button
             type="button"
             onClick={send}
