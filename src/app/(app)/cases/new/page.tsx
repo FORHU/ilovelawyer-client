@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
+import { IntakeChat } from "@/components/cases/intake-chat";
+import type { IntakeDraft } from "@/lib/cases/use-intake-chat";
 import { StepBudget, StepDetails, StepDocuments, StepPeople } from "@/components/wizard/steps";
 import { useSession } from "@/lib/auth/session";
 import { useCreateCaseFromWizard } from "@/lib/cases/new-case";
@@ -19,7 +21,7 @@ const STEPS = [
   { numeral: "IV", title: "Documents", hint: "Files for the AI to read" },
 ];
 
-export default function NewCasePage() {
+function NewCase() {
   const router = useRouter();
   const wiz = useWizard();
   const { step, maxStep, title, region, side, budget } = wiz;
@@ -29,6 +31,11 @@ export default function NewCasePage() {
 
   const userId = useSession((s) => s.user?.id);
   const [ready, setReady] = useState(false);
+  // The AI chat is the default way in; the 3-step form is the alternative.
+  // From the URL, so a "New case" link always lands on the chat even when the form is showing.
+  const mode = useSearchParams().get("mode") === "form" ? "form" : "chat";
+  const setMode = (m: "chat" | "form") => router.replace(m === "form" ? "/cases/new?mode=form" : "/cases/new");
+  const [hasDraft, setHasDraft] = useState(false);
 
   // Brings back this account's saved draft (the store hydrates lazily, see wizard-store), then starts
   // at step 1.
@@ -39,6 +46,9 @@ export default function NewCasePage() {
       if (!live) return;
       useWizard.getState().claimFor(userId);
       useWizard.getState().enter();
+      // The chat is always the way in. A form draft left behind is offered as a link, not forced.
+      const saved = useWizard.getState();
+      setHasDraft(!!(saved.title.trim() || saved.areas.length || saved.region || saved.happened || saved.wants));
       setReady(true);
     });
     return () => {
@@ -56,6 +66,61 @@ export default function NewCasePage() {
   const onBack = () => {
     if (wiz.back()) router.push("/cases");
   };
+
+  // What the chat gathered goes into the wizard's draft, so creating from the chat and editing in
+  // the form share one path (and the form is prefilled instead of making the client retype).
+  const loadIntoWizard = (draft: IntakeDraft, files: File[]) => {
+    const w = useWizard.getState();
+    w.reset();
+    w.set({
+      title: draft.title,
+      areas: draft.areas,
+      region: draft.region,
+      where: draft.where,
+      side: draft.side,
+      happened: draft.happened,
+      wants: draft.wants,
+    });
+    draft.others.forEach((o) => {
+      w.addOther();
+      const added = useWizard.getState().others.at(-1);
+      if (added) w.updateOther(added.id, { name: o.name, role: o.role });
+    });
+    w.addFiles(files);
+  };
+
+  if (mode === "chat") {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="mx-auto w-full max-w-[760px] px-4 pt-5 md:px-6">
+          <button
+            type="button"
+            onClick={() => router.push("/cases")}
+            data-no-tap
+            className="flex min-h-8 items-center gap-2 text-[10px] font-semibold uppercase tracking-[1.2px] text-ink-2"
+          >
+            <ArrowLeft size={14} aria-hidden="true" />
+            Cases
+          </button>
+        </div>
+        <IntakeChat
+          creating={creating}
+          error={error}
+          onCreate={(draft, files) => {
+            loadIntoWizard(draft, files);
+            void create();
+          }}
+          onEditDetails={(draft, files) => {
+            loadIntoWizard(draft, files);
+            useWizard.getState().enter();
+            setMode("form");
+          }}
+          hasDraft={hasDraft}
+          onUseForm={() => setMode("form")}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
@@ -78,6 +143,14 @@ export default function NewCasePage() {
               Tell us what happened, who is involved, what you can spend, and add your documents. You can edit
               everything later. A case is free and includes {included} chat credits.
             </p>
+            <button
+              type="button"
+              onClick={() => setMode("chat")}
+              data-no-tap
+              className="min-h-11 self-start text-[13px] font-semibold underline underline-offset-4 hover:text-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+            >
+              Chat with us instead
+            </button>
           </div>
           <ol className="flex flex-row justify-between gap-1 md:flex-col">
             {STEPS.map((s, i) => {
@@ -149,5 +222,13 @@ export default function NewCasePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function NewCasePage() {
+  return (
+    <Suspense fallback={null}>
+      <NewCase />
+    </Suspense>
   );
 }
