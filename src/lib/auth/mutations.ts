@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { resetLanding } from "@/lib/landing";
 import { useApp } from "@/lib/store";
 import { useWizard } from "@/lib/wizard-store";
 import {
@@ -170,6 +171,7 @@ export function useLogoutMutation() {
     onSettled: () => {
       useApp.getState().signOut();
       useWizard.getState().claimFor("");
+      resetLanding();
       queryClient.clear();
       leaveToLogin();
     },

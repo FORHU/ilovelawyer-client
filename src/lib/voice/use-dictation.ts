@@ -9,7 +9,9 @@ export type DictationPhase = "idle" | "recording" | "transcribing";
 /** A spoken answer, not a recording of a hearing: stops by itself after this long. */
 export const MAX_DICTATION_SECONDS = 180;
 const POLL_MS = 2000;
-const MAX_POLLS = 60;
+/** Transcribe takes longer on a longer clip, so the wait grows with it: a floor for a short clip,
+ * then twice the length of the clip on top. */
+const pollBudgetMs = (clipSeconds: number) => 120_000 + clipSeconds * 2000;
 
 export const MIC_OFF = "Microphone is off. You can type instead, or allow it in your browser settings.";
 const UNSUPPORTED = "Voice input isn't available in this browser. You can type instead.";
@@ -31,6 +33,8 @@ export function useDictation({ onText }: { onText: (text: string) => void }) {
   const chunks = useRef<Blob[]>([]);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const discard = useRef(false);
+  const starting = useRef(false);
+  const clipSeconds = useRef(0);
   const alive = useRef(true);
   const onTextRef = useRef(onText);
   useEffect(() => {
@@ -54,11 +58,12 @@ export function useDictation({ onText }: { onText: (text: string) => void }) {
     };
   }, [release]);
 
-  const transcribe = useCallback(async (clip: Blob) => {
+  const transcribe = useCallback(async (clip: Blob, seconds: number) => {
     setPhase("transcribing");
     try {
       const { id } = await startDictation(clip);
-      for (let i = 0; i < MAX_POLLS && alive.current; i++) {
+      const deadline = Date.now() + pollBudgetMs(seconds);
+      while (Date.now() < deadline && alive.current) {
         await sleep(POLL_MS);
         if (!alive.current) return;
         const result = await getDictation(id);
@@ -88,18 +93,23 @@ export function useDictation({ onText }: { onText: (text: string) => void }) {
   }, [stop]);
 
   const start = useCallback(async () => {
-    if (phase !== "idle") return;
+    // `phase` stays idle until the microphone answers, so a second tap in that gap is turned away here.
+    if (phase !== "idle" || starting.current) return;
+    starting.current = true;
     setError("");
     if (typeof MediaRecorder === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      starting.current = false;
       setError(UNSUPPORTED);
       return;
     }
     try {
       const media = await navigator.mediaDevices.getUserMedia({ audio: true });
+      starting.current = false;
       if (!alive.current) {
         media.getTracks().forEach((t) => t.stop());
         return;
       }
+      release();
       stream.current = media;
       const rec = new MediaRecorder(media);
       recorder.current = rec;
@@ -115,18 +125,19 @@ export function useDictation({ onText }: { onText: (text: string) => void }) {
           setPhase("idle");
           return;
         }
-        void transcribe(new Blob(chunks.current, { type: rec.mimeType || "audio/webm" }));
+        void transcribe(new Blob(chunks.current, { type: rec.mimeType || "audio/webm" }), clipSeconds.current);
       };
       setSeconds(0);
+      clipSeconds.current = 0;
       setPhase("recording");
       rec.start();
       timer.current = setInterval(() => {
-        setSeconds((s) => {
-          if (s + 1 >= MAX_DICTATION_SECONDS) stop();
-          return s + 1;
-        });
+        clipSeconds.current += 1;
+        if (clipSeconds.current >= MAX_DICTATION_SECONDS) stop();
+        setSeconds(clipSeconds.current);
       }, 1000);
     } catch {
+      starting.current = false;
       release();
       setPhase("idle");
       setError(MIC_OFF);

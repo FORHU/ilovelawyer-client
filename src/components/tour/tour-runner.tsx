@@ -22,14 +22,25 @@ export function barBottom(sticky: number) {
   return `calc(24px + env(safe-area-inset-bottom, 0px) + ${sticky}px)`;
 }
 
-/** The height of the page's sticky bottom bar, if it has one on screen. */
+/** How much of the bottom of the screen the page's bars cover: the sticky bottom bar and the tab
+ * bar, measured from the screen's bottom edge to the top of the highest, so a bar under another
+ * is counted too. 0 when neither is on screen. */
+function measureStickyHeight() {
+  const tops = ["sticky-bar", "tab-bar"].flatMap((id) => {
+    const el = firstVisible(id);
+    return el ? [el.getBoundingClientRect().top] : [];
+  });
+  return tops.length ? Math.max(0, Math.round(window.innerHeight - Math.min(...tops))) : 0;
+}
+
+/** For the toast, which has no tour loop to measure in (the runner measures inside its own). */
 export function useStickyHeight(enabled: boolean) {
   const [height, setHeight] = useState(0);
   useEffect(() => {
     if (!enabled) return;
     let raf = 0;
     const measure = () => {
-      const h = Math.round(firstVisible("sticky-bar")?.getBoundingClientRect().height ?? 0);
+      const h = measureStickyHeight();
       setHeight((prev) => (prev === h ? prev : h));
       raf = requestAnimationFrame(measure);
     };
@@ -45,7 +56,13 @@ export function useStickyHeight(enabled: boolean) {
 export function TourRunner({ tour, credits }: { tour: ActiveTour; credits: number | null }) {
   const { setStep, finish } = useTour.getState();
   const viewport = useViewport();
-  const sticky = useStickyHeight(viewport.phone);
+  // The page's bottom bars, on a phone, measured in the same frame loop as the spotlight below.
+  const [stickyH, setStickyH] = useState(0);
+  const phone = useRef(viewport.phone);
+  useEffect(() => {
+    phone.current = viewport.phone;
+  });
+  const sticky = viewport.phone ? stickyH : 0;
 
   const steps: TourStep[] = tour.id === "G" ? [tour.step] : tourFor(tour.id, { credits }).steps;
   const kicker = tour.id === "G" ? "Guide" : tourFor(tour.id, { credits }).kicker;
@@ -97,6 +114,10 @@ export function TourRunner({ tour, credits }: { tour: ActiveTour; credits: numbe
     const measure = () => {
       const h = cardRef.current?.getBoundingClientRect().height;
       if (h) setCardH((prev) => (Math.abs(prev - h) > 1 ? h : prev));
+      if (phone.current) {
+        const s = measureStickyHeight();
+        setStickyH((prev) => (prev === s ? prev : s));
+      }
       const el = firstVisible(target.target) ?? (target.fallback ? firstVisible(target.fallback) : null);
       if (el) {
         found = true;
