@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { activityOf, canWithdrawIn, phaseOf, POSITION, showsVisibilityIn, stepsFor, VISIBILITY, type Phase } from "../phase";
+import { activityOf, amountDue, canWithdrawIn, paidThroughUs, phaseOf, quoteExpired, POSITION, showsVisibilityIn, stepsFor, VISIBILITY, type Phase } from "../phase";
 import type { LawyerRequest } from "../api";
 
 const lawyer = (name: string) => ({ id: name, name }) as never;
@@ -84,7 +84,7 @@ describe("activityOf", () => {
       "You sent your request",
       "Asha Rao took up your request",
       "Asha Rao sent a £500 quote",
-      "You confirmed Asha Rao, who can now see your case",
+      "You started working with Asha Rao, who can now see your case",
       "Your lawyer ended the engagement",
     ]);
   });
@@ -104,5 +104,58 @@ describe("VISIBILITY and phase flags", () => {
     expect(showsVisibilityIn("engaged")).toBe(true);
     expect(showsVisibilityIn("closed")).toBe(false);
     expect(showsVisibilityIn("expired")).toBe(false);
+  });
+});
+
+const quotation = (over: Record<string, unknown> = {}) =>
+  ({
+    id: "q1",
+    status: "ACCEPTED",
+    serviceFee: { amountMinor: 50000, currency: "GBP" },
+    platformFee: { amountMinor: 5000, currency: "GBP" },
+    total: { amountMinor: 55000, currency: "GBP" },
+    acceptedAmount: null,
+    expiresAt: "2026-11-20T09:00:00Z",
+    acceptedAt: "2026-11-02T09:00:00Z",
+    paidAt: null,
+    ...over,
+  }) as never;
+
+describe("quotation payments", () => {
+  it("charges the amount fixed on acceptance, else the quote's total", () => {
+    expect(amountDue(quotation())).toEqual({ amountMinor: 55000, currency: "GBP" });
+    expect(amountDue(quotation({ acceptedAmount: { amountMinor: 60000, currency: "GBP" } }))).toEqual({ amountMinor: 60000, currency: "GBP" });
+  });
+
+  it("counts only a paid quotation for more than nothing as paid through us", () => {
+    expect(paidThroughUs(quotation({ status: "PAID" }))).toBe(true);
+    expect(paidThroughUs(quotation({ status: "ACCEPTED" }))).toBe(false);
+    expect(paidThroughUs(quotation({ status: "PAID", total: { amountMinor: 0, currency: "GBP" } }))).toBe(false);
+    expect(paidThroughUs(null)).toBe(false);
+  });
+
+  it("knows when a quote has expired", () => {
+    expect(quoteExpired(quotation({ expiresAt: "2020-01-01T00:00:00Z" }))).toBe(true);
+    expect(quoteExpired(quotation({ expiresAt: "2999-01-01T00:00:00Z" }))).toBe(false);
+  });
+
+  it("asks the client to pay while the request awaits payment", () => {
+    const r = request({ status: "CONFIRMED", awaitingPayment: true, quotation: quotation(), lawyer: { name: "Priya Patel" } as never });
+    const step = stepsFor(r, "finalising")[4]!;
+    expect(step.label).toBe("Pay Priya's quote");
+    expect(step.expect).toMatch(/^Pay by /);
+  });
+
+  it("reports the acceptance and the payment in the activity", () => {
+    const r = request({
+      lawyer: { name: "Asha Rao" } as never,
+      quotation: quotation({ status: "PAID" }),
+      engagedAt: "2026-11-03T09:00:00Z",
+    });
+    expect(activityOf(r).map((e) => e.text)).toEqual([
+      "You sent your request",
+      "You accepted Asha Rao's quote",
+      "You paid Asha Rao, who can now see your case",
+    ]);
   });
 });
