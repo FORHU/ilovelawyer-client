@@ -24,6 +24,9 @@ import { firstName, formatDateTime } from "@/lib/format";
 import { money } from "@/lib/pricing";
 import type { Case } from "@/lib/types";
 
+/** Up to 3 lawyers can take up a request and quote (ilovelawyer-api, several lawyers). */
+const MAX_LAWYERS = 3;
+
 /** Where a request sits on the five-step line. "sent" is its own step (the brief is being written
  * before any lawyer sees it), and "payfail" is CONFIRMED: the client has chosen, the lawyer's side
  * isn't open yet. */
@@ -56,9 +59,11 @@ const POSITION: Record<Phase, number> = { sent: 0, finding: 1, reviewing: 2, quo
 
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
-/** "Friday 6 November" */
-function pickByDay(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+/** "9:00 am on Friday 6 November": the request closes at that moment, not at the end of the day. */
+function pickByTime(iso: string) {
+  const at = new Date(iso);
+  const time = at.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true });
+  return `${time} on ${at.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}`;
 }
 
 interface Step {
@@ -185,7 +190,7 @@ function Tile({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-/** The SRA's referral disclosure, which hiring acknowledges. */
+/** The SRA's referral disclosure: shown before any Hire button, since hiring acknowledges it. */
 function ReferralDisclosure({ text }: { text: string }) {
   return <div className="rounded-input border border-line bg-subtle px-4 py-3 text-xs leading-[1.6] text-ink-2">{text}</div>;
 }
@@ -370,7 +375,7 @@ function OfferCard({
 }
 
 /** The quotes (several lawyers, ilovelawyer-api phase 5): every lawyer on the request, the date to
- * choose by, and the referral disclosure. `confirm` and `decline` belong to
+ * choose by, and the referral disclosure above any Hire. `confirm` and `decline` belong to
  * LawyerTab, which also disables Withdraw while either is running. */
 function QuoteStage({
   c,
@@ -398,6 +403,7 @@ function QuoteStage({
         <div className="flex items-center gap-2 rounded-xl border border-warn-line bg-warn-bg px-3.5 py-3 text-[13px] text-warn-ink">
           You confirmed {first}. They&apos;re finishing setup on their side — you&apos;ll be able to message them here in a few minutes. Nothing else for you to do.
         </div>
+        {request.referralDisclosure && <ReferralDisclosure text={request.referralDisclosure} />}
       </div>
     );
   }
@@ -407,8 +413,11 @@ function QuoteStage({
     <div className="flex flex-col gap-4">
       <h2 className={HEADING}>{quoted > 1 ? `${quoted} quotes received` : "Quote received"}</h2>
       {request.pickByAt && (
-        <p className="text-[13px] text-ink-2">Choose a lawyer by {pickByDay(request.pickByAt)}. If you don&apos;t, this request closes and you can ask again.</p>
+        <p className="text-[13px] text-ink-2">Choose a lawyer by {pickByTime(request.pickByAt)}. If you don&apos;t, this request closes and you can ask again.</p>
       )}
+
+      {/* Above the offers, so it's read before any Hire, which acknowledges it. */}
+      {request.referralDisclosure && <ReferralDisclosure text={request.referralDisclosure} />}
 
       {request.lawyers.map((offer) => (
         <OfferCard
@@ -423,9 +432,9 @@ function QuoteStage({
         />
       ))}
 
-      <div className="text-xs text-ink-2">Other lawyers may still take up your request and send you a quote.</div>
-
-      {request.referralDisclosure && <ReferralDisclosure text={request.referralDisclosure} />}
+      {(request.openToLawyers ?? request.lawyers.length < MAX_LAWYERS) && (
+        <div className="text-xs text-ink-2">Up to {MAX_LAWYERS} lawyers can send you a quote. Others may still take up your request.</div>
+      )}
 
       {error && <ErrorBox message={error} />}
     </div>
@@ -547,7 +556,7 @@ function StageCard({ c, request, phase }: { c: Case; request: LawyerRequest; pha
       <section className={CARD}>
         <h2 className={HEADING}>Finding the right lawyer</h2>
         <p className="text-[#4a4a4a]">
-          Verified lawyers who handle cases like yours have an anonymised summary of your case. Any of them can take it up; each checks for conflicts and sends you a
+          Verified lawyers who handle cases like yours have an anonymised summary of your case. Up to {MAX_LAWYERS} can take it up; each checks for conflicts and sends you a
           quote.
         </p>
         <div className="flex flex-wrap gap-2.5">
