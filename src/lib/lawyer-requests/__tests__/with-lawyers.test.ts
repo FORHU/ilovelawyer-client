@@ -13,7 +13,7 @@ describe("withLawyers", () => {
 
   it("turns an older API's one lawyer and quote into the list, with no claimId", () => {
     const r = withLawyers(base);
-    expect(r.lawyers).toEqual([{ claimId: "", joinedAt: base.createdAt, lawyer, quote }]);
+    expect(r.lawyers).toEqual([{ claimId: "", joinedAt: base.createdAt, lawyer, quote, quotation: null }]);
     expect(r.pickByAt).toBe(null);
   });
 
