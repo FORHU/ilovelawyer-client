@@ -19,9 +19,26 @@ import { useDevice } from "@/components/device/device-provider";
 import { BottomTabBar, MobileTopBar, isImmersive } from "./mobile-nav";
 import { Sidebar } from "./sidebar";
 
+/** The phone's frame. Reads the path (to hide the bars on a chat), so it renders only once the
+ * shell is ready: reading the path in AppShell itself would block prerendering. */
+function MobileFrame({ name, banner, onDismiss, overlays, children }: { name: string; banner: string; onDismiss: () => void; overlays: ReactNode; children: ReactNode }) {
+  const immersive = isImmersive(usePathname());
+  return (
+    <div className="flex h-dvh min-h-0 flex-col">
+      <LandingWatcher />
+      {!immersive && <MobileTopBar name={name} />}
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+        {banner && <SuccessBanner message={banner} onDismiss={onDismiss} />}
+        {children}
+      </div>
+      {!immersive && <BottomTabBar />}
+      {overlays}
+    </div>
+  );
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const pathname = usePathname();
   const device = useDevice();
   const ready = useHydrated();
   const status = useSession((s) => s.status);
@@ -62,18 +79,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 
   if (device === "mobile") {
-    const immersive = isImmersive(pathname);
     return (
-      <div className="flex h-dvh min-h-0 flex-col">
-        <LandingWatcher />
-        {!immersive && <MobileTopBar name={user?.name || ""} />}
-        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
-          {banner && <SuccessBanner message={banner} onDismiss={() => setBanner("")} />}
-          {children}
-        </div>
-        {!immersive && <BottomTabBar />}
-        {overlays}
-      </div>
+      <MobileFrame name={user?.name || ""} banner={banner} onDismiss={() => setBanner("")} overlays={overlays}>
+        {children}
+      </MobileFrame>
     );
   }
 
