@@ -94,8 +94,8 @@ function NewCase() {
               <ArrowLeft size={14} aria-hidden="true" />
               Cases
             </button>
-            {/* The phone has no top bar on this screen, so the guide is here. */}
-            {device === "mobile" && <GuideButton variant="bar" />}
+            {/* The phone has no top bar on this screen, so the guide is here; on a desktop it is here too, where the chat is. */}
+            <GuideButton variant={device === "mobile" ? "bar" : "pill"} />
           </div>
           <TourHint className="mt-3" />
         </div>

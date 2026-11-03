@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, ArrowUp, FileText, Paperclip, Sparkles, X } from "lucide-react";
+import { ArrowUp, FileText, Paperclip, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { ErrorBox } from "@/components/ui/banner";
@@ -119,42 +119,37 @@ export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, has
   if (empty) {
     return (
       <ChatScreen>
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-6">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-6 text-center">
           <h1 className="text-balance font-display text-[30px] font-normal leading-[1.1] tracking-[-0.02em]">What&apos;s going on?</h1>
-          <p className="mt-2.5 text-[15px] leading-[1.5] text-ink-2">
+          <p className="mt-2.5 max-w-[320px] text-[15px] leading-[1.5] text-ink-2">
             Tell us in your own words. We&apos;ll ask a few questions and set up your case.
           </p>
-
-          <div data-tour="starters" className="mt-7">
-            <div className="mb-2 text-[12px] font-medium text-muted">Not sure where to start?</div>
-            <ul className="flex flex-col gap-2">
-              {STARTERS.map((s) => (
-                <li key={s}>
-                  <button
-                    type="button"
-                    onClick={() => chat.submitText(s)}
-                    className="flex min-h-14 w-full items-center justify-between gap-3 rounded-card border border-line-input bg-white px-4 text-left text-[15px] font-medium text-ink active:bg-chip"
-                  >
-                    {s}
-                    <ArrowRight size={16} className="shrink-0 text-gold" aria-hidden="true" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-
           <button
             type="button"
             onClick={onUseForm}
             data-tour="opt-form"
             data-no-tap
-            className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 text-[14px] font-medium text-ink-2 underline underline-offset-4"
+            className="mt-4 flex min-h-11 items-center justify-center gap-2 text-[14px] font-medium text-ink-2 underline underline-offset-4"
           >
             {formLink}
           </button>
         </div>
 
         <ChatBar>
+          {/* Starters sit right above the composer, small, in a row that scrolls sideways. */}
+          <div data-tour="starters" role="group" aria-label="Not sure where to start?" className="no-scrollbar -mx-3 mb-2 flex gap-1.5 overflow-x-auto px-3">
+            {STARTERS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => chat.submitText(s)}
+                data-no-tap
+                className="min-h-9 shrink-0 whitespace-nowrap rounded-full border border-line-chip bg-subtle px-3.5 text-[13px] font-medium text-ink active:bg-chip"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
           {composer}
           <p className="mt-2 text-center text-[11.5px] leading-[1.4] text-muted">AI guidance, not legal advice.</p>
         </ChatBar>

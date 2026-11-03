@@ -165,19 +165,24 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
               </p>
             </div>
 
-            <div>{composer}</div>
+            <div className="flex flex-col gap-3">
+              <div>{composer}</div>
+              <div data-tour="starters" role="group" aria-label="Not sure where to start?" className="flex flex-wrap justify-center gap-1.5">
+                {STARTERS.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => chat.submitText(s)}
+                    data-no-tap
+                    className="min-h-8 rounded-full border border-line-chip bg-subtle px-3 text-[12.5px] font-medium text-ink transition-colors hover:border-gold"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <div className="flex flex-col items-center gap-5">
-              <div data-tour="starters" className="flex flex-col items-center gap-2.5">
-                <div className="text-[12px] text-muted">Not sure where to start?</div>
-                <div className="flex flex-wrap justify-center gap-2">
-                  {STARTERS.map((s) => (
-                    <PromptChip key={s} onClick={() => chat.submitText(s)}>
-                      {s}
-                    </PromptChip>
-                  ))}
-                </div>
-              </div>
               <button
                 type="button"
                 onClick={onUseForm}
