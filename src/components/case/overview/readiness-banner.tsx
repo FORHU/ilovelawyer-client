@@ -143,7 +143,7 @@ function Freshness({
           onClick={onUpdate}
           disabled={updatePending || !canUpdate}
           data-no-tap
-          className="h-7 rounded-full border border-warn-line bg-warn-bg px-3 text-xs font-semibold disabled:opacity-40"
+          className="h-7 rounded-full border border-warn-line bg-warn-bg px-3 text-xs font-semibold disabled:opacity-40 max-md:h-11 max-md:px-4"
         >
           {updatePending
             ? "Updating…"
@@ -163,7 +163,7 @@ function Freshness({
           size="sm"
           onClick={onUpdate}
           disabled={updatePending}
-          className="!h-7 !px-3"
+          className="!h-7 !px-3 max-md:!h-11 max-md:!px-4"
         >
           <RotateCw size={12} aria-hidden />
           Try again
