@@ -16,6 +16,8 @@ export type IntakeChatProps = {
   onCreate: (draft: IntakeDraft, files: File[]) => void;
   onEditDetails: (draft: IntakeDraft, files: File[]) => void;
   onUseForm: () => void;
+  /** The phone's header, where the Check step puts its Edit and Create icons. */
+  headerSlot?: HTMLElement | null;
 };
 
 /** The conversation, held above the per-device views so a device flip (a phone turned sideways)

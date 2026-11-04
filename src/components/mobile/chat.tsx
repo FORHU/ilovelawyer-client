@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { useBodyScrollLock } from "./use-body-scroll-lock";
 import { useKeyboardViewport } from "./use-keyboard-viewport";
 
 /** A phone chat screen: fills the visible area under whatever is above it and lifts its bottom bar
@@ -11,6 +12,9 @@ import { useKeyboardViewport } from "./use-keyboard-viewport";
 export function ChatScreen({ children }: { children: ReactNode }) {
   const { inset, offsetTop } = useKeyboardViewport();
   const open = inset > 0;
+  // The screen is exactly the visible area and only the conversation scrolls. Without this the page
+  // itself can be dragged up past the composer, onto the empty space under it.
+  useBodyScrollLock();
   const screen = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
