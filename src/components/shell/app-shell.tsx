@@ -7,6 +7,7 @@ import { LawyerRequestModal } from "@/components/case/lawyer-request-modal";
 import { LandingWatcher } from "@/components/shell/landing-watcher";
 import { TourLayer } from "@/components/tour/tour-layer";
 import { SuccessBanner } from "@/components/ui/banner";
+import { Toaster } from "@/components/ui/toaster";
 import { leaveToLogin } from "@/lib/auth/api";
 import { useRestoreSessionQuery } from "@/lib/auth/mutations";
 import { useSession } from "@/lib/auth/session";
@@ -67,6 +68,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <PaymentModal />
       <LawyerRequestModal />
       <TourLayer />
+      <Toaster />
     </>
   );
 

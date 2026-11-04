@@ -682,9 +682,30 @@ export function StageCard({ c, request, phase }: { c: Case; request: LawyerReque
     );
   }
   if (phase === "finding") {
+    // Asked by name from Find a lawyer: only they have it until routingExpiresAt.
+    const named = request.requestedLawyer ? (firstName(request.requestedLawyer.name) ?? request.requestedLawyer.name) : null;
+    if (named && request.requestedOnly) {
+      return (
+        <section className={CARD}>
+          <h2 className={HEADING}>Waiting for {named}</h2>
+          <p className="text-[#4a4a4a]">
+            Only {named} has an anonymised summary of your case. If they take it up, they&apos;ll check for conflicts and send you a quote.
+          </p>
+          <div className="flex flex-wrap gap-2.5">
+            <Tile label="Sent">{formatDateTime(request.createdAt)}</Tile>
+            {request.routingExpiresAt && <Tile label={`${named} has until`}>{formatDateTime(request.routingExpiresAt)}</Tile>}
+            <Tile label={`If ${named} can't take it`}>
+              <span className="font-sans text-sm">It goes to other verified lawyers who match, automatically</span>
+            </Tile>
+          </div>
+          <span className="text-[12.5px] text-ink-2">We&apos;ll email you the moment {named} picks it up.</span>
+        </section>
+      );
+    }
     return (
       <section className={CARD}>
         <h2 className={HEADING}>Finding the right lawyer</h2>
+        {named && <p className="text-[#4a4a4a]">{named} couldn&apos;t take it up, so we&apos;ve sent it to other verified lawyers who match, as you agreed.</p>}
         <p className="text-[#4a4a4a]">
           Verified lawyers who handle cases like yours have an anonymised summary of your case. Up to {MAX_LAWYERS} can take it up; each checks for conflicts and sends you a
           quote.
