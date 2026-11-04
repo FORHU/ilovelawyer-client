@@ -1,12 +1,11 @@
 "use client";
 
-import { ArrowRight, ArrowUp, FileText, Paperclip, Sparkles, X } from "lucide-react";
+import { ArrowRight, ArrowUp, FileText, Mic, Paperclip, Sparkles, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Chip, PromptChip } from "@/components/ui/chip";
 import { ErrorBox } from "@/components/ui/banner";
 import { FilePicker } from "@/components/ui/file-picker";
 import { inputClass, WizardLabel } from "@/components/ui/input";
-import { MicButton, RecorderRow } from "@/components/voice/recorder-row";
 import { cn } from "@/lib/cn";
 import type { IntakeMessage } from "@/lib/cases/use-intake-chat";
 import { sideLabel } from "@/lib/types";
@@ -57,7 +56,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 
 export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, hasDraft, onUseForm, controller }: IntakeViewProps) {
   const {
-    areasQuery, areas, chat, step, typing, files, draft, text, setText, voice, rejected, endRef, box,
+    areasQuery, areas, chat, step, typing, files, draft, text, setText, recorder, rejected, endRef, box,
     send, onKey, addFiles, choiceStep, placeholder, areaNames, titleMissing, canAttach, empty, messages,
   } = controller;
 
@@ -89,9 +88,9 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
               ))}
             </ul>
           )}
-      {voice.error && (
+      {empty && recorder.error && (
         <div role="alert" className="mb-2 px-2 text-[13px] text-error">
-          {voice.error}
+          {recorder.error}
         </div>
       )}
       <div
@@ -100,8 +99,36 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
           "flex items-center gap-1.5 rounded-[28px] border border-line-input bg-white p-2 shadow-[0_2px_14px_rgb(0_0_0/0.06)] transition-colors focus-within:border-ink-2",
         )}
       >
-        {voice.phase !== "idle" ? (
-          <RecorderRow phase={voice.phase} seconds={voice.seconds} onCancel={voice.cancel} onStop={voice.stop} />
+        {empty && recorder.phase === "recording" ? (
+          <>
+            <button
+              type="button"
+              onClick={recorder.cancel}
+              aria-label="Cancel recording"
+              data-no-tap
+              className="flex size-11 shrink-0 items-center justify-center rounded-full border border-line-input text-ink-2 hover:border-line-hover hover:text-ink"
+            >
+              <X size={18} aria-hidden="true" />
+            </button>
+            <div role="status" aria-label="Recording" className="flex min-h-11 flex-1 items-center justify-center gap-2.5 text-[14px]">
+              <span aria-hidden className="size-2.5 rounded-full bg-error motion-safe:animate-pulse" />
+              <span className="text-ink-2">Recording</span>
+            </div>
+            <button
+              type="button"
+              onClick={recorder.stop}
+              aria-label="Stop and send"
+              data-no-tap
+              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gold text-white hover:bg-gold-hover"
+            >
+              <Square size={14} className="fill-current" aria-hidden="true" />
+            </button>
+          </>
+        ) : empty && recorder.phase === "transcribing" ? (
+          <div role="status" aria-label="Transcribing" className="flex min-h-11 flex-1 items-center justify-center gap-2.5 text-[14px]">
+            <span aria-hidden className="size-2.5 rounded-full bg-gold motion-safe:animate-pulse" />
+            <span className="text-ink-2">Transcribing…</span>
+          </div>
         ) : (
           <>
           <FilePicker onPick={addFiles}>
@@ -133,7 +160,18 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
               "px-1.5",
             )}
           />
-          <MicButton onClick={() => void voice.start()} disabled={choiceStep || creating || typing} />
+          {empty && (
+            <button
+              type="button"
+              onClick={recorder.start}
+              disabled={creating || recorder.phase === "transcribing"}
+              aria-label="Record a voice message"
+              data-no-tap
+              className="flex size-11 shrink-0 items-center justify-center self-end rounded-full text-ink-2 transition-colors hover:bg-chip hover:text-ink disabled:opacity-40"
+            >
+              <Mic size={20} aria-hidden="true" />
+            </button>
+          )}
           <button
             type="button"
             onClick={send}

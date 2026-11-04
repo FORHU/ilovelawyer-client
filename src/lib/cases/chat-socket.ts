@@ -21,7 +21,10 @@ export interface ChatSocketEvent {
   messageId?: string;
 }
 
-export const CHAT_REPLY_EVENTS = ["chat:done", "chat:error", "chat:cancelled"] as const;
+// chat:voice-transcribed fires once a voice turn's recording has been transcribed, ahead of the
+// AI's reply — same refetch (refreshForChatEvent's default branch) so the transcript appears as
+// soon as it's ready instead of only once the whole answer is done.
+export const CHAT_REPLY_EVENTS = ["chat:done", "chat:error", "chat:cancelled", "chat:voice-transcribed"] as const;
 export type ChatReplyEvent = (typeof CHAT_REPLY_EVENTS)[number];
 
 function isMessagesKey(userId: string | undefined, key: readonly unknown[]): boolean {
@@ -49,6 +52,10 @@ export function refreshForChatEvent(
     refreshes.push(
       queryClient.invalidateQueries({ queryKey: caseKeys.intake(userId, caseId) }),
       queryClient.invalidateQueries({ queryKey: [...caseKeys.all(userId), "lawyer-readiness", caseId] }),
+      // The AI may have just written the case's own fields (e.g. the create_case intake tool),
+      // so the case's detail and its row in the list need refetching too, not just its chat.
+      queryClient.invalidateQueries({ queryKey: caseKeys.detail(userId, caseId) }),
+      queryClient.invalidateQueries({ queryKey: caseKeys.list(userId) }),
     );
   }
   return Promise.all(refreshes);

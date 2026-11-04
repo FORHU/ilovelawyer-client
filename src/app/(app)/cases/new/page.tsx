@@ -10,7 +10,11 @@ import { useDevice } from "@/components/device/device-provider";
 import type { IntakeDraft } from "@/lib/cases/use-intake-chat";
 import { NewCaseForm } from "@/components/wizard/new-case-form";
 import { useSession } from "@/lib/auth/session";
+import { sendMessage } from "@/lib/cases/api";
+import { describeCasePayload } from "@/lib/cases/describe-case";
+import { useFailedUploads } from "@/lib/failed-uploads";
 import { useCreateCaseFromWizard } from "@/lib/cases/new-case";
+import { uploadAll, useCreateCaseMutation } from "@/lib/cases/queries";
 import { usePricingQuery } from "@/lib/pricing";
 import { useWizard } from "@/lib/wizard-store";
 
@@ -21,6 +25,9 @@ function NewCase() {
   const { data: pricing } = usePricingQuery();
   const included = pricing?.case.credits ?? "…";
   const { create, creating, error } = useCreateCaseFromWizard();
+  const createCaseDirect = useCreateCaseMutation();
+  const [chatCreating, setChatCreating] = useState(false);
+  const [chatError, setChatError] = useState("");
 
   const userId = useSession((s) => s.user?.id);
   const [ready, setReady] = useState(false);
@@ -80,6 +87,36 @@ function NewCase() {
     w.addFiles(files);
   };
 
+  // The client's first message IS the submission — no scripted question-by-question gate first.
+  // A bare placeholder case is created immediately (describeCasePayload), the client's own text
+  // runs as its first message, and chat-wonder's create_case tool reads that and writes the real
+  // case details for real, in the background, while the client is already on their case page.
+  const onFirstMessage = async (text: string, files: File[]) => {
+    if (chatCreating || !text.trim()) return;
+    setChatCreating(true);
+    setChatError("");
+    let created;
+    try {
+      created = await createCaseDirect.mutateAsync(describeCasePayload(text));
+    } catch (err) {
+      setChatCreating(false);
+      setChatError(err instanceof Error && err.message ? err.message : "We couldn't create the case. Try again.");
+      return;
+    }
+    const notUploaded = await uploadAll(created.id, files);
+    useFailedUploads.getState().set(created.id, notUploaded);
+    void sendMessage(created.id, text);
+    setChatCreating(false);
+    router.push(`/cases/${created.id}`);
+  };
+
+  // Still used by the scripted review screen reached via "Edit details" — an explicit, opt-in
+  // path for someone who wants to check/adjust fields before anything is created, not the default.
+  const onChatCreate = (draft: IntakeDraft, files: File[]) => {
+    loadIntoWizard(draft, files);
+    void create();
+  };
+
   if (mode === "chat") {
     return (
       <div className="flex min-h-0 flex-1 flex-col">
@@ -100,12 +137,10 @@ function NewCase() {
           <TourHint className="mt-3" />
         </div>
         <IntakeChat
-          creating={creating}
-          error={error}
-          onCreate={(draft, files) => {
-            loadIntoWizard(draft, files);
-            void create();
-          }}
+          creating={creating || chatCreating}
+          error={error || chatError}
+          onFirstMessage={onFirstMessage}
+          onCreate={onChatCreate}
           onEditDetails={(draft, files) => {
             loadIntoWizard(draft, files);
             useWizard.getState().enter();
