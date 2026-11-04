@@ -62,7 +62,7 @@ export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, has
           {rejected.join(" ")}
         </div>
       )}
-      {files.length > 0 && (
+      {files.length > 0 && step !== "check" && (
         <ul className="no-scrollbar -mx-3 mb-2 flex gap-1.5 overflow-x-auto px-3" aria-label="Attached files">
           {files.map((f, i) => (
             <li key={`${f.name}-${i}`} className="inline-flex min-h-9 max-w-[70%] shrink-0 items-center gap-1.5 rounded-full bg-chip pl-3 pr-1 text-[13px] text-ink">
@@ -126,7 +126,7 @@ export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, has
                 <Mic size={20} aria-hidden="true" />
               </ComposerButton>
             )}
-            <ComposerButton tone="send" onClick={c.send} disabled={!text.trim() || typing || creating} aria-label="Send">
+            <ComposerButton tone="send" onClick={c.send} disabled={!c.canSend || creating} aria-label="Send">
               <ArrowUp size={20} aria-hidden="true" />
             </ComposerButton>
           </>
@@ -344,9 +344,9 @@ export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, has
                 <ReplyChip onClick={chat.skip}>{step === "others" ? "Done" : "Skip"}</ReplyChip>
               </QuickReplies>
             )}
-            {!typing && step === "more" && (
+            {!typing && step === "more" && files.length === 0 && (
               <QuickReplies label="Quick replies">
-                <ReplyChip onClick={chat.confirmFiles}>{files.length ? "Continue" : "No documents"}</ReplyChip>
+                <ReplyChip onClick={chat.confirmFiles}>No documents</ReplyChip>
               </QuickReplies>
             )}
             {composer}

@@ -57,7 +57,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, hasDraft, onUseForm, controller }: IntakeViewProps) {
   const {
     areasQuery, areas, chat, step, typing, files, draft, text, setText, recorder, rejected, endRef, box,
-    send, onKey, addFiles, choiceStep, placeholder, areaNames, titleMissing, canAttach, empty, messages,
+    send, canSend, onKey, addFiles, choiceStep, placeholder, areaNames, titleMissing, canAttach, empty, messages,
   } = controller;
 
   const composer = (
@@ -67,7 +67,7 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
               {rejected.join(" ")}
             </div>
           )}
-          {files.length > 0 && (
+          {files.length > 0 && step !== "check" && (
             <ul className="mb-2 flex flex-wrap gap-1.5" aria-label="Attached files">
               {files.map((f, i) => (
                 <li
@@ -175,7 +175,7 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
           <button
             type="button"
             onClick={send}
-            disabled={!text.trim() || typing || choiceStep || creating}
+            disabled={!canSend || choiceStep || creating}
             aria-label="Send"
             data-no-tap
             className="flex size-11 shrink-0 items-center justify-center self-end rounded-full bg-ink text-white transition-colors hover:bg-primary disabled:bg-chip disabled:text-muted"
@@ -313,9 +313,9 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
               </div>
             )}
 
-            {!typing && step === "more" && (
+            {!typing && step === "more" && files.length === 0 && (
               <div className="flex flex-wrap gap-1.5 pl-[42px]">
-                <PromptChip onClick={chat.confirmFiles}>{files.length ? "Continue" : "No documents"}</PromptChip>
+                <PromptChip onClick={chat.confirmFiles}>No documents</PromptChip>
               </div>
             )}
 
