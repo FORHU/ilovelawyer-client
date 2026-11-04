@@ -36,6 +36,8 @@ function NewCase() {
   const mode = useSearchParams().get("mode") === "form" ? "form" : "chat";
   const setMode = (m: "chat" | "form") => router.replace(m === "form" ? "/cases/new?mode=form" : "/cases/new");
   const [hasDraft, setHasDraft] = useState(false);
+  // Where the phone's Check step portals its Edit and Create icons (see IntakeChatMobile).
+  const [actionsSlot, setActionsSlot] = useState<HTMLElement | null>(null);
 
   // Brings back this account's saved draft (the store hydrates lazily, see wizard-store), then starts
   // at step 1.
@@ -132,7 +134,10 @@ function NewCase() {
               Cases
             </button>
             {/* The phone has no top bar on this screen, so the guide is here; on a desktop it is here too, where the chat is. */}
-            <GuideButton variant={device === "mobile" ? "bar" : "pill"} />
+            <div className="flex items-center gap-2">
+              {device === "mobile" && <div ref={setActionsSlot} className="flex items-center gap-2" />}
+              <GuideButton variant={device === "mobile" ? "bar" : "pill"} />
+            </div>
           </div>
           <TourHint className="mt-3" />
         </div>
@@ -147,6 +152,7 @@ function NewCase() {
             setMode("form");
           }}
           hasDraft={hasDraft}
+          headerSlot={actionsSlot}
           onUseForm={() => setMode("form")}
         />
       </div>

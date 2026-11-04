@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowUp, FileText, Mic, Paperclip, Sparkles, Square, X } from "lucide-react";
+import { createPortal } from "react-dom";
+import { ArrowUp, FilePlus2, FileText, Loader2, Mic, Paperclip, Pencil, Sparkles, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { ErrorBox } from "@/components/ui/banner";
@@ -48,7 +49,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, hasDraft, onUseForm, controller: c }: IntakeViewProps) {
+export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, hasDraft, onUseForm, headerSlot, controller: c }: IntakeViewProps) {
   const { chat, areas, step, typing, files, draft, text, setText, recorder, rejected, endRef, box, empty } = c;
 
   const showChoices = !typing && c.choiceStep;
@@ -177,8 +178,42 @@ export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, has
 
   const textStepSkip = !typing && (step === "where" || step === "others" || step === "want");
 
+  const checking = !typing && step === "check";
+  const createDisabled = creating || c.titleMissing || draft.areas.length === 0 || !draft.region;
+
   return (
     <ChatScreen>
+      {/* Edit and Create sit in the page header, top right beside the guide, so the bottom bar is left to the composer. */}
+      {checking &&
+        headerSlot &&
+        createPortal(
+          <>
+            <button
+              type="button"
+              onClick={() => onEditDetails(draft, files)}
+              disabled={creating}
+              aria-label="Edit details"
+              title="Edit details"
+              data-no-tap
+              className="flex size-11 items-center justify-center rounded-full border border-line-input bg-white text-ink-2 transition-colors active:bg-chip disabled:opacity-40"
+            >
+              <Pencil size={18} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onCreate(draft, files)}
+              disabled={createDisabled}
+              aria-label={creating ? "Creating case" : "Create case"}
+              aria-busy={creating}
+              title="Create case"
+              data-no-tap
+              className="flex size-11 items-center justify-center rounded-full bg-primary text-white transition-colors active:bg-ink disabled:opacity-40"
+            >
+              {creating ? <Loader2 size={18} className="motion-safe:animate-spin" aria-hidden="true" /> : <FilePlus2 size={18} aria-hidden="true" />}
+            </button>
+          </>,
+          headerSlot,
+        )}
       <div role="log" aria-label="Conversation with ilovelawyer AI" aria-live="polite" className="min-h-0 flex-1 overflow-y-auto">
         <div className="flex flex-col gap-3 px-4 py-4">
           {c.messages.map((m) => (
@@ -298,20 +333,7 @@ export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, has
         {!typing && step === "check" && (
           <>
             {error && <ErrorBox message={error} />}
-            <div className="flex gap-2">
-              <Button variant="outline" size="lg" className="flex-1" disabled={creating} onClick={() => onEditDetails(draft, files)}>
-                Edit details
-              </Button>
-              <Button
-                size="lg"
-                className="flex-[1.4]"
-                disabled={creating || c.titleMissing || draft.areas.length === 0 || !draft.region}
-                onClick={() => onCreate(draft, files)}
-              >
-                {creating ? "Creating…" : "Create case"}
-              </Button>
-            </div>
-            <div className="mt-2.5">{composer}</div>
+            {composer}
           </>
         )}
 
