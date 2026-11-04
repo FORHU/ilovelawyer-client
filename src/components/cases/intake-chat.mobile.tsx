@@ -93,6 +93,11 @@ export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, has
               <Square size={16} className="fill-current" aria-hidden="true" />
             </ComposerButton>
           </>
+        ) : empty && recorder.phase === "transcribing" ? (
+          <div role="status" aria-label="Transcribing" className="flex min-h-11 flex-1 items-center justify-center gap-2.5 text-[14px]">
+            <span aria-hidden className="size-2.5 rounded-full bg-gold motion-safe:animate-pulse" />
+            <span className="text-ink-2">Transcribing…</span>
+          </div>
         ) : (
           <>
             <FilePicker onPick={c.addFiles}>

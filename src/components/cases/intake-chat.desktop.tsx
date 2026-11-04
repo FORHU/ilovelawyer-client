@@ -124,6 +124,11 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
               <Square size={14} className="fill-current" aria-hidden="true" />
             </button>
           </>
+        ) : empty && recorder.phase === "transcribing" ? (
+          <div role="status" aria-label="Transcribing" className="flex min-h-11 flex-1 items-center justify-center gap-2.5 text-[14px]">
+            <span aria-hidden className="size-2.5 rounded-full bg-gold motion-safe:animate-pulse" />
+            <span className="text-ink-2">Transcribing…</span>
+          </div>
         ) : (
           <>
           <FilePicker onPick={addFiles}>
