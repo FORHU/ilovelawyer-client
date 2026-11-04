@@ -99,7 +99,7 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
           "flex items-center gap-1.5 rounded-[28px] border border-line-input bg-white p-2 shadow-[0_2px_14px_rgb(0_0_0/0.06)] transition-colors focus-within:border-ink-2",
         )}
       >
-        {empty && recorder.state === "recording" ? (
+        {empty && recorder.phase === "recording" ? (
           <>
             <button
               type="button"
@@ -159,7 +159,7 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
             <button
               type="button"
               onClick={recorder.start}
-              disabled={creating || recorder.state === "requesting"}
+              disabled={creating || recorder.phase === "transcribing"}
               aria-label="Record a voice message"
               data-no-tap
               className="flex size-11 shrink-0 items-center justify-center self-end rounded-full text-ink-2 transition-colors hover:bg-chip hover:text-ink disabled:opacity-40"

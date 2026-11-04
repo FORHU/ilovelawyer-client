@@ -10,7 +10,7 @@ import { useDevice } from "@/components/device/device-provider";
 import type { IntakeDraft } from "@/lib/cases/use-intake-chat";
 import { NewCaseForm } from "@/components/wizard/new-case-form";
 import { useSession } from "@/lib/auth/session";
-import { sendMessage, sendVoiceMessage } from "@/lib/cases/api";
+import { sendMessage } from "@/lib/cases/api";
 import { describeCasePayload } from "@/lib/cases/describe-case";
 import { useFailedUploads } from "@/lib/failed-uploads";
 import { useCreateCaseFromWizard } from "@/lib/cases/new-case";
@@ -110,31 +110,6 @@ function NewCase() {
     router.push(`/cases/${created.id}`);
   };
 
-  // Same placeholder-case-first shape as onFirstMessage above, but for a spoken first message:
-  // the case is created with a generic title (there's no text yet to derive one from — the real
-  // title comes from chat-wonder's create_case tool once the recording is transcribed), then the
-  // recording itself is sent as a voice message, same endpoint and pipeline an existing case's
-  // Interview tab uses (transcribe, answer, synthesize the reply's audio).
-  const onFirstVoiceMessage = async (blob: Blob) => {
-    if (chatCreating) return;
-    setChatCreating(true);
-    setChatError("");
-    try {
-      const created = await createCaseDirect.mutateAsync(describeCasePayload(""));
-      // Awaited, unlike onFirstMessage's fire-and-forget sendMessage: a voice message uploads the
-      // whole recording to S3 before the message even exists, which takes long enough that
-      // navigating away first landed on the new case's empty "Tell me about your situation"
-      // screen with no sign anything was happening. Staying here with chatCreating still true
-      // (the composer's own disabled/"Sending…" state) until the upload actually lands avoids that.
-      await sendVoiceMessage(created.id, blob);
-      router.push(`/cases/${created.id}`);
-    } catch (err) {
-      setChatError(err instanceof Error && err.message ? err.message : "We couldn't send that recording. Try again.");
-    } finally {
-      setChatCreating(false);
-    }
-  };
-
   // Still used by the scripted review screen reached via "Edit details" — an explicit, opt-in
   // path for someone who wants to check/adjust fields before anything is created, not the default.
   const onChatCreate = (draft: IntakeDraft, files: File[]) => {
@@ -165,7 +140,6 @@ function NewCase() {
           creating={creating || chatCreating}
           error={error || chatError}
           onFirstMessage={onFirstMessage}
-          onFirstVoiceMessage={onFirstVoiceMessage}
           onCreate={onChatCreate}
           onEditDetails={(draft, files) => {
             loadIntoWizard(draft, files);

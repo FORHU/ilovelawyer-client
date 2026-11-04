@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent } from "react";
-import { useIntakeQuery, useMessagesQuery, useSendMessageMutation, useSendVoiceMessageMutation, useUploadDocumentsMutation } from "@/lib/cases/queries";
-import { useVoiceRecorder } from "@/lib/cases/voice-recorder";
+import { useIntakeQuery, useMessagesQuery, useSendMessageMutation, useUploadDocumentsMutation } from "@/lib/cases/queries";
+import { useDictation } from "@/lib/voice/use-dictation";
 import { useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
 import { useSocketConnected } from "@/lib/socket";
 import type { Case } from "@/lib/types";
@@ -25,7 +25,6 @@ export function useConsultation(c: Case) {
   const { data, error: loadError } = useMessagesQuery(c.id);
   const { data: intake } = useIntakeQuery(c.id, c.documents.some((d) => d.status === "PENDING"));
   const sendMessage = useSendMessageMutation(c.id);
-  const sendVoice = useSendVoiceMessageMutation(c.id);
   const upload = useUploadDocumentsMutation(c.id);
   // The reply arrives over the socket, so while it's down the wait is the connection's, not the AI's.
   const connected = useSocketConnected();
@@ -37,13 +36,9 @@ export function useConsultation(c: Case) {
   const scroller = useRef<HTMLDivElement>(null);
   const dragCounter = useRef(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  // A voice message records and sends straight away — no editable transcription step, same as the
-  // client's own voice bubble it plays back as.
-  const recorder = useVoiceRecorder((blob) =>
-    sendVoice.mutate(blob, {
-      onError: (err) => setNotice(err instanceof Error ? err.message : "Couldn't send that recording. Try again."),
-    }),
-  );
+  // The mic records, transcribes, and sends straight away as a normal text message — no audio
+  // message, no editable review step, no AI voice reply (there's no voice turn to reply to).
+  const recorder = useDictation({ onText: (text) => send(text) });
 
   const messages = data?.messages ?? [];
   const documentById = new Map(c.documents.map((d) => [d.id, d]));
@@ -161,7 +156,7 @@ export function useConsultation(c: Case) {
   };
 
   return {
-    credits, openRequest, loadError, sendMessage, sendVoice, upload, connected,
+    credits, openRequest, loadError, sendMessage, upload, connected,
     input, setInput, notice, attachedIds, dragging, scroller, textareaRef, recorder,
     messages, documentById, thinking, out, lastFailed, latestAnswer, missing,
     attachmentPending, failedAttachedIds, sendableAttachedIds,

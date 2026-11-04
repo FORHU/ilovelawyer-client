@@ -14,7 +14,7 @@ import { PROMPTS, type Consultation } from "./use-consultation";
 
 export function ConsultationMobile({ c, consultation }: { c: Case; consultation: Consultation }) {
   const {
-    recorder, out, thinking, messages, documentById, scroller, missing, openRequest, lastFailed, latestAnswer, connected, loadError, notice, credits, attachedIds, failedAttachedIds, removeAttached, input, setInput, onPaste, textareaRef, attach, upload, sendVoice, attachmentPending, sendableAttachedIds, send,
+    recorder, out, thinking, messages, documentById, scroller, missing, openRequest, lastFailed, latestAnswer, connected, loadError, notice, credits, attachedIds, failedAttachedIds, removeAttached, input, setInput, onPaste, textareaRef, attach, upload, attachmentPending, sendableAttachedIds, send,
   } = consultation;
 
   return (
@@ -154,7 +154,7 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
           className={cn(out && "pointer-events-none opacity-50")}
         >
           <ComposerPill>
-            {recorder.state === "recording" ? (
+            {recorder.phase === "recording" ? (
               <>
                 <ComposerButton onClick={recorder.cancel} aria-label="Cancel recording">
                   <X size={20} aria-hidden="true" />
@@ -191,7 +191,7 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
                 />
                 <ComposerButton
                   onClick={recorder.start}
-                  disabled={out || thinking || upload.isPending || recorder.state === "requesting" || sendVoice.isPending}
+                  disabled={out || thinking || upload.isPending || recorder.phase === "transcribing"}
                   aria-label="Record a voice message"
                 >
                   <Mic size={20} aria-hidden="true" />
@@ -209,10 +209,10 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
           </ComposerPill>
         </form>
         <p className="mt-2 text-center text-[11.5px] leading-[1.4] text-muted">
-          {recorder.state === "recording"
+          {recorder.phase === "recording"
             ? "Recording…"
-            : sendVoice.isPending
-              ? "Sending…"
+            : recorder.phase === "transcribing"
+              ? "Transcribing…"
               : upload.isPending || attachmentPending
                 ? "Uploading…"
                 : `${credits} credits left · 1 per message`}

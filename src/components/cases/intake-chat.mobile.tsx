@@ -80,7 +80,7 @@ export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, has
         </div>
       )}
       <ComposerPill data-tour="chatbox">
-        {empty && recorder.state === "recording" ? (
+        {empty && recorder.phase === "recording" ? (
           <>
             <ComposerButton onClick={recorder.cancel} aria-label="Cancel recording">
               <X size={20} aria-hidden="true" />
@@ -116,7 +116,7 @@ export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, has
               className="min-h-11 min-w-0 flex-1 resize-none bg-transparent px-1 py-2.5 text-base leading-6 text-ink outline-none placeholder:text-muted disabled:cursor-not-allowed"
             />
             {empty && (
-              <ComposerButton onClick={recorder.start} disabled={creating || recorder.state === "requesting"} aria-label="Record a voice message">
+              <ComposerButton onClick={recorder.start} disabled={creating || recorder.phase === "transcribing"} aria-label="Record a voice message">
                 <Mic size={20} aria-hidden="true" />
               </ComposerButton>
             )}

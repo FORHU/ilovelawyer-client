@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useCaseAreasQuery } from "@/lib/cases/case-areas";
 import { checkFiles, useLimitsQuery } from "@/lib/cases/limits";
 import { type IntakeDraft, useIntakeChat } from "@/lib/cases/use-intake-chat";
-import { useVoiceRecorder } from "@/lib/cases/voice-recorder";
+import { useDictation } from "@/lib/voice/use-dictation";
 import type { CaseRegion } from "@/lib/types";
 import { UK_JURISDICTIONS } from "@/lib/types";
 
@@ -12,12 +12,9 @@ export type IntakeChatProps = {
   hasDraft: boolean;
   creating: boolean;
   error: string;
-  /** The client's very first message — goes straight to the real case, no scripted Q&A first. */
+  /** The client's very first message — goes straight to the real case, no scripted Q&A first.
+   * Also what a spoken first message becomes once transcribed — there's no separate voice path. */
   onFirstMessage: (text: string, files: File[]) => void;
-  /** Same, but the first message is a recording instead of typed text — sent as a voice message
-   * to the newly created case, same pipeline an existing case's Interview tab uses (the reply
-   * comes back with its own playable audio, not just a transcript). */
-  onFirstVoiceMessage: (blob: Blob) => void;
   onCreate: (draft: IntakeDraft, files: File[]) => void;
   onEditDetails: (draft: IntakeDraft, files: File[]) => void;
   onUseForm: () => void;
@@ -48,7 +45,7 @@ const PLACEHOLDER = {
 /** Everything the case-creation chat does, shared by its desktop and mobile views: the
  * conversation (use-intake-chat), the composer's text, voice recording, attachments and what to
  * show for the current step. The views only decide how it is laid out. */
-export function useIntakeController({ onFirstMessage, onFirstVoiceMessage }: Pick<IntakeChatProps, "onFirstMessage" | "onFirstVoiceMessage">) {
+export function useIntakeController({ onFirstMessage }: Pick<IntakeChatProps, "onFirstMessage">) {
   const areasQuery = useCaseAreasQuery();
   const areas = areasQuery.data ?? [];
   const chat = useIntakeChat({ areas });
@@ -57,9 +54,10 @@ export function useIntakeController({ onFirstMessage, onFirstVoiceMessage }: Pic
 
   const [text, setText] = useState("");
   const empty = messages.length === 0;
-  // The very first message records and sends straight away, no editable transcription step — it
-  // goes to onFirstVoiceMessage below, never into `chat`'s own scripted Q&A.
-  const recorder = useVoiceRecorder(onFirstVoiceMessage);
+  // The mic (shown only on the empty, pre-first-message screen) records, transcribes, and sends
+  // straight away — a spoken first message goes to onFirstMessage exactly like a typed one, never
+  // into `chat`'s own scripted Q&A.
+  const recorder = useDictation({ onText: (text) => onFirstMessage(text, files) });
   const [rejected, setRejected] = useState<string[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
 

@@ -12,7 +12,7 @@ import { PROMPTS, type Consultation } from "./use-consultation";
 
 export function ConsultationDesktop({ c, consultation }: { c: Case; consultation: Consultation }) {
   const {
-    credits, openRequest, loadError, sendVoice, upload, connected, input, setInput, notice, dragging, scroller, textareaRef, recorder,
+    credits, openRequest, loadError, upload, connected, input, setInput, notice, dragging, scroller, textareaRef, recorder,
     messages, documentById, thinking, out, lastFailed, latestAnswer, missing, attachmentPending, failedAttachedIds,
     sendableAttachedIds, attachedIds, removeAttached, send, attach, onDrop, onDragEnter, onDragLeave, onPaste,
   } = consultation;
@@ -194,7 +194,7 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
                 </button>
               )}
             </FilePicker>
-            {recorder.state === "recording" ? (
+            {recorder.phase === "recording" ? (
               <>
                 <button
                   type="button"
@@ -222,7 +222,7 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
                 type="button"
                 title="Record a voice message"
                 aria-label="Record a voice message"
-                disabled={out || thinking || recorder.state === "requesting" || sendVoice.isPending}
+                disabled={out || thinking || recorder.phase === "transcribing"}
                 onClick={recorder.start}
                 data-no-tap
                 className="flex size-9 shrink-0 items-center justify-center self-end rounded-full border border-line text-muted disabled:opacity-60"
@@ -250,10 +250,10 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
               className="my-1.5 min-w-0 flex-1 resize-none bg-transparent px-3.5 text-[15px] leading-[1.5] text-ink outline-none"
             />
             <span className="mb-1.5 whitespace-nowrap self-end text-[11px] text-muted">
-              {recorder.state === "recording"
+              {recorder.phase === "recording"
                 ? "Recording…"
-                : sendVoice.isPending
-                  ? "Sending…"
+                : recorder.phase === "transcribing"
+                  ? "Transcribing…"
                   : upload.isPending || attachmentPending
                     ? "Uploading…"
                     : `${credits} credits`}
