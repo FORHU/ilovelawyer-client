@@ -1,14 +1,13 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { ArrowUp, FilePlus2, FileText, Loader2, Paperclip, Pencil, Sparkles, X } from "lucide-react";
+import { ArrowUp, FilePlus2, FileText, Loader2, Mic, Paperclip, Pencil, Sparkles, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { ErrorBox } from "@/components/ui/banner";
 import { FilePicker } from "@/components/ui/file-picker";
 import { inputClass, WizardLabel } from "@/components/ui/input";
 import { ChatBar, ChatScreen, ComposerButton, ComposerPill, QuickReplies, ReplyChip } from "@/components/mobile/chat";
-import { MicButton, RecorderRow } from "@/components/voice/recorder-row";
 import { cn } from "@/lib/cn";
 import type { IntakeMessage } from "@/lib/cases/use-intake-chat";
 import { sideLabel } from "@/lib/types";
@@ -51,7 +50,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, hasDraft, onUseForm, headerSlot, controller: c }: IntakeViewProps) {
-  const { chat, areas, step, typing, files, draft, text, setText, voice, rejected, endRef, box, empty } = c;
+  const { chat, areas, step, typing, files, draft, text, setText, recorder, rejected, endRef, box, empty } = c;
 
   const showChoices = !typing && c.choiceStep;
   const formLink = hasDraft ? "Resume your form draft" : "Prefer a form? Fill it in instead";
@@ -76,14 +75,30 @@ export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, has
           ))}
         </ul>
       )}
-      {voice.error && (
+      {empty && recorder.error && (
         <div role="alert" className="mb-2 px-1 text-[13px] text-error">
-          {voice.error}
+          {recorder.error}
         </div>
       )}
       <ComposerPill data-tour="chatbox">
-        {voice.phase !== "idle" ? (
-          <RecorderRow phase={voice.phase} seconds={voice.seconds} onCancel={voice.cancel} onStop={voice.stop} />
+        {empty && recorder.phase === "recording" ? (
+          <>
+            <ComposerButton onClick={recorder.cancel} aria-label="Cancel recording">
+              <X size={20} aria-hidden="true" />
+            </ComposerButton>
+            <div role="status" aria-label="Recording" className="flex min-h-11 flex-1 items-center justify-center gap-2.5 text-[14px]">
+              <span aria-hidden className="size-2.5 rounded-full bg-error motion-safe:animate-pulse" />
+              <span className="text-ink-2">Recording</span>
+            </div>
+            <ComposerButton tone="send" onClick={recorder.stop} aria-label="Stop and send recording">
+              <Square size={16} className="fill-current" aria-hidden="true" />
+            </ComposerButton>
+          </>
+        ) : empty && recorder.phase === "transcribing" ? (
+          <div role="status" aria-label="Transcribing" className="flex min-h-11 flex-1 items-center justify-center gap-2.5 text-[14px]">
+            <span aria-hidden className="size-2.5 rounded-full bg-gold motion-safe:animate-pulse" />
+            <span className="text-ink-2">Transcribing…</span>
+          </div>
         ) : (
           <>
             <FilePicker onPick={c.addFiles}>
@@ -106,7 +121,11 @@ export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, has
               // 24px of text + 10px above and below = 44px, the height of the round buttons beside it.
               className="min-h-11 min-w-0 flex-1 resize-none bg-transparent px-1 py-2.5 text-base leading-6 text-ink outline-none placeholder:text-muted disabled:cursor-not-allowed"
             />
-            <MicButton onClick={() => void voice.start()} disabled={creating || typing} />
+            {empty && (
+              <ComposerButton onClick={recorder.start} disabled={creating || recorder.phase === "transcribing"} aria-label="Record a voice message">
+                <Mic size={20} aria-hidden="true" />
+              </ComposerButton>
+            )}
             <ComposerButton tone="send" onClick={c.send} disabled={!text.trim() || typing || creating} aria-label="Send">
               <ArrowUp size={20} aria-hidden="true" />
             </ComposerButton>

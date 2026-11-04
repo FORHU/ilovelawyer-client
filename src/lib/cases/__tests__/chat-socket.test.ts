@@ -24,15 +24,16 @@ describe("refreshForChatEvent", () => {
   const intakeA = caseKeys.intake(USER, "case-a");
   const readinessA = [...caseKeys.all(USER), "lawyer-readiness", "case-a", "m-1"];
   const detailA = caseKeys.detail(USER, "case-a");
+  const list = caseKeys.list(USER);
 
   beforeEach(() => {
     queryClient = new QueryClient();
-    invalidated = seed(queryClient, [messagesA, messagesB, intakeA, readinessA, detailA]);
+    invalidated = seed(queryClient, [messagesA, messagesB, intakeA, readinessA, detailA, list]);
   });
 
-  it("chat:done refetches that case's chat, its Overview and its lawyer check, and nothing else", async () => {
+  it("chat:done refetches that case's chat, its Overview, its lawyer check, its own fields, and the case list", async () => {
     await refreshForChatEvent(queryClient, USER, "chat:done", { caseId: "case-a", messageId: "m-1" });
-    expect(invalidated()).toEqual([messagesA, intakeA, readinessA].map((k) => JSON.stringify(k)));
+    expect(invalidated()).toEqual([messagesA, intakeA, readinessA, detailA, list].map((k) => JSON.stringify(k)));
   });
 
   it("chat:error refetches only that case's chat, which then shows the reply failed", async () => {

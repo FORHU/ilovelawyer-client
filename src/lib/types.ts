@@ -79,6 +79,9 @@ export interface ChatMessage {
    * these up against the case's own `documents` list for the name/status to show — the message
    * list doesn't resolve them inline (see ilovelawyer-api's IntakeChatSvc.listMessages). */
   documentIds: string[];
+  /** Playable audio: the client's own recording on a voice-originated message, or Polly's
+   * synthesized reply on its answer. Null on an ordinary typed turn. */
+  audioUrl?: string | null;
   createdAt: string;
 }
 

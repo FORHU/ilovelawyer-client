@@ -1,11 +1,10 @@
 "use client";
 
-import { ArrowUpRight, FileText, Paperclip, X } from "lucide-react";
+import { ArrowUpRight, FileText, Mic, Paperclip, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { FilePicker } from "@/components/ui/file-picker";
 import { AiMark } from "@/components/ui/misc";
-import { MicButton, RecorderRow } from "@/components/voice/recorder-row";
 import { LawyerSuggestion } from "@/components/case/lawyer-suggestion";
 import { usePayment } from "@/lib/payment-store";
 import type { Case } from "@/lib/types";
@@ -13,7 +12,7 @@ import { PROMPTS, type Consultation } from "./use-consultation";
 
 export function ConsultationDesktop({ c, consultation }: { c: Case; consultation: Consultation }) {
   const {
-    credits, openRequest, loadError, upload, connected, input, setInput, notice, dragging, scroller, textareaRef, voice,
+    credits, openRequest, loadError, upload, connected, input, setInput, notice, dragging, scroller, textareaRef, recorder,
     messages, documentById, thinking, out, lastFailed, latestAnswer, missing, attachmentPending, failedAttachedIds,
     sendableAttachedIds, attachedIds, removeAttached, send, attach, onDrop, onDragEnter, onDragLeave, onPaste,
   } = consultation;
@@ -44,6 +43,7 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
                   <div className="rounded-[18px_18px_4px_18px] border border-line bg-bubble px-4 py-3 text-[15px] leading-[1.6]">
                     {m.text}
                   </div>
+                  {m.audioUrl && <audio controls src={m.audioUrl} className="h-8 w-56" />}
                   {(m.documentIds ?? []).length > 0 && (
                     <div className="flex flex-wrap justify-end gap-1.5">
                       {(m.documentIds ?? []).map((id) => {
@@ -63,6 +63,7 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
                   <AiMark />
                   <div className="flex min-w-0 flex-col gap-2.5 text-[15px] leading-[1.7]">
                     <div className="whitespace-pre-line">{m.text}</div>
+                    {m.audioUrl && <audio controls src={m.audioUrl} className="h-8 w-56" />}
                     <div className="text-xs text-muted">I collect and organise your information for a lawyer. I can&apos;t give legal advice.</div>
                   </div>
                 </div>
@@ -128,6 +129,7 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
           )}
           {loadError && <ErrorBox message={loadError.message} />}
           {notice && <div className="text-center text-[12.5px] text-ink-2">{notice}</div>}
+          {recorder.error && <div className="text-center text-[12.5px] text-error">{recorder.error}</div>}
           {out && (
             <div className="flex flex-wrap items-center gap-3 rounded-card border border-line bg-subtle px-4 py-3">
               <div className="min-w-[180px] flex-1 text-[13px] leading-[1.5]">
@@ -169,11 +171,6 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
               })}
             </div>
           )}
-          {voice.error && (
-            <div role="alert" className="text-center text-[12.5px] text-error">
-              {voice.error}
-            </div>
-          )}
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -182,59 +179,94 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
             data-tour="composer"
             className={`flex items-end gap-1.5 rounded-composer border border-line bg-subtle p-2 ${out ? "pointer-events-none opacity-50" : ""}`}
           >
-            {voice.phase !== "idle" ? (
-              <RecorderRow phase={voice.phase} seconds={voice.seconds} onCancel={voice.cancel} onStop={voice.stop} />
-            ) : (
+            <FilePicker onPick={attach}>
+              {(open) => (
+                <button
+                  type="button"
+                  title="Attach a document"
+                  aria-label="Attach a document"
+                  disabled={out || upload.isPending}
+                  onClick={open}
+                  data-no-tap
+                  className="flex size-9 shrink-0 items-center justify-center self-end rounded-full border border-line text-muted disabled:opacity-60"
+                >
+                  <Paperclip size={15} />
+                </button>
+              )}
+            </FilePicker>
+            {recorder.phase === "recording" ? (
               <>
-              <FilePicker onPick={attach}>
-                {(open) => (
-                  <button
-                    type="button"
-                    title="Attach a document"
-                    aria-label="Attach a document"
-                    disabled={out || upload.isPending}
-                    onClick={open}
-                    data-no-tap
-                    className="flex size-9 shrink-0 items-center justify-center self-end rounded-full border border-line text-muted disabled:opacity-60"
-                  >
-                    <Paperclip size={15} />
-                  </button>
-                )}
-              </FilePicker>
-              <textarea
-                ref={textareaRef}
-                value={input}
-                disabled={out}
-                rows={1}
-                onChange={(e) => setInput(e.target.value)}
-                onPaste={onPaste}
-                onKeyDown={(e) => {
-                  // isComposing is true while an IME (Japanese/Chinese/Korean input, etc.) is still
-                  // resolving a character — Enter there confirms the composition, it doesn't submit.
-                  if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-                    e.preventDefault();
-                    send(input);
-                  }
-                }}
-                placeholder="Tell me what's going on…"
-                aria-label="Tell me what's going on"
-                className="my-1.5 min-w-0 flex-1 resize-none bg-transparent px-3.5 text-[15px] leading-[1.5] text-ink outline-none"
-              />
-              <MicButton onClick={() => void voice.start()} disabled={out || upload.isPending} compact />
-              <span className="mb-1.5 whitespace-nowrap self-end text-[11px] text-muted">
-                {upload.isPending || attachmentPending ? "Uploading…" : `${credits} credits`}
-              </span>
-              <button
-                type="submit"
-                aria-label="Send"
-                disabled={out || thinking || attachmentPending || (!input.trim() && sendableAttachedIds.length === 0)}
-                data-no-tap
-                className="flex size-9 shrink-0 items-center justify-center self-end rounded-full bg-gold text-white disabled:opacity-60"
-              >
-                <ArrowUpRight size={14} />
-              </button>
+                <button
+                  type="button"
+                  title="Cancel recording"
+                  aria-label="Cancel recording"
+                  onClick={recorder.cancel}
+                  data-no-tap
+                  className="flex size-9 shrink-0 items-center justify-center self-end rounded-full border border-line text-muted"
+                >
+                  <X size={15} />
+                </button>
+                <button
+                  type="button"
+                  title="Stop and send"
+                  aria-label="Stop and send recording"
+                  onClick={recorder.stop}
+                  data-no-tap
+                  className="flex size-9 shrink-0 animate-pulse items-center justify-center self-end rounded-full bg-error text-white"
+                >
+                  <Square size={13} />
+                </button>
               </>
+            ) : (
+              <button
+                type="button"
+                title="Record a voice message"
+                aria-label="Record a voice message"
+                disabled={out || thinking || recorder.phase === "transcribing"}
+                onClick={recorder.start}
+                data-no-tap
+                className="flex size-9 shrink-0 items-center justify-center self-end rounded-full border border-line text-muted disabled:opacity-60"
+              >
+                <Mic size={15} />
+              </button>
             )}
+            <textarea
+              ref={textareaRef}
+              value={input}
+              disabled={out}
+              rows={1}
+              onChange={(e) => setInput(e.target.value)}
+              onPaste={onPaste}
+              onKeyDown={(e) => {
+                // isComposing is true while an IME (Japanese/Chinese/Korean input, etc.) is still
+                // resolving a character — Enter there confirms the composition, it doesn't submit.
+                if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  send(input);
+                }
+              }}
+              placeholder="Tell me what's going on…"
+              aria-label="Tell me what's going on"
+              className="my-1.5 min-w-0 flex-1 resize-none bg-transparent px-3.5 text-[15px] leading-[1.5] text-ink outline-none"
+            />
+            <span className="mb-1.5 whitespace-nowrap self-end text-[11px] text-muted">
+              {recorder.phase === "recording"
+                ? "Recording…"
+                : recorder.phase === "transcribing"
+                  ? "Transcribing…"
+                  : upload.isPending || attachmentPending
+                    ? "Uploading…"
+                    : `${credits} credits`}
+            </span>
+            <button
+              type="submit"
+              aria-label="Send"
+              disabled={out || thinking || attachmentPending || (!input.trim() && sendableAttachedIds.length === 0)}
+              data-no-tap
+              className="flex size-9 shrink-0 items-center justify-center self-end rounded-full bg-gold text-white disabled:opacity-60"
+            >
+              <ArrowUpRight size={14} />
+            </button>
           </form>
           <div className="text-center text-[11px] text-muted">
             I collect and organise your information for a lawyer; I&apos;m not a lawyer myself. Each message uses 1 credit.

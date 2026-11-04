@@ -13,6 +13,9 @@ export type IntakeChatProps = {
   hasDraft: boolean;
   creating: boolean;
   error: string;
+  /** The client's very first message — goes straight to the real case, no scripted Q&A first.
+   * Also what a spoken first message becomes once transcribed — there's no separate voice path. */
+  onFirstMessage: (text: string, files: File[]) => void;
   onCreate: (draft: IntakeDraft, files: File[]) => void;
   onEditDetails: (draft: IntakeDraft, files: File[]) => void;
   onUseForm: () => void;
@@ -43,9 +46,9 @@ const PLACEHOLDER = {
 } as const;
 
 /** Everything the case-creation chat does, shared by its desktop and mobile views: the
- * conversation (use-intake-chat), the composer's text, dictation, attachments and what to show
- * for the current step. The views only decide how it is laid out. */
-export function useIntakeController() {
+ * conversation (use-intake-chat), the composer's text, voice recording, attachments and what to
+ * show for the current step. The views only decide how it is laid out. */
+export function useIntakeController({ onFirstMessage }: Pick<IntakeChatProps, "onFirstMessage">) {
   const areasQuery = useCaseAreasQuery();
   const areas = areasQuery.data ?? [];
   const chat = useIntakeChat({ areas });
@@ -58,8 +61,11 @@ export function useIntakeController() {
   useEffect(() => {
     clearSearchText();
   }, []);
-  // Spoken words land in the box, after anything already typed, to be edited before sending.
-  const voice = useDictation({ onText: (spoken) => setText((t) => (t.trim() ? `${t.trim()} ${spoken}` : spoken)) });
+  const empty = messages.length === 0;
+  // The mic (shown only on the empty, pre-first-message screen) records, transcribes, and sends
+  // straight away — a spoken first message goes to onFirstMessage exactly like a typed one, never
+  // into `chat`'s own scripted Q&A.
+  const recorder = useDictation({ onText: (text) => onFirstMessage(text, files) });
   const [rejected, setRejected] = useState<string[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -69,6 +75,12 @@ export function useIntakeController() {
 
   const send = () => {
     if (!text.trim() || typing) return;
+    // The first message is the whole point: go straight to the real case, not a scripted
+    // back-and-forth that's just the form wearing chat bubbles.
+    if (empty) {
+      onFirstMessage(text, files);
+      return;
+    }
     chat.submitText(text);
     setText("");
   };
@@ -93,7 +105,6 @@ export function useIntakeController() {
     .join(", ");
   const titleMissing = !draft.title.trim();
   const canAttach = step === "more" || step === "check";
-  const empty = messages.length === 0;
 
   // Grows with what's typed, up to a cap, like the composers people already know.
   const box = useRef<HTMLTextAreaElement>(null);
@@ -115,7 +126,7 @@ export function useIntakeController() {
     draft,
     text,
     setText,
-    voice,
+    recorder,
     rejected,
     endRef,
     box,

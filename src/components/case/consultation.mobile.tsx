@@ -1,12 +1,11 @@
 "use client";
 
-import { ArrowUp, FileText, Paperclip, X } from "lucide-react";
+import { ArrowUp, FileText, Mic, Paperclip, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { FilePicker } from "@/components/ui/file-picker";
 import { AiMark } from "@/components/ui/misc";
 import { ChatBar, ChatScreen, ComposerButton, ComposerPill } from "@/components/mobile/chat";
-import { MicButton, RecorderRow } from "@/components/voice/recorder-row";
 import { LawyerSuggestion } from "@/components/case/lawyer-suggestion";
 import { cn } from "@/lib/cn";
 import { usePayment } from "@/lib/payment-store";
@@ -15,7 +14,7 @@ import { PROMPTS, type Consultation } from "./use-consultation";
 
 export function ConsultationMobile({ c, consultation }: { c: Case; consultation: Consultation }) {
   const {
-    voice, out, thinking, messages, documentById, scroller, missing, openRequest, lastFailed, latestAnswer, connected, loadError, notice, credits, attachedIds, failedAttachedIds, removeAttached, input, setInput, onPaste, textareaRef, attach, upload, attachmentPending, sendableAttachedIds, send,
+    recorder, out, thinking, messages, documentById, scroller, missing, openRequest, lastFailed, latestAnswer, connected, loadError, notice, credits, attachedIds, failedAttachedIds, removeAttached, input, setInput, onPaste, textareaRef, attach, upload, attachmentPending, sendableAttachedIds, send,
   } = consultation;
 
   return (
@@ -42,6 +41,7 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
                     <span className="sr-only">You: </span>
                     {m.text}
                   </div>
+                  {m.audioUrl && <audio controls src={m.audioUrl} className="h-8 w-56" />}
                   {(m.documentIds ?? []).length > 0 && (
                     <div className="flex flex-wrap justify-end gap-1.5">
                       {(m.documentIds ?? []).map((id) => (
@@ -56,9 +56,10 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
               ) : (
                 <div key={m.id} className="flex gap-2.5">
                   <AiMark size={28} />
-                  <div className="min-w-0 whitespace-pre-line break-words text-[15px] leading-[1.6]">
+                  <div className="min-w-0 flex flex-col gap-2 whitespace-pre-line break-words text-[15px] leading-[1.6]">
                     <span className="sr-only">ilovelawyer AI: </span>
                     {m.text}
+                    {m.audioUrl && <audio controls src={m.audioUrl} className="h-8 w-56" />}
                   </div>
                 </div>
               ),
@@ -139,9 +140,9 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
             })}
           </div>
         )}
-        {voice.error && (
+        {recorder.error && (
           <div role="alert" className="mb-2 px-1 text-[13px] text-error">
-            {voice.error}
+            {recorder.error}
           </div>
         )}
         <form
@@ -153,8 +154,19 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
           className={cn(out && "pointer-events-none opacity-50")}
         >
           <ComposerPill>
-            {voice.phase !== "idle" ? (
-              <RecorderRow phase={voice.phase} seconds={voice.seconds} onCancel={voice.cancel} onStop={voice.stop} />
+            {recorder.phase === "recording" ? (
+              <>
+                <ComposerButton onClick={recorder.cancel} aria-label="Cancel recording">
+                  <X size={20} aria-hidden="true" />
+                </ComposerButton>
+                <div role="status" aria-label="Recording" className="flex min-h-11 flex-1 items-center justify-center gap-2.5 text-[14px]">
+                  <span aria-hidden className="size-2.5 rounded-full bg-error motion-safe:animate-pulse" />
+                  <span className="text-ink-2">Recording</span>
+                </div>
+                <ComposerButton tone="send" onClick={recorder.stop} aria-label="Stop and send recording">
+                  <Square size={16} className="fill-current" aria-hidden="true" />
+                </ComposerButton>
+              </>
             ) : (
               <>
                 <FilePicker onPick={attach}>
@@ -177,7 +189,13 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
                   // 24px of text + 10px above and below = 44px, the height of the round buttons beside it.
                   className="min-h-11 min-w-0 flex-1 resize-none bg-transparent px-1 py-2.5 text-base leading-6 text-ink outline-none placeholder:text-muted"
                 />
-                <MicButton onClick={() => void voice.start()} disabled={out || upload.isPending} />
+                <ComposerButton
+                  onClick={recorder.start}
+                  disabled={out || thinking || upload.isPending || recorder.phase === "transcribing"}
+                  aria-label="Record a voice message"
+                >
+                  <Mic size={20} aria-hidden="true" />
+                </ComposerButton>
                 <ComposerButton
                   type="submit"
                   tone="send"
@@ -191,7 +209,14 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
           </ComposerPill>
         </form>
         <p className="mt-2 text-center text-[11.5px] leading-[1.4] text-muted">
-          {upload.isPending || attachmentPending ? "Uploading…" : `${credits} credits left · 1 per message`}. I&apos;m not a lawyer and can&apos;t give legal advice.
+          {recorder.phase === "recording"
+            ? "Recording…"
+            : recorder.phase === "transcribing"
+              ? "Transcribing…"
+              : upload.isPending || attachmentPending
+                ? "Uploading…"
+                : `${credits} credits left · 1 per message`}
+          . I&apos;m not a lawyer and can&apos;t give legal advice.
         </p>
       </ChatBar>
     </ChatScreen>

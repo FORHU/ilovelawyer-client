@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent } from "react";
 import { useIntakeQuery, useMessagesQuery, useSendMessageMutation, useUploadDocumentsMutation } from "@/lib/cases/queries";
+import { useDictation } from "@/lib/voice/use-dictation";
 import { useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
 import { useSocketConnected } from "@/lib/socket";
 import type { Case } from "@/lib/types";
-import { useDictation } from "@/lib/voice/use-dictation";
 
 export const PROMPTS = [
   "Tell you what happened",
@@ -18,7 +18,7 @@ export const PROMPTS = [
 const MAX_ATTACHED_DOCUMENTS = 5;
 
 /** Everything the Interview chat does, shared by its desktop and mobile views: messages, sending,
- * attachments, dictation and credits. The views only decide how it is laid out. */
+ * attachments, voice messages and credits. The views only decide how it is laid out. */
 export function useConsultation(c: Case) {
   const credits = c.credits;
   const { data: openRequest } = useOpenLawyerRequestQuery(c.id);
@@ -36,8 +36,9 @@ export function useConsultation(c: Case) {
   const scroller = useRef<HTMLDivElement>(null);
   const dragCounter = useRef(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  // Spoken words land in the box, after anything already typed, to be edited before sending.
-  const voice = useDictation({ onText: (spoken) => setInput((t) => (t.trim() ? `${t.trim()} ${spoken}` : spoken)) });
+  // The mic records, transcribes, and sends straight away as a normal text message — no audio
+  // message, no editable review step, no AI voice reply (there's no voice turn to reply to).
+  const recorder = useDictation({ onText: (text) => send(text) });
 
   const messages = data?.messages ?? [];
   const documentById = new Map(c.documents.map((d) => [d.id, d]));
@@ -156,7 +157,7 @@ export function useConsultation(c: Case) {
 
   return {
     credits, openRequest, loadError, sendMessage, upload, connected,
-    input, setInput, notice, attachedIds, dragging, scroller, textareaRef, voice,
+    input, setInput, notice, attachedIds, dragging, scroller, textareaRef, recorder,
     messages, documentById, thinking, out, lastFailed, latestAnswer, missing,
     attachmentPending, failedAttachedIds, sendableAttachedIds,
     removeAttached, send, attach, onDrop, onDragEnter, onDragLeave, onPaste,
