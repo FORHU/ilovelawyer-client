@@ -6,7 +6,7 @@ import { SECTIONS, SettingsContent, type Section } from "./settings-content";
 
 export function SettingsDesktop({ section, onSection }: { section: Section; onSection: (s: Section) => void }) {
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
+    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
       <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-8 px-5 py-8 md:px-10">
         <header className="flex flex-col gap-2">
           <Eyebrow muted>Account</Eyebrow>

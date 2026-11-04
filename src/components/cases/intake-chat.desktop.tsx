@@ -4,6 +4,7 @@ import { ArrowRight, ArrowUp, FileText, Mic, Paperclip, Sparkles, Square, X } fr
 import { Button } from "@/components/ui/button";
 import { Chip, PromptChip } from "@/components/ui/chip";
 import { ErrorBox } from "@/components/ui/banner";
+import { DropOverlay } from "@/components/ui/drop-overlay";
 import { FilePicker } from "@/components/ui/file-picker";
 import { inputClass, WizardLabel } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
@@ -57,7 +58,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, hasDraft, onUseForm, controller }: IntakeViewProps) {
   const {
     areasQuery, areas, chat, step, typing, files, draft, text, setText, recorder, rejected, endRef, box,
-    send, canSend, onKey, addFiles, choiceStep, placeholder, areaNames, titleMissing, canAttach, empty, messages,
+    send, canSend, onKey, addFiles, choiceStep, placeholder, areaNames, titleMissing, canAttach, empty, messages, dragging, dragProps,
   } = controller;
 
   const composer = (
@@ -189,9 +190,10 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="relative flex min-h-0 flex-1 flex-col" {...dragProps}>
+      {dragging && canAttach && <DropOverlay />}
       {empty ? (
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
           <div className="mx-auto flex w-full max-w-[768px] flex-1 flex-col justify-center gap-7 px-6 pb-24 pt-8">
             <div className="flex flex-col items-center gap-3 text-center">
               <h1 className="font-display text-[44px] font-normal leading-tight tracking-[-0.02em]">
@@ -240,7 +242,7 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
             role="log"
             aria-label="Conversation with ilovelawyer AI"
             aria-live="polite"
-            className="min-h-0 flex-1 overflow-y-auto"
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
           >
             <div className="mx-auto flex w-full max-w-[768px] flex-col gap-4 px-6 py-6">
               {messages.map((m) => (

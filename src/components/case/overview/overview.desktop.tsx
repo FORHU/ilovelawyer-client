@@ -21,7 +21,7 @@ export function OverviewDesktop({ c, onOpenDocument, onOpenChat }: OverviewProps
   );
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
       <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-6 px-4 pb-14 pt-7 md:px-10">
         <h2 className="sr-only">Overview</h2>
 

@@ -31,7 +31,7 @@ export function LawyerProfileDesktop({ lawyer }: { lawyer: ClientLawyerProfile }
   ];
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
+    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
       <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-8 px-5 py-8 md:px-10">
         <Link href="/lawyers" className="inline-flex items-center gap-1.5 self-start text-[13px] font-medium">
           <ArrowLeft size={14} aria-hidden /> All lawyers

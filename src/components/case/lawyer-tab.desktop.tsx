@@ -12,7 +12,7 @@ export function LawyerTabDesktop({ c, request }: LawyerTabProps) {
   if (!visible) return null;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
       <div className="mx-auto flex w-full max-w-[1120px] flex-wrap items-start gap-6 px-4 pb-14 pt-7 md:px-10">
         <aside aria-label="Request progress" className="flex min-w-0 flex-[1_1_300px] flex-col gap-4">
           <section data-tour="request-status" className="flex flex-col gap-4 rounded-card border border-line bg-white p-5">

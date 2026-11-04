@@ -78,7 +78,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   // wrapper keeps its place, so turning a phone or resizing across 768px doesn't remount the route
   // (and lose what was typed, the open modals or the scroll position).
   return (
-    <div className={mobile ? "flex h-dvh min-h-0 flex-col" : "flex h-dvh min-h-0"}>
+    <div className={mobile ? "flex h-dvh min-h-0 flex-col overflow-hidden" : "flex h-dvh min-h-0 overflow-hidden"}>
       <LandingWatcher />
       {mobile ? <MobileTop name={user?.name || ""} /> : <Sidebar />}
       <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">

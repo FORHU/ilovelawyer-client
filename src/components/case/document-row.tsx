@@ -7,6 +7,7 @@ import { ActionMenu } from "@/components/ui/action-menu";
 import { useDeleteDocumentMutation, useDocumentUrlMutation, useRetryDocumentMutation } from "@/lib/cases/queries";
 import { formatBytes, formatDay } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { DocumentPreviewModal } from "./document-preview-modal";
 import type { CaseDocument, DocumentStatus } from "@/lib/types";
 
 /** Name, status and "In overview" columns on a wide screen; the status and use drop under the name on a phone. */
@@ -63,35 +64,30 @@ export function KindBadge({ name, size = "md" }: { name: string; size?: "md" | "
   );
 }
 
-/** Opens a document in a new tab (a short-lived link from the API). One at a time: while a link is
- * being fetched, a second click does nothing, and it says which document is opening or failed. */
-export function useOpenDocument(caseId: string) {
+/** Opens a document over the page (a short-lived link from the API, shown in DocumentPreviewModal).
+ * One at a time: while a link is being fetched, a second click does nothing, and it says which
+ * document is opening or failed. Render `modal` once in the view that uses it. */
+export function useOpenDocument(caseId: string, documents: CaseDocument[]) {
   const link = useDocumentUrlMutation(caseId);
   const [failure, setFailure] = useState<{ id: string; message: string } | null>(null);
+  const [opened, setOpened] = useState<{ name: string; url: string } | null>(null);
   const open = (id: string) => {
     if (link.isPending) return;
     setFailure(null);
-    // Opened now, while this is still the click: a tab opened after the request comes back counts
-    // as a popup, and iOS Safari blocks it.
-    const tab = window.open("", "_blank");
-    if (tab) tab.opener = null;
     link.mutate(id, {
       onSuccess: ({ url }) => {
-        // The API's link is a path on this app (app/files/[token]); the blank tab has no base to read it against.
-        const href = new URL(url, window.location.origin).href;
-        if (tab) tab.location.href = href;
-        else window.location.assign(href);
+        // The API's link is a path on this app (app/files/[token]); the viewer needs it absolute to fetch it.
+        const name = documents.find((d) => d.id === id)?.name ?? "Document";
+        setOpened({ name, url: new URL(url, window.location.origin).href });
       },
-      onError: (err) => {
-        tab?.close();
-        setFailure({ id, message: err.message });
-      },
+      onError: (err) => setFailure({ id, message: err.message }),
     });
   };
   return {
     open,
     openingId: link.isPending ? (link.variables ?? null) : null,
     errorFor: (id: string) => (failure?.id === id ? failure.message : undefined),
+    modal: opened ? <DocumentPreviewModal name={opened.name} url={opened.url} onClose={() => setOpened(null)} /> : null,
   };
 }
 
