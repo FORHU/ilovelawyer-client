@@ -65,7 +65,7 @@ export function useIntakeController({ onFirstMessage }: Pick<IntakeChatProps, "o
   // The mic (shown only on the empty, pre-first-message screen) records, transcribes, and sends
   // straight away — a spoken first message goes to onFirstMessage exactly like a typed one, never
   // into `chat`'s own scripted Q&A.
-  const recorder = useDictation({ onText: (text) => onFirstMessage(text, files) });
+  const recorder = useDictation({ onText: (text) => submitFirst(text) });
   const [rejected, setRejected] = useState<string[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -73,12 +73,36 @@ export function useIntakeController({ onFirstMessage }: Pick<IntakeChatProps, "o
     endRef.current?.scrollIntoView({ block: "end" });
   }, [messages.length, typing, step]);
 
+  // A plain first message goes straight to the real case, not a scripted back-and-forth that's just
+  // the form wearing chat bubbles. With documents attached nothing is created yet: the chat probes
+  // for what a case needs first, and the files go up when the case is created from the check card.
+  function submitFirst(raw: string) {
+    if (files.length === 0) {
+      onFirstMessage(raw, files);
+      return;
+    }
+    chat.submitText(raw);
+    setText("");
+  }
+
+  // Documents alone are enough to start: the chat then asks what happened.
+  const filesOnly = empty && files.length > 0 && !text.trim();
+  // On the documents question, the files are the answer, so sending them is the same as Continue.
+  const filesAnswer = step === "more" && files.length > 0 && !text.trim();
+  const canSend = (!!text.trim() || filesOnly || filesAnswer) && !typing;
+
   const send = () => {
-    if (!text.trim() || typing) return;
-    // The first message is the whole point: go straight to the real case, not a scripted
-    // back-and-forth that's just the form wearing chat bubbles.
+    if (!canSend) return;
+    if (filesOnly) {
+      chat.submitFiles();
+      return;
+    }
+    if (filesAnswer) {
+      chat.confirmFiles();
+      return;
+    }
     if (empty) {
-      onFirstMessage(text, files);
+      submitFirst(text);
       return;
     }
     chat.submitText(text);
@@ -104,7 +128,9 @@ export function useIntakeController({ onFirstMessage }: Pick<IntakeChatProps, "o
     .filter(Boolean)
     .join(", ");
   const titleMissing = !draft.title.trim();
-  const canAttach = step === "more" || step === "check";
+  // Open on the first screen too: files picked before the first message are uploaded to the case
+  // once it is created (see onFirstMessage in cases/new/page.tsx).
+  const canAttach = empty || step === "more" || step === "check";
 
   // Grows with what's typed, up to a cap, like the composers people already know.
   const box = useRef<HTMLTextAreaElement>(null);
@@ -131,6 +157,7 @@ export function useIntakeController({ onFirstMessage }: Pick<IntakeChatProps, "o
     endRef,
     box,
     send,
+    canSend,
     onKey,
     addFiles,
     choiceStep,

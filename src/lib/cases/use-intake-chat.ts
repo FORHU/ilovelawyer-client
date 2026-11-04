@@ -406,6 +406,13 @@ export function useIntakeChat({ areas }: { areas: CaseArea[] }) {
     ahead(draft, "");
   };
 
+  /** Documents sent with nothing typed: noted as the first message, then the story is asked for. */
+  const submitFiles = () => {
+    if (!files.length || typing) return;
+    push("user", `${files.length} ${files.length === 1 ? "file" : "files"} attached`);
+    say("Thanks, I've got your documents. Could you tell me a bit about what happened?", "start");
+  };
+
   const addFiles = (picked: File[]) => setFiles((f) => [...f, ...picked]);
   const removeFile = (index: number) => setFiles((f) => f.filter((_, i) => i !== index));
 
@@ -422,6 +429,7 @@ export function useIntakeChat({ areas }: { areas: CaseArea[] }) {
     chooseSide,
     skip,
     confirmFiles,
+    submitFiles,
     addFiles,
     removeFile,
     patchDraft,
