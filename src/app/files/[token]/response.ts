@@ -2,6 +2,12 @@
 // harness (vitest here runs pure-function tests only). Same rules as ilovelawyer-app's
 // app/files/[token]/response.ts.
 
+// Lives here because a route file may only export route handlers and route config; Next's build
+// type check rejects anything else.
+// Bounds only the time to get a response (headers) from S3 — cleared as soon as fetch() settles,
+// so it never cuts off the download of a large file.
+export const UPSTREAM_FETCH_TIMEOUT_MS = 10_000;
+
 /** Maps a GET /api/files/resolve failure onto what the browser sees. 410 (token expired or
  * revoked, per the API) passes through; everything else — bad token, network error, API down —
  * collapses to a generic 404 so nothing about the failure reason leaks. */

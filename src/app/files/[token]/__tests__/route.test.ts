@@ -3,7 +3,8 @@
 // fetch, no server or DOM.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
-import { GET, UPSTREAM_FETCH_TIMEOUT_MS } from "../route";
+import { UPSTREAM_FETCH_TIMEOUT_MS } from "../response";
+import { GET } from "../route";
 
 const RESOLVE_URL_PREFIX = "http://localhost:3001/api/files/resolve";
 const S3_URL = "https://ilovelawyer-dev.s3.ap-southeast-1.amazonaws.com/generated-documents/abc.pdf?X-Amz-Signature=fake";

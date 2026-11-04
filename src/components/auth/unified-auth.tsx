@@ -21,7 +21,7 @@ import { TermsReviewDialog } from "@/components/auth/terms-review-dialog";
 import { normalizeEmail } from "@/lib/auth/api";
 import { EMAIL_REGISTERED_AS_LAWYER, authErrorMessage, isApiError, isLawyerAccountError } from "@/lib/auth/errors";
 import {
-  SIGNED_IN_PATH,
+  signedInPath,
   useCancelSignupMutation,
   useForgotPasswordMutation,
   useGoogleLinkMutation,
@@ -116,7 +116,7 @@ export function UnifiedAuth() {
 
   // Already signed in on this browser (a live refresh cookie): skip the form.
   useEffect(() => {
-    if (sessionStatus === "signedIn") router.replace(SIGNED_IN_PATH);
+    if (sessionStatus === "signedIn") router.replace(signedInPath());
   }, [sessionStatus, router]);
 
   function clearMessages() {

@@ -7,6 +7,7 @@ import { type IntakeDraft, useIntakeChat } from "@/lib/cases/use-intake-chat";
 import { useDictation } from "@/lib/voice/use-dictation";
 import type { CaseRegion } from "@/lib/types";
 import { UK_JURISDICTIONS } from "@/lib/types";
+import { clearSearchText, readSearchText } from "@/lib/marketing/search-prefill";
 
 export type IntakeChatProps = {
   hasDraft: boolean;
@@ -52,7 +53,12 @@ export function useIntakeController({ onFirstMessage }: Pick<IntakeChatProps, "o
   const { messages, step, typing, files, draft } = chat;
   const { data: limits } = useLimitsQuery();
 
-  const [text, setText] = useState("");
+  // Starts with what they typed into the landing page's search, to edit before sending. Read here
+  // and cleared after mount, so it lands once and a render that never commits can't lose it.
+  const [text, setText] = useState(() => readSearchText() ?? "");
+  useEffect(() => {
+    clearSearchText();
+  }, []);
   const empty = messages.length === 0;
   // The mic (shown only on the empty, pre-first-message screen) records, transcribes, and sends
   // straight away — a spoken first message goes to onFirstMessage exactly like a typed one, never

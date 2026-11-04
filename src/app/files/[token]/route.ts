@@ -1,12 +1,8 @@
 import type { NextRequest } from "next/server";
 import { API_URL } from "@/lib/api/config";
-import { buildFileResponseInit, resolveErrorStatus } from "./response";
+import { buildFileResponseInit, resolveErrorStatus, UPSTREAM_FETCH_TIMEOUT_MS } from "./response";
 
 const RESOLVE_TIMEOUT_MS = 5_000;
-
-// Bounds only the time to get a response (headers) from S3 — cleared as soon as fetch() settles,
-// so it never cuts off the download of a large file.
-export const UPSTREAM_FETCH_TIMEOUT_MS = 10_000;
 
 /** Who is opening the file, for the API's file.accessed security audit row — without these the
  * API would record this server's own address and Node's user agent. Only the last X-Forwarded-For
