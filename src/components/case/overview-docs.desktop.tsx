@@ -2,6 +2,7 @@
 
 import { Eye, Lock, RotateCw, Search, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DropOverlay } from "@/components/ui/drop-overlay";
 import { FilePicker } from "@/components/ui/file-picker";
 import { describeLimits } from "@/lib/cases/limits";
 import { cn } from "@/lib/cn";
@@ -15,14 +16,17 @@ import { useDocuments } from "./use-documents";
 export function DocumentsDesktop({ c, focusDocumentId, onFocused, onOpenOverview }: DocumentsProps) {
   const {
     upload, limits, failed, citations, opener, leftOver, uploading, confirmingId, setConfirmingId, filter, setFilter, sort, setSort,
-    query, setQuery, setPickedId, dragging, setDragging, add, retry, usedCount, tests, needle, visible, picked, totalBytes, hasAny, registerRow,
+    query, setQuery, setPickedId, dragging, dragProps, add, retry, usedCount, tests, needle, visible, picked, totalBytes, hasAny, registerRow,
   } = useDocuments(c, focusDocumentId, onFocused);
 
   // The panel always shows a document: the picked one, or else the first in the list.
   const selected = picked ?? visible[0] ?? null;
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className="relative flex min-h-0 flex-1 flex-col" {...dragProps}>
+      {opener.modal}
+      {dragging && <DropOverlay label="Drop to upload" />}
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
       <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-[18px] px-4 pb-14 pt-7 md:px-10">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="flex flex-col gap-0.5">
@@ -72,19 +76,6 @@ export function DocumentsDesktop({ c, focusDocumentId, onFocused, onOpenOverview
         <FilePicker onPick={add}>
           {(open) => (
             <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragging(true);
-              }}
-              onDragLeave={(e) => {
-                // Moving over the icon or the browse link also fires dragleave; only leaving the zone counts.
-                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false);
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                setDragging(false);
-                add(Array.from(e.dataTransfer.files));
-              }}
               className={cn(
                 "flex flex-wrap items-center justify-center gap-x-3.5 gap-y-1.5 rounded-card border-[1.5px] border-dashed bg-subtle p-[18px] text-center transition-colors",
                 dragging ? "border-gold bg-warn-bg" : "border-line-input",
@@ -183,6 +174,7 @@ export function DocumentsDesktop({ c, focusDocumentId, onFocused, onOpenOverview
             </div>
           </>
         )}
+      </div>
       </div>
     </div>
   );

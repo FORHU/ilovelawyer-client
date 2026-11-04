@@ -214,7 +214,7 @@ export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, has
           </>,
           headerSlot,
         )}
-      <div role="log" aria-label="Conversation with ilovelawyer AI" aria-live="polite" className="min-h-0 flex-1 overflow-y-auto">
+      <div role="log" aria-label="Conversation with ilovelawyer AI" aria-live="polite" className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div className="flex flex-col gap-3 px-4 py-4">
           {c.messages.map((m) => (
             <Message key={m.id} m={m} />
@@ -279,7 +279,7 @@ export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, has
       <ChatBar>
         {showChoices && step === "type" && (
           <div role="group" aria-label="Type of issue" className="flex flex-col gap-3">
-            <div className="flex max-h-[38dvh] flex-wrap gap-2 overflow-y-auto">
+            <div className="flex max-h-[38dvh] flex-wrap gap-2 overflow-y-auto overscroll-contain">
               {areas.map((a) => (
                 <Chip key={a.code} selected={draft.areas.includes(a.code)} onClick={() => chat.toggleArea(a.code)} className="min-h-11">
                   {a.name}

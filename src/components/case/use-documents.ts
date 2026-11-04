@@ -7,6 +7,7 @@ import { useIntakeQuery, useUploadDocumentsMutation, useUploadingFiles } from "@
 import { applyDocumentView, filterTests, type FilterKey, type SortKey } from "@/lib/documents/filter-sort";
 import { useFailedUploads, useFailedUploadsOf } from "@/lib/failed-uploads";
 import type { Case, CaseDocument } from "@/lib/types";
+import { useFileDrop } from "@/lib/use-file-drop";
 import { useOpenDocument } from "./document-row";
 
 /** Everything the Documents tab reads and does, shared by its desktop and mobile views. The views
@@ -17,7 +18,7 @@ export function useDocuments(c: Case, focusDocumentId?: string | null, onFocused
   const { data: intake } = useIntakeQuery(c.id, c.documents.some((d) => d.status === "PENDING"));
   const [failed, setFailed] = useState<string[]>([]);
   const citations = useMemo(() => citationsByDocument(intake), [intake]);
-  const opener = useOpenDocument(c.id);
+  const opener = useOpenDocument(c.id, c.documents);
   /** Files from the wizard that didn't upload when the case was made (kept in memory only). */
   const leftOver = useFailedUploadsOf(c.id);
   const rows = useRef<Record<string, HTMLDivElement | null>>({});
@@ -29,7 +30,6 @@ export function useDocuments(c: Case, focusDocumentId?: string | null, onFocused
   const [sort, setSort] = useState<SortKey>("newest");
   const [query, setQuery] = useState("");
   const [pickedId, setPickedId] = useState<string | null>(null);
-  const [dragging, setDragging] = useState(false);
 
   // A document link from Overview selects that file: adjust state while rendering, not in an effect.
   const [seenFocus, setSeenFocus] = useState<string | null>(null);
@@ -53,6 +53,8 @@ export function useDocuments(c: Case, focusDocumentId?: string | null, onFocused
     if (!accepted.length) return;
     upload.mutate(accepted, { onSuccess: (r) => setFailed((prev) => [...prev, ...r.failed.map((f) => f.reason)]) });
   };
+
+  const { dragging, dragProps } = useFileDrop(add);
 
   const retry = () => {
     const files = leftOver;
@@ -80,7 +82,7 @@ export function useDocuments(c: Case, focusDocumentId?: string | null, onFocused
 
   return {
     upload, limits, failed, citations, opener, leftOver, uploading, confirmingId, setConfirmingId, filter, setFilter, sort, setSort,
-    query, setQuery, setPickedId, dragging, setDragging, add, retry, usedCount, tests, needle, visible, picked, totalBytes, hasAny,
+    query, setQuery, setPickedId, dragging, dragProps, add, retry, usedCount, tests, needle, visible, picked, totalBytes, hasAny,
     registerRow: (id: string) => (el: HTMLDivElement | null) => {
       rows.current[id] = el;
     },

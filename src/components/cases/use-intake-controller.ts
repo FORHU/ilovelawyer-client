@@ -7,6 +7,7 @@ import { type IntakeDraft, useIntakeChat } from "@/lib/cases/use-intake-chat";
 import { useDictation } from "@/lib/voice/use-dictation";
 import type { CaseRegion } from "@/lib/types";
 import { UK_JURISDICTIONS } from "@/lib/types";
+import { useFileDrop } from "@/lib/use-file-drop";
 import { clearSearchText, readSearchText } from "@/lib/marketing/search-prefill";
 
 export type IntakeChatProps = {
@@ -70,7 +71,10 @@ export function useIntakeController({ onFirstMessage }: Pick<IntakeChatProps, "o
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "end" });
+    // Scroll the conversation itself: scrollIntoView also scrolls every ancestor, including the page,
+    // which is what let the whole screen be dragged past its bottom into blank space.
+    const log = endRef.current?.closest<HTMLElement>('[role="log"]');
+    if (log) log.scrollTop = log.scrollHeight;
   }, [messages.length, typing, step]);
 
   // A plain first message goes straight to the real case, not a scripted back-and-forth that's just
@@ -121,6 +125,13 @@ export function useIntakeController({ onFirstMessage }: Pick<IntakeChatProps, "o
     if (accepted.length) chat.addFiles(accepted);
   };
 
+  // Open on the first screen too: files picked before the first message are uploaded to the case
+  // once it is created (see onFirstMessage in cases/new/page.tsx).
+  const canAttach = empty || step === "more" || step === "check";
+
+  // Dropping files anywhere on the chat attaches them, wherever the paperclip would.
+  const { dragging, dragProps } = useFileDrop(addFiles, !canAttach);
+
   const choiceStep = step === "type" || step === "region" || step === "side";
   const placeholder = choiceStep ? PLACEHOLDER.choice : PLACEHOLDER[step];
   const areaNames = draft.areas
@@ -128,9 +139,6 @@ export function useIntakeController({ onFirstMessage }: Pick<IntakeChatProps, "o
     .filter(Boolean)
     .join(", ");
   const titleMissing = !draft.title.trim();
-  // Open on the first screen too: files picked before the first message are uploaded to the case
-  // once it is created (see onFirstMessage in cases/new/page.tsx).
-  const canAttach = empty || step === "more" || step === "check";
 
   // Grows with what's typed, up to a cap, like the composers people already know.
   const box = useRef<HTMLTextAreaElement>(null);
@@ -165,6 +173,8 @@ export function useIntakeController({ onFirstMessage }: Pick<IntakeChatProps, "o
     areaNames,
     titleMissing,
     canAttach,
+    dragging,
+    dragProps,
     empty,
   };
 }

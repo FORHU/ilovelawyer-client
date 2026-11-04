@@ -24,6 +24,7 @@ import {
   type Side,
 } from "@/lib/types";
 import { useWizard } from "@/lib/wizard-store";
+import { useFileDrop } from "@/lib/use-file-drop";
 
 function Section({
   numeral,
@@ -456,6 +457,7 @@ export function StepDocuments() {
   const { title, side, others, budget } = useWizard();
   const { files, removeFile, limits, rejected, add } = useWizardFiles();
   const named = others.map((o) => o.name.trim()).filter(Boolean);
+  const { dragging, dragProps } = useFileDrop(add);
 
   return (
     <Section
@@ -489,13 +491,10 @@ export function StepDocuments() {
           <button
             type="button"
             onClick={open}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              const dropped = Array.from(e.dataTransfer.files);
-              if (dropped.length) add(dropped);
-            }}
-            className="flex flex-col items-center gap-2 rounded-input border border-dashed border-line-input bg-subtle px-4 py-8 text-center transition-colors hover:border-line-hover"
+            {...dragProps}
+            className={`flex flex-col items-center gap-2 rounded-input border border-dashed px-4 py-8 text-center transition-colors ${
+              dragging ? "border-gold bg-warn-bg" : "border-line-input bg-subtle hover:border-line-hover"
+            }`}
           >
             <UploadCloud size={26} className="text-muted" />
             <div className="font-display text-lg tracking-[-0.02em]">Add documents</div>

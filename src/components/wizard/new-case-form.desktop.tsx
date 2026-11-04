@@ -24,7 +24,7 @@ export function NewCaseFormDesktop({ included, creating, error, onBack, onNext, 
   const stepDone = (n: number) => (n === 1 ? !!title.trim() && !!region : n === 2 ? !!side : n === 3 ? !!budget.choice || !!budget.fee : false);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
       <div className="mx-auto grid w-full max-w-[1080px] grid-cols-1 items-start gap-5 px-4 py-7 md:grid-cols-[260px_minmax(0,1fr)] md:gap-12 md:px-10">
         <div className="flex flex-col gap-5">
           <button

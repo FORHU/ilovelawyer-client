@@ -54,11 +54,14 @@
 
 html {
   height: 100%;
+  /* Screens scroll inside their own containers; the page itself never rubber-bands into blank space. */
+  overscroll-behavior: none;
 }
 
 body {
   margin: 0;
   min-height: 100%;
+  overscroll-behavior: none;
   background: var(--color-surface);
   color: var(--color-ink);
   font-family: var(--font-sans);

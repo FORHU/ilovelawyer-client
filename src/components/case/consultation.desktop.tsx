@@ -20,7 +20,7 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {messages.length === 0 && !thinking ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-5 overflow-y-auto px-12 py-6">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-5 overflow-y-auto overscroll-contain px-12 py-6">
           <h2 className="text-balance text-center font-display text-[28px] font-normal tracking-[-0.02em]">
             Tell me about your situation
           </h2>
@@ -30,7 +30,7 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
           </p>
         </div>
       ) : (
-        <div ref={scroller} className="flex-1 overflow-y-auto px-12 pb-3 pt-7">
+        <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-12 pb-3 pt-7">
           <div className="mx-auto flex max-w-[768px] flex-col gap-[22px]">
             {missing > 0 && !thinking && (
               <div className="self-center rounded-full bg-chip px-3 py-1 text-[12px] text-ink-2">

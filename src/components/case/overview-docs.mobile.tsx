@@ -26,6 +26,7 @@ export function DocumentsMobile({ c, focusDocumentId, onFocused, onOpenOverview 
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      {opener.modal}
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div className="flex flex-col gap-3.5 px-4 pb-6 pt-4">
           <div className="flex flex-col gap-0.5">
