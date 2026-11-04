@@ -36,7 +36,7 @@ export interface LawyerRequestEligibility {
 export interface LawyerRequestConsent {
   version: string;
   consentText: string;
-  /** How ilovelawyer is paid: the platform fee on top of the lawyer's quote. */
+  /** How ilovelawyer is paid: its platform fee comes out of what the lawyer receives, not on top. */
   referralDisclosure: string;
 }
 
@@ -63,7 +63,7 @@ export interface LawyerPublicProfile {
 
 export interface LawyerQuote {
   type: QuoteType;
-  /** The lawyer's own fee, paid out to them in full. `Quotation` adds the platform fee and the total. */
+  /** The amount the lawyer quoted, what the client pays. `Quotation` has the full terms. */
   amount: Money;
   message: string;
   sentAt: string;
@@ -77,7 +77,8 @@ export interface EngagementFeedback {
 
 /** One lawyer on the request (several lawyers, ilovelawyer-api phase 5): `claimId` is what hiring and
  * declining take; `quote` and `quotation` are null until they've sent one. `quotation` has what the
- * client pays: the lawyer's fee, ilovelawyer's platform fee on top, the total and the lawyer's expiry. */
+ * client pays: the lawyer's quote (`total`; the platform fee is deducted from it, on the lawyer's
+ * side) and the lawyer's expiry. */
 export interface LawyerOffer {
   claimId: string;
   joinedAt: string;

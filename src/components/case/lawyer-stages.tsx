@@ -121,21 +121,20 @@ function Tile({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-/** What the client pays for a quotation: the lawyer's fee (paid out to them in full), ilovelawyer's
- * platform fee on top, and the total. */
+/** What the client pays for a quotation: the lawyer's quote, nothing added. ilovelawyer's platform
+ * fee is deducted from what the lawyer receives, so it isn't the client's to pay. */
 function QuoteBreakdown({ quotation, lawyerFirst }: { quotation: Quotation; lawyerFirst: string }) {
-  // The fees are fixed when the quote is sent and the total copied from them when it's accepted, so
-  // these lines always add up to it.
+  // The quote is fixed when it's sent and copied when it's accepted, so this is what's charged.
   const total = amountDue(quotation);
   return (
     <div className="flex flex-col gap-1.5 rounded-input border border-line bg-subtle px-4 py-3.5 text-[13px]">
       <div className="flex justify-between gap-2">
-        <span>{lawyerFirst}&apos;s fee, paid to them in full</span>
-        <span>{money(quotation.serviceFee)}</span>
+        <span>{lawyerFirst}&apos;s quote</span>
+        <span>{money(total)}</span>
       </div>
       <div className="flex justify-between gap-2 text-ink-2">
-        <span>ilovelawyer platform fee</span>
-        <span>{quotation.platformFee.amountMinor > 0 ? money(quotation.platformFee) : "None"}</span>
+        <span>Added by ilovelawyer</span>
+        <span>Nothing</span>
       </div>
       <div className="flex justify-between gap-2 border-t border-line pt-2 text-[15px] font-semibold">
         <span>You pay</span>
@@ -212,7 +211,7 @@ function LawyerHeader({ lawyer, tone = "plain", children }: { lawyer: NonNullabl
 
 /** The quote against what the client said they can spend (phase 5c): within or above it, and a note
  * when it isn't the kind of fee they preferred. Nothing for "Not sure". Measured by what the client
- * pays (the lawyer's fee plus the platform fee), the same amount the card shows. */
+ * pays (the lawyer's quote), the same amount the card shows. */
 function BudgetFit({ budget, quote, payMinor }: { budget: ClientBudget | null; quote: NonNullable<LawyerOffer["quote"]>; payMinor: number }) {
   const against = quoteAgainstBudget(budget, { type: quote.type, amountMinor: payMinor });
   if (!against || (!against.fit && !against.otherFeeType)) return null;
