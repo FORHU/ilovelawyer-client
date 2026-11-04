@@ -231,15 +231,24 @@ function question(step: IntakeStep, d: IntakeDraft, areas: CaseArea[]): string {
 
 const ack = (got: string[]) => (got.length ? `Thanks, I've noted: ${got.join(", ")}. ` : "Thanks. ");
 
-export function useIntakeChat({ areas }: { areas: CaseArea[] }) {
-  const [messages, setMessages] = useState<IntakeMessage[]>([]);
-  const [step, setStep] = useState<IntakeStep>("start");
-  const [typing, setTyping] = useState(false);
-  const [files, setFiles] = useState<File[]>([]);
-  const [draft, setDraft] = useState<IntakeDraft>(EMPTY);
+/** The conversation as it stands, to save as a draft and pick up again (lib/cases/drafts.ts). */
+export interface IntakeSnapshot {
+  messages: IntakeMessage[];
+  step: IntakeStep;
+  draft: IntakeDraft;
+  asked: IntakeStep[];
+}
 
-  const nextId = useRef(1);
-  const asked = useRef<Set<IntakeStep>>(new Set());
+export function useIntakeChat({ areas, initial, initialFiles }: { areas: CaseArea[]; initial?: IntakeSnapshot | null; initialFiles?: File[] }) {
+  const [messages, setMessages] = useState<IntakeMessage[]>(() => initial?.messages ?? []);
+  const [step, setStep] = useState<IntakeStep>(() => initial?.step ?? "start");
+  const [typing, setTyping] = useState(false);
+  const [files, setFiles] = useState<File[]>(() => initialFiles ?? []);
+  const [draft, setDraft] = useState<IntakeDraft>(() => initial?.draft ?? EMPTY);
+
+  const nextId = useRef(Math.max(0, ...(initial?.messages.map((m) => m.id) ?? [])) + 1);
+  const asked = useRef<Set<IntakeStep>>(new Set(initial?.asked));
+  const askedSteps = useCallback(() => [...asked.current], []);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
     () => () => {
@@ -433,5 +442,6 @@ export function useIntakeChat({ areas }: { areas: CaseArea[] }) {
     addFiles,
     removeFile,
     patchDraft,
+    askedSteps,
   };
 }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronRight, Folder, PanelLeft, Plus, Scale, SlidersHorizontal, type LucideIcon } from "lucide-react";
+import { SidebarDrafts, useDraftNav } from "@/components/cases/drafts";
 import { GuideButton } from "@/components/tour/guide-button";
 import { Avatar, Logo, initialsOf } from "@/components/ui/misc";
 import { useSession } from "@/lib/auth/session";
@@ -11,7 +12,6 @@ import { cn } from "@/lib/cn";
 import { clientRequestStatusLabel, useOpenLawyerRequestsQuery } from "@/lib/lawyer-requests/api";
 import { useApp } from "@/lib/store";
 import { areasLabel } from "@/lib/types";
-import { startNewCase } from "@/lib/wizard-store";
 
 const railBtn =
   "flex size-[34px] shrink-0 items-center justify-center rounded-full border bg-white text-ink";
@@ -29,6 +29,9 @@ export function Sidebar() {
   const { data: openRequests } = useOpenLawyerRequestsQuery();
   const fullName = useSession((s) => s.user?.name ?? "");
   const initials = initialsOf(fullName || "You");
+  // A fresh draft each time: a refresh of New case keeps what's typed, a new visit doesn't. One left
+  // unfinished on New case is saved under Drafts first.
+  const { startNew: onNewCase } = useDraftNav();
 
   const activeId = /^\/cases\/([^/]+)/.exec(pathname)?.[1];
   const label = collapsed ? "Expand sidebar" : "Collapse sidebar";
@@ -61,10 +64,9 @@ export function Sidebar() {
 
       {!collapsed ? (
         <>
-          {/* A fresh draft each time: a refresh of New case keeps what's typed, a new visit doesn't. */}
           <Link
             href="/cases/new"
-            onClick={startNewCase}
+            onClick={onNewCase}
             data-no-tap
             className="flex h-10 items-center gap-2.5 rounded-full border border-line bg-white px-3.5 text-[13px] font-medium text-ink no-underline hover:border-line-hover hover:text-ink"
           >
@@ -89,6 +91,7 @@ export function Sidebar() {
             <GuideButton variant="nav" />
           </nav>
           <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
+            <SidebarDrafts collapsed={false} />
             {cases.length > 0 && (
               <div className="px-2.5 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[1px] text-muted">Your cases</div>
             )}
@@ -125,7 +128,7 @@ export function Sidebar() {
       ) : (
         <>
           <div className="flex min-h-0 flex-1 flex-col items-center gap-2 overflow-y-auto">
-            <Link href="/cases/new" onClick={startNewCase} aria-label="New case" title="New case" data-no-tap className={cn(railBtn, "border-line text-ink no-underline hover:text-ink")}>
+            <Link href="/cases/new" onClick={onNewCase} aria-label="New case" title="New case" data-no-tap className={cn(railBtn, "border-line text-ink no-underline hover:text-ink")}>
               <Plus size={15} />
             </Link>
             {NAV.map(({ href, label: text, icon: Icon, match }) => (
@@ -141,6 +144,7 @@ export function Sidebar() {
               </Link>
             ))}
             <GuideButton variant="rail" />
+            <SidebarDrafts collapsed />
             {cases.map((c) => {
               const on = activeId === c.id;
               return (

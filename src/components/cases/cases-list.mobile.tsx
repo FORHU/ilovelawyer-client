@@ -11,6 +11,7 @@ import { ErrorBox } from "@/components/ui/banner";
 import { cn } from "@/lib/cn";
 import { clientRequestStatusLabel } from "@/lib/lawyer-requests/api";
 import { areasLabel, type Case } from "@/lib/types";
+import { DraftsSection } from "./drafts";
 import { SORT_FIELDS, SORT_LABELS, PAGE_SIZE, notesLine, useCasesList, type CaseMenuItem, type SortField, type SortOrder } from "./use-cases-list";
 
 const shortDate = (iso: string) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(new Date(iso));
@@ -162,6 +163,8 @@ export function CasesListMobile() {
               </div>
             </div>
           )}
+
+          {status === "ACTIVE" && !searching && <DraftsSection mobile />}
 
           {list.error && <ErrorBox message={list.error.message} />}
           {v.restore.error && <ErrorBox message={v.restore.error.message} />}

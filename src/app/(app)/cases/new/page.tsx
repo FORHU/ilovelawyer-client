@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { IntakeChat } from "@/components/cases/intake-chat";
@@ -12,11 +12,28 @@ import { NewCaseForm } from "@/components/wizard/new-case-form";
 import { useSession } from "@/lib/auth/session";
 import { sendMessage } from "@/lib/cases/api";
 import { describeCasePayload } from "@/lib/cases/describe-case";
+import {
+  formHasContent,
+  formOf,
+  loadDraftFiles,
+  loadDrafts,
+  newDraftId,
+  putDraft,
+  registerOpenDraft,
+  removeDraft,
+  useDrafts,
+  type DraftChat,
+} from "@/lib/cases/drafts";
 import { useFailedUploads } from "@/lib/failed-uploads";
-import { useCreateCaseFromWizard } from "@/lib/cases/new-case";
+import { useCreateCaseFromWizard, useStillHere } from "@/lib/cases/new-case";
 import { uploadAll, useCreateCaseMutation } from "@/lib/cases/queries";
 import { usePricingQuery } from "@/lib/pricing";
+import { useApp } from "@/lib/store";
 import { useWizard } from "@/lib/wizard-store";
+
+type ChatState = { chat: DraftChat; files: File[] };
+
+const SAVE_MS = 400;
 
 function NewCase() {
   const router = useRouter();
@@ -26,6 +43,7 @@ function NewCase() {
   const included = pricing?.case.credits ?? "…";
   const { create, creating, error } = useCreateCaseFromWizard();
   const createCaseDirect = useCreateCaseMutation();
+  const stillHere = useStillHere();
   const [chatCreating, setChatCreating] = useState(false);
   const [chatError, setChatError] = useState("");
 
@@ -39,20 +57,102 @@ function NewCase() {
   // Where the phone's Check step portals its Edit and Create icons (see IntakeChatMobile).
   const [actionsSlot, setActionsSlot] = useState<HTMLElement | null>(null);
 
-  // Brings back this account's saved draft (the store hydrates lazily, see wizard-store), then starts
-  // at step 1.
+  // What's here is saved as a draft as it changes (lib/cases/drafts.ts), so leaving it, for another
+  // page or another New case, loses nothing; it's continued from Drafts. A case already being made
+  // isn't a draft: it finishes in the background and its draft is deleted then.
+  const draftId = useRef<string | null>(null);
+  const chatState = useRef<ChatState | null>(null);
+  // What the chat starts from when it mounts: the saved draft, or where it was before the form.
+  const [chatStart, setChatStart] = useState<ChatState | null>(null);
+  const modeNow = useRef<"chat" | "form">(mode);
+  const busy = useRef(false);
+  useEffect(() => {
+    modeNow.current = mode;
+    busy.current = creating || chatCreating;
+  });
+
+  const save = useCallback((): boolean => {
+    const id = draftId.current;
+    const w = useWizard.getState();
+    // Another draft (or none) is open now: this one was deleted, made into a case, or switched away
+    // from, and was saved on the way if it was kept.
+    if (!id || !userId || busy.current || w.draftId !== id) return false;
+    const chat = chatState.current;
+    return putDraft({
+      id,
+      ownerId: userId,
+      mode: modeNow.current,
+      chat: chat?.chat ?? null,
+      chatFiles: modeNow.current === "chat" ? (chat?.files ?? []) : [],
+      form: formOf(w),
+      formFiles: w.files,
+    });
+  }, [userId]);
+
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const saveSoon = useCallback(() => {
+    clearTimeout(timer.current);
+    timer.current = setTimeout(save, SAVE_MS);
+  }, [save]);
+
+  const onChatChange = useCallback(
+    (state: ChatState) => {
+      chatState.current = state;
+      saveSoon();
+    },
+    [saveSoon],
+  );
+
+  // Saved on every change to the form, on leaving (unmount, or the tab closing), and right away
+  // when New case or another draft is opened (registerOpenDraft).
+  useEffect(() => {
+    if (!ready) return;
+    const now = () => {
+      clearTimeout(timer.current);
+      return save();
+    };
+    const unregister = registerOpenDraft(now);
+    const unsubscribe = useWizard.subscribe(saveSoon);
+    window.addEventListener("pagehide", now);
+    return () => {
+      unregister();
+      unsubscribe();
+      window.removeEventListener("pagehide", now);
+      now();
+    };
+  }, [ready, save, saveSoon]);
+  useEffect(() => {
+    if (ready) saveSoon();
+  }, [mode, ready, saveSoon]);
+
+  // Brings back the draft this tab is on (the stores hydrate lazily, see wizard-store and drafts),
+  // or starts a new one, then starts at step 1.
   useEffect(() => {
     if (!userId) return;
     let live = true;
-    void Promise.resolve(useWizard.persist.rehydrate()).then(() => {
+    void (async () => {
+      await Promise.all([useWizard.persist.rehydrate(), loadDrafts()]);
       if (!live) return;
       useWizard.getState().claimFor(userId);
+      let id = useWizard.getState().draftId;
+      const saved = id ? useDrafts.getState().drafts[id] : undefined;
+      if (saved?.ownerId === userId) {
+        const files = saved.fileCount ? await loadDraftFiles(saved.id) : null;
+        if (!live) return;
+        useWizard.setState({ ...saved.form, files: files?.form ?? [] });
+        const chat = saved.chat ? { chat: saved.chat, files: files?.chat ?? [] } : null;
+        chatState.current = chat;
+        setChatStart(chat);
+      } else if (!id || saved) {
+        id = newDraftId();
+        useWizard.setState({ draftId: id });
+      }
+      draftId.current = id;
       useWizard.getState().enter();
       // The chat is always the way in. A form draft left behind is offered as a link, not forced.
-      const saved = useWizard.getState();
-      setHasDraft(!!(saved.title.trim() || saved.areas.length || saved.region || saved.happened || saved.wants));
+      setHasDraft(formHasContent(formOf(useWizard.getState())));
       setReady(true);
-    });
+    })();
     return () => {
       live = false;
     };
@@ -97,6 +197,7 @@ function NewCase() {
     if (chatCreating || !text.trim()) return;
     setChatCreating(true);
     setChatError("");
+    const id = draftId.current;
     let created;
     try {
       created = await createCaseDirect.mutateAsync(describeCasePayload(text));
@@ -105,11 +206,17 @@ function NewCase() {
       setChatError(err instanceof Error && err.message ? err.message : "We couldn't create the case. Try again.");
       return;
     }
+    // It's a case now, not a draft. The next New case starts a new one.
+    if (id) removeDraft(id);
+    if (useWizard.getState().draftId === id) useWizard.setState({ draftId: null });
     const notUploaded = await uploadAll(created.id, files);
     useFailedUploads.getState().set(created.id, notUploaded);
     void sendMessage(created.id, text);
     setChatCreating(false);
-    router.push(`/cases/${created.id}`);
+    // Moved on while it was being made (another page, or New case again): it's finished all the
+    // same and waits under Your cases, without pulling the client back to it.
+    if (stillHere()) router.push(`/cases/${created.id}`);
+    else useApp.getState().setBanner(`Your case "${created.title}" is created. You'll find it under Your cases.`);
   };
 
   // Still used by the scripted review screen reached via "Edit details" — an explicit, opt-in
@@ -154,18 +261,36 @@ function NewCase() {
           hasDraft={hasDraft}
           headerSlot={actionsSlot}
           onUseForm={() => setMode("form")}
+          initial={chatStart ?? undefined}
+          onChange={onChatChange}
         />
       </div>
     );
   }
 
-  return <NewCaseForm included={included} creating={creating} error={error} onBack={onBack} onNext={onNext} onChat={() => setMode("chat")} />;
+  return (
+    <NewCaseForm
+      included={included}
+      creating={creating}
+      error={error}
+      onBack={onBack}
+      onNext={onNext}
+      onChat={() => {
+        // Back to the conversation where it was left, not a new one.
+        setChatStart(chatState.current);
+        setMode("chat");
+      }}
+    />
+  );
 }
 
 export default function NewCasePage() {
+  // New case or a draft opened while already here is the same URL, so nothing would remount: keyed
+  // on the press instead, it starts that one rather than showing the one in progress.
+  const round = useWizard((s) => s.round);
   return (
     <Suspense fallback={null}>
-      <NewCase />
+      <NewCase key={round} />
     </Suspense>
   );
 }

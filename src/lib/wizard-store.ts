@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { EMPTY_BUDGET_DRAFT, ownAmountError, type BudgetDraft } from "./cases/budget";
+import { removeDraft, saveOpenDraft } from "./cases/drafts";
 import type { CaseRegion, OtherParty, PartyRole, Side } from "./types";
 
 /** Details, People, Budget, Documents. */
@@ -10,11 +11,17 @@ const BUDGET_STEP = 3;
 const WIZARD_STORAGE_KEY = "ilovelawyer-client-wizard";
 
 // The draft is kept in this tab (sessionStorage, per account) so a refresh doesn't lose it. Picked
-// files can't be kept, only the text. Every way into New case starts a fresh one (startNewCase), and
-// it's cleared once the case is made and on sign-out; a new tab starts empty.
+// files can't be kept here, only the text. Every way into New case starts a fresh one
+// (startNewCase), and it's cleared once the case is made and on sign-out; a new tab starts empty.
+// What's left unfinished is also saved as a draft to continue later (lib/cases/drafts.ts).
 interface WizardState {
   /** The account the draft belongs to, so another account on this browser never sees it. */
   ownerId: string | null;
+  /** Counts presses of New case and opened drafts. The new-case page is keyed on it, so either one
+   * while already there starts over with that draft instead of the one in progress. Not persisted. */
+  round: number;
+  /** The saved draft (lib/cases/drafts.ts) New case is working on. Null: the page starts a new one. */
+  draftId: string | null;
   step: number;
   maxStep: number;
   titleErr: boolean;
@@ -57,7 +64,7 @@ interface WizardState {
 }
 
 /** What's kept in localStorage (partialize below). */
-type PersistedDraft = Pick<WizardState, "ownerId" | "title" | "region" | "where" | "areas" | "side" | "others" | "happened" | "wants" | "budget">;
+type PersistedDraft = Pick<WizardState, "ownerId" | "draftId" | "title"| "region" | "where" | "areas" | "side" | "others" | "happened" | "wants" | "budget">;
 
 const blank = {
   ownerId: null as string | null,
@@ -83,10 +90,12 @@ export const useWizard = create<WizardState>()(
   persist(
     (set, get) => ({
   ...blank,
+  round: 0,
+  draftId: null,
 
   claimFor: (userId) => {
     if (get().ownerId === userId) return;
-    set({ ...blank, ownerId: userId });
+    set({ ...blank, ownerId: userId, draftId: null });
   },
   enter: () => set({ step: 1, maxStep: 1, titleErr: false, regionErr: false, areasErr: false, budgetErr: false }),
   set: (patch) => set({ ...patch, ...(patch.region ? { regionErr: false } : {}), ...(patch.areas?.length ? { areasErr: false } : {}) }),
@@ -154,6 +163,8 @@ export const useWizard = create<WizardState>()(
       },
       partialize: (s) => ({
         ownerId: s.ownerId,
+        // So a refresh carries on with the same saved draft rather than starting a second one.
+        draftId: s.draftId,
         title: s.title,
         region: s.region,
         where: s.where,
@@ -169,7 +180,30 @@ export const useWizard = create<WizardState>()(
 );
 
 /** Every way into New case calls this first, so the form starts empty. A refresh doesn't go
- * through it, so it keeps what was typed. */
-export function startNewCase() {
+ * through it, so it keeps what was typed. What was open on New case is saved as a draft first;
+ * returns whether there was anything in it. */
+export function startNewCase(): boolean {
+  return switchDraft(null);
+}
+
+/** Continues a saved draft: what's open on New case is saved first, then the page loads this one. */
+export function openDraft(id: string): boolean {
+  return switchDraft(id);
+}
+
+/** Deletes a saved draft. If it's the one open on New case, the page starts over empty (without
+ * saving it again on the way out). */
+export function deleteDraft(id: string) {
+  if (useWizard.getState().draftId === id) {
+    useWizard.setState((s) => ({ round: s.round + 1, draftId: null }));
+    useWizard.getState().reset();
+  }
+  removeDraft(id);
+}
+
+function switchDraft(id: string | null): boolean {
+  const saved = saveOpenDraft();
+  useWizard.setState((s) => ({ round: s.round + 1, draftId: id }));
   useWizard.getState().reset();
+  return saved;
 }
