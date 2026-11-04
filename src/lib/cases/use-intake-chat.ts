@@ -98,11 +98,14 @@ function guessSide(text: string): Side {
   return "";
 }
 
-/** "my employer Acme Ltd" / "against Acme Ltd" → "Acme Ltd". */
+/**
+ * "my employer Acme Ltd" / "Against Acme Ltd I…" → "Acme Ltd". Only the lead-in words may be
+ * capitalised (a sentence can start with them); the name still has to start with a capital.
+ */
 function guessOthers(text: string): string[] {
   const re =
-    /\b(?:my (?:employer|landlord|boss|ex[- ]?partner|neighbou?r|supplier|letting agent)|against|sued by)\s+(?:is |called |named )?([A-Z][\p{L}&'.-]*(?:\s+[A-Z][\p{L}&'.-]*){0,3})/gu;
-  return [...text.matchAll(re)].map((m) => m[1]?.trim() ?? "").filter(Boolean);
+    /\b(?:[Mm]y (?:employer|landlord|boss|ex[- ]?partner|neighbou?r|supplier|letting agent)|[Aa]gainst|[Ss]ued by)\s+(?:is |called |named )?([A-Z][\p{L}&'.-]*(?:\s+(?!I\b)[A-Z][\p{L}&'.-]*){0,3})/gu;
+  return [...text.matchAll(re)].map((m) => m[1]?.replace(/[.'-]+$/, "").trim() ?? "").filter(Boolean);
 }
 
 /** An answer to "Is anyone else involved?" that names nobody. */
