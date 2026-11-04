@@ -21,7 +21,7 @@ export function LawyerCard({ lawyer }: { lawyer: ClientLawyer }) {
   const chips = lawyer.practiceAreas.slice(0, MAX_CHIPS);
   const more = lawyer.practiceAreas.length - chips.length;
   return (
-    <article className="flex h-full flex-col gap-4 rounded-card border border-line bg-white p-5">
+    <article className="flex h-full w-full min-w-0 flex-col gap-4 rounded-card border border-line bg-white p-5">
       <div className="flex items-start gap-3.5">
         <LawyerAvatar lawyer={{ name: lawyer.name, tone: toneFor(lawyer.id), avatarUrl: lawyer.avatarUrl }} />
         <div className="flex min-w-0 flex-col gap-0.5">
