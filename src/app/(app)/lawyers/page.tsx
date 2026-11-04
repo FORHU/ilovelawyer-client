@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { Eyebrow } from "@/components/ui/misc";
 import { useCaseAvailability } from "@/components/lawyers/use-case-availability";
+import { useCaseAreasQuery } from "@/lib/cases/case-areas";
 import { useCasesQuery } from "@/lib/cases/queries";
 import { cn } from "@/lib/cn";
 import {
@@ -15,7 +16,6 @@ import {
   LANGUAGE_FILTERS,
   LAWYER_SORTS,
   MAX_CONSULTATION,
-  filterLawyers,
   gbp,
   useLawyersQuery,
   useMarketplaceCase,
@@ -53,9 +53,19 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
+/** `value` once it has stopped changing for `ms`: the search box asks the API once typing pauses. */
+function useDebounced<T>(value: T, ms = 300) {
+  const [settled, setSettled] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setSettled(value), ms);
+    return () => clearTimeout(t);
+  }, [value, ms]);
+  return settled;
+}
+
 export default function LawyersPage() {
   const { data: cases = [] } = useCasesQuery();
-  const { data: lawyers, isLoading, error, refetch } = useLawyersQuery();
+  const { data: areas = [] } = useCaseAreasQuery();
 
   // Until the client chooses a filter, the list follows the case: its type of issue and place.
   const caseChoice = useMarketplaceCase((s) => s.caseId);
@@ -63,14 +73,21 @@ export default function LawyersPage() {
   const [sort, setSort] = useState<LawyerSort>("match");
 
   const activeCase = cases.find((c) => c.id === caseChoice) ?? cases[0] ?? null;
-  // The area options are the ones lawyers actually list, so a case area no lawyer covers (or an
-  // admin-renamed one) falls back to "All areas" instead of an empty list.
-  const areas = [...new Set((lawyers ?? []).flatMap((l) => l.practiceAreas))];
-  const caseArea = areas.find((a) => a.toLowerCase() === activeCase?.areas[0]?.name.trim().toLowerCase()) ?? null;
+  // The area options are the switched-on case areas, so a case whose area was switched off since
+  // falls back to "All areas" instead of a filter the client can't see.
+  const caseArea = areas.find((a) => a.code === activeCase?.areas[0]?.code)?.code ?? null;
   const caseJurisdiction = activeCase?.ukJurisdiction ?? null;
   const filters: LawyerFilters = { ...DEFAULT_FILTERS, area: caseArea, jurisdiction: caseJurisdiction, ...overrides };
   const followsCase = !!activeCase && filters.area === caseArea && filters.jurisdiction === caseJurisdiction;
   const availability = useCaseAvailability(activeCase?.id ?? null);
+  const search = useDebounced(filters.search);
+  const { data, isLoading, isPlaceholderData, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useLawyersQuery({
+    filters: { ...filters, search },
+    sort,
+    caseArea,
+  });
+  const shown = data?.pages.flatMap((p) => p.data) ?? [];
+  const total = data?.pages[0]?.total ?? 0;
 
   // Keep the chosen case for the lawyer profile's request panel.
   useEffect(() => {
@@ -82,12 +99,11 @@ export default function LawyersPage() {
     setOverrides({});
   };
 
-  const shown = filterLawyers(lawyers ?? [], filters, sort, caseArea);
-
   const toggleLanguage = (l: string) =>
     set({ languages: filters.languages.includes(l) ? filters.languages.filter((x) => x !== l) : [...filters.languages, l] });
 
-  const summary = [filters.area?.toLowerCase(), filters.jurisdiction].filter(Boolean).join(" in ");
+  const areaName = areas.find((a) => a.code === filters.area)?.name;
+  const summary = [areaName?.toLowerCase(), filters.jurisdiction].filter(Boolean).join(" in ");
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
@@ -104,7 +120,7 @@ export default function LawyersPage() {
           <section className="flex flex-col gap-2 rounded-modal border border-line bg-white p-6">
             <h2 className="text-base font-semibold">Pick a lawyer yourself</h2>
             <p className="text-sm leading-[1.6] text-ink-2">
-              Browse below and request one. Only that lawyer gets your request, and they reply with a quote within 24 hours — or we offer to match you instead.
+              Browse below and request one. Only that lawyer gets your request for 24 hours. If they can’t take it up, it goes to other matching lawyers automatically.
             </p>
           </section>
           <section className="flex flex-col gap-3 rounded-modal bg-navy-900 p-6 text-white">
@@ -164,8 +180,8 @@ export default function LawyersPage() {
                 All areas
               </Option>
               {areas.map((a) => (
-                <Option key={a} active={filters.area === a} onClick={() => set({ area: a })}>
-                  {a}
+                <Option key={a.code} active={filters.area === a.code} onClick={() => set({ area: a.code })}>
+                  {a.name}
                 </Option>
               ))}
             </Group>
@@ -176,13 +192,6 @@ export default function LawyersPage() {
               {UK_JURISDICTIONS.map((j) => (
                 <Option key={j} active={filters.jurisdiction === j} onClick={() => set({ jurisdiction: j as UkJurisdiction })}>
                   {j}
-                </Option>
-              ))}
-            </Group>
-            <Group title="How they charge">
-              {(["any", "fixed", "hourly"] as const).map((c) => (
-                <Option key={c} active={filters.charging === c} onClick={() => set({ charging: c })}>
-                  {c === "any" ? "Any" : c === "fixed" ? "Offers fixed fees" : "Charges hourly"}
                 </Option>
               ))}
             </Group>
@@ -249,7 +258,7 @@ export default function LawyersPage() {
             ) : (
               <>
                 <p className="text-sm text-ink-2" aria-live="polite">
-                  {shown.length} {shown.length === 1 ? "lawyer" : "lawyers"}
+                  {total} {total === 1 ? "lawyer" : "lawyers"}
                   {summary && ` for ${summary}`}
                   {activeCase && followsCase ? ` — matched to your case “${activeCase.title}”` : ""}
                 </p>
@@ -261,11 +270,16 @@ export default function LawyersPage() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="grid gap-4 xl:grid-cols-2">
+                  <div className={cn("grid auto-rows-fr gap-4 transition-opacity xl:grid-cols-2", isPlaceholderData && "opacity-60")}>
                     {shown.map((l) => (
                       <LawyerCard key={l.id} lawyer={l} />
                     ))}
                   </div>
+                )}
+                {hasNextPage && (
+                  <Button variant="soft" size="sm" className="self-center" disabled={isFetchingNextPage} onClick={() => void fetchNextPage()}>
+                    {isFetchingNextPage ? "Loading…" : "Show more"}
+                  </Button>
                 )}
                 <p className="text-[12.5px] leading-[1.6] text-ink-2">
                   Fees are set by each lawyer and paid to them; your actual price is in the quote they send. Lawyers pay ilovelawyer a fee for each introduction. Ratings come

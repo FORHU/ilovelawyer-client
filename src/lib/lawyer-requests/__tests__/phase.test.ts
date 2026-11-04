@@ -111,9 +111,9 @@ const quotation = (over: Record<string, unknown> = {}) =>
   ({
     id: "q1",
     status: "ACCEPTED",
-    serviceFee: { amountMinor: 50000, currency: "GBP" },
+    serviceFee: { amountMinor: 45000, currency: "GBP" },
     platformFee: { amountMinor: 5000, currency: "GBP" },
-    total: { amountMinor: 55000, currency: "GBP" },
+    total: { amountMinor: 50000, currency: "GBP" },
     acceptedAmount: null,
     expiresAt: "2026-11-20T09:00:00Z",
     acceptedAt: "2026-11-02T09:00:00Z",
@@ -123,7 +123,7 @@ const quotation = (over: Record<string, unknown> = {}) =>
 
 describe("quotation payments", () => {
   it("charges the amount fixed on acceptance, else the quote's total", () => {
-    expect(amountDue(quotation())).toEqual({ amountMinor: 55000, currency: "GBP" });
+    expect(amountDue(quotation())).toEqual({ amountMinor: 50000, currency: "GBP" });
     expect(amountDue(quotation({ acceptedAmount: { amountMinor: 60000, currency: "GBP" } }))).toEqual({ amountMinor: 60000, currency: "GBP" });
   });
 

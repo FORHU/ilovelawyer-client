@@ -1,31 +1,39 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { ApiError } from "@/lib/api/fetch";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/cn";
+import { firstName, formatDateTime } from "@/lib/format";
+import { toast } from "@/lib/toast";
 import {
   LAWYER_NOTE_MAX_LENGTH,
   useConsentQuery,
   useCreateLawyerRequestMutation,
   useLawyerRequestForm,
+  type RequestedLawyer,
 } from "@/lib/lawyer-requests/api";
 
 /** The request form: a note for the lawyer, then the consent (the anonymised summary, names only
  * for the conflict check, the lawyer keeping a copy) and the referral-fee disclosure, which the
  * client must agree to. Sending creates the request (POST /api/client/lawyer-requests). Mounted
- * once in the app shell; opened with useLawyerRequestForm.getState().openFor(caseId). */
+ * once in the app shell; opened with useLawyerRequestForm.getState().openFor(caseId), or
+ * openFor(caseId, lawyer) to ask one lawyer by name first (Find a lawyer), with its own consent. */
 export function LawyerRequestModal() {
   const caseId = useLawyerRequestForm((s) => s.caseId);
-  // Keyed by case, so each opening starts with an empty form.
-  return caseId ? <RequestForm key={caseId} caseId={caseId} /> : null;
+  const lawyer = useLawyerRequestForm((s) => s.lawyer);
+  // Keyed by case and lawyer, so each opening starts with an empty form.
+  return caseId ? <RequestForm key={`${caseId}:${lawyer?.id ?? ""}`} caseId={caseId} lawyer={lawyer} /> : null;
 }
 
-function RequestForm({ caseId }: { caseId: string }) {
+function RequestForm({ caseId, lawyer }: { caseId: string; lawyer: RequestedLawyer | null }) {
   const close = useLawyerRequestForm((s) => s.close);
-  const consent = useConsentQuery(true);
+  const pathname = usePathname();
+  const consent = useConsentQuery(true, !!lawyer);
+  const name = lawyer ? (firstName(lawyer.name) ?? lawyer.name) : null;
   const create = useCreateLawyerRequestMutation(caseId);
   const [note, setNote] = useState("");
   const [agreed, setAgreed] = useState(false);
@@ -35,10 +43,25 @@ function RequestForm({ caseId }: { caseId: string }) {
     if (!consent.data || !agreed || create.isPending) return;
     setError("");
     create.mutate(
-      { note: note.trim(), consentVersion: consent.data.version },
+      { note: note.trim(), consentVersion: consent.data.version, ...(lawyer ? { lawyerId: lawyer.id } : {}) },
       {
-        onSuccess: () => {
+        onSuccess: (sent) => {
           close();
+          // Sent from the case itself, its Lawyer tab already shows the request: no link back to it.
+          const link = pathname === `/cases/${caseId}` ? undefined : { href: `/cases/${caseId}`, label: "Go to my case" };
+          if (name) {
+            toast.success(`Request sent to ${name}`, {
+              description: sent.routingExpiresAt
+                ? `Only ${name} can take it up, until ${formatDateTime(sent.routingExpiresAt)}. If they can’t, it goes to other matching lawyers automatically.`
+                : `Only ${name} can take it up for the next 24 hours. If they can’t, it goes to other matching lawyers automatically.`,
+              link,
+            });
+          } else {
+            toast.success("We’re finding you a lawyer", {
+              description: "Your case goes to verified lawyers who match it. Up to 3 can send you a quote, and we’ll email you when one picks it up.",
+              link,
+            });
+          }
         },
         onError: (err) => {
           if (err instanceof ApiError && err.code === "CONSENT_VERSION_STALE") {
@@ -59,12 +82,18 @@ function RequestForm({ caseId }: { caseId: string }) {
       open
       onClose={close}
       locked={create.isPending}
-      title="Get a lawyer"
-      subtitle="Verified UK lawyers see an anonymised version of your overview — your timeline, goals and questions — and can offer to take your case on."
+      // Wide enough that the note, the consent and the button fit on screen without scrolling.
+      size="lg"
+      title={lawyer ? `Request ${lawyer.name}` : "Get a lawyer"}
+      subtitle={
+        name
+          ? `${name}, and only ${name} at first, sees an anonymised version of your overview — your timeline, goals and questions — and can offer to take your case on.`
+          : "Verified UK lawyers see an anonymised version of your overview — your timeline, goals and questions — and can offer to take your case on."
+      }
     >
       <div className="flex flex-col gap-1.5">
         <label htmlFor="lawyer-note" className="text-xs font-semibold text-ink-2">
-          Note to the lawyer (optional)
+          {name ? `Note to ${name} (optional)` : "Note to the lawyer (optional)"}
         </label>
         <textarea
           id="lawyer-note"

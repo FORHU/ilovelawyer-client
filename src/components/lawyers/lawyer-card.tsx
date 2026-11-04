@@ -1,60 +1,68 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
-import { buttonClass } from "@/components/ui/button";
+import { Button, buttonClass } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import { consultationLabel, range, type MarketplaceLawyer } from "@/lib/lawyers/marketplace";
+import { firstConsultationLabel, toneFor, type ClientLawyer } from "@/lib/lawyers/marketplace";
 import { AreaChip, LawyerAvatar, Rating, VerifiedBadge } from "./lawyer-parts";
+import { RequestLawyerModal } from "./request-lawyer-modal";
 
-function Fee({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-xs text-ink-2">{label}</span>
-      <span className="text-[15px] font-semibold">{value}</span>
-    </div>
-  );
-}
+/** Practice-area chips shown before "+N": one row, so every card is the same height. */
+const MAX_CHIPS = 3;
 
-/** One lawyer in the marketplace grid. Both buttons open the profile, whose side panel holds the request. */
-export function LawyerCard({ lawyer }: { lawyer: MarketplaceLawyer }) {
+/** One lawyer in the marketplace grid. View profile opens their profile; Request opens the request
+ * panel in a modal (RequestLawyerModal), without leaving the list.
+ * Every slot is always there and one line tall, whatever the lawyer filled in, so cards line up. */
+export function LawyerCard({ lawyer }: { lawyer: ClientLawyer }) {
   const profile = `/lawyers/${lawyer.id}`;
+  const [requesting, setRequesting] = useState(false);
+  const place = [lawyer.firmName ?? "Independent solicitor", lawyer.town].filter(Boolean).join(" · ");
+  const chips = lawyer.practiceAreas.slice(0, MAX_CHIPS);
+  const more = lawyer.practiceAreas.length - chips.length;
   return (
-    <article className="flex flex-col gap-4 rounded-card border border-line bg-white p-5">
+    <article className="flex h-full flex-col gap-4 rounded-card border border-line bg-white p-5">
       <div className="flex items-start gap-3.5">
-        <LawyerAvatar lawyer={lawyer} />
+        <LawyerAvatar lawyer={{ name: lawyer.name, tone: toneFor(lawyer.id), avatarUrl: lawyer.avatarUrl }} />
         <div className="flex min-w-0 flex-col gap-0.5">
           <h3 className="truncate text-base font-semibold">{lawyer.name}</h3>
-          <p className="truncate text-[13px] text-ink-2">
-            {lawyer.firmName ? `${lawyer.firmName} · ` : ""}
-            {lawyer.town}
-          </p>
-          <VerifiedBadge regulator={lawyer.regulator} />
+          <p className="truncate text-[13px] text-ink-2">{place}</p>
+          <div className="h-[18px]">{lawyer.regulator && <VerifiedBadge regulator={lawyer.regulator} />}</div>
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-ink-2">
-        <Rating rating={lawyer.rating} count={lawyer.reviewCount} />
-        <span>{lawyer.jurisdictions.join(", ")}</span>
-        <span>{lawyer.languages.join(", ")}</span>
+      <div className="flex min-w-0 items-center gap-3 overflow-hidden whitespace-nowrap text-[13px] text-ink-2">
+        <span className="shrink-0">
+          <Rating rating={lawyer.rating} count={lawyer.reviewCount} />
+        </span>
+        <span className="truncate" title={[...lawyer.qualifiedJurisdictions, ...lawyer.languages].join(", ")}>
+          {[lawyer.qualifiedJurisdictions.join(", "), lawyer.languages.join(", ")].filter(Boolean).join(" · ")}
+        </span>
       </div>
-      <div className="flex flex-wrap gap-2">
-        {lawyer.practiceAreas.map((a) => (
-          <AreaChip key={a}>{a}</AreaChip>
-        ))}
+      <div className="flex h-[30px] flex-nowrap items-center gap-2 overflow-hidden" title={lawyer.practiceAreas.join(", ")}>
+        {chips.length === 0 ? (
+          <span className="text-[13px] text-ink-2">No practice areas listed</span>
+        ) : (
+          <>
+            {chips.map((a) => (
+              <AreaChip key={a}>{a}</AreaChip>
+            ))}
+            {more > 0 && <span className="shrink-0 text-[12.5px] text-ink-2">+{more} more</span>}
+          </>
+        )}
       </div>
-      <div className="grid grid-cols-3 gap-3 rounded-input border border-line bg-subtle px-4 py-3">
-        <Fee label="First consultation" value={consultationLabel(lawyer)} />
-        <Fee label="Fixed fees" value={lawyer.fixedFees ? range(lawyer.fixedFees) : "—"} />
-        <Fee label="Hourly" value={lawyer.hourly ? range(lawyer.hourly) : "—"} />
+      <div className="flex flex-col gap-0.5 rounded-input border border-line bg-subtle px-4 py-3">
+        <span className="text-xs text-ink-2">First consultation</span>
+        <span className="text-[15px] font-semibold">{firstConsultationLabel(lawyer)}</span>
       </div>
-      <div className="mt-auto flex flex-wrap items-center justify-between gap-3">
-        <span className="text-[13px] text-ink-2">Usually replies in {lawyer.repliesIn}</span>
-        <div className="flex gap-2">
-          <Link href={profile} className={cn(buttonClass("soft", "sm"), "no-underline hover:text-ink")}>
-            View profile
-          </Link>
-          <Link href={`${profile}#request`} className={cn(buttonClass("dark", "sm"), "text-white no-underline hover:text-white")}>
-            Request
-          </Link>
-        </div>
+      <div className="mt-auto flex items-center justify-end gap-2">
+        <Link href={profile} className={cn(buttonClass("soft", "sm"), "no-underline hover:text-ink")}>
+          View profile
+        </Link>
+        <Button variant="dark" size="sm" onClick={() => setRequesting(true)}>
+          Request
+        </Button>
       </div>
+      <RequestLawyerModal lawyer={lawyer} open={requesting} onClose={() => setRequesting(false)} />
     </article>
   );
 }

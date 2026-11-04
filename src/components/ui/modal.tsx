@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 const FOCUSABLE =
@@ -13,14 +14,21 @@ interface Props {
   locked?: boolean;
   title: string;
   subtitle?: string;
+  /** How wide on web: md 480 (the default), lg 640 for long text such as a consent, xl 880 for
+   * content laid out side by side. Wider wraps less, so a long modal fits without scrolling. */
+  size?: keyof typeof WIDTHS;
   children: ReactNode;
 }
 
+const WIDTHS = { md: "max-w-[480px]", lg: "max-w-[640px]", xl: "max-w-[880px]" } as const;
+
 /**
- * Centered card on web (max 480), bottom sheet on phone.
- * Escape closes, focus is trapped and restored, body scroll is locked.
+ * Centered card on web (max 480, or wider with `size`), bottom sheet on phone.
+ * Escape closes, focus is trapped and restored, and the page behind doesn't scroll: it's rendered
+ * into <body> (pages scroll inside their own container, which body's lock doesn't reach, and a modal
+ * opened from inside one, like a card's, would scroll it), and scrolling never carries past it.
  */
-export function Modal({ open, onClose, locked, title, subtitle, children }: Props) {
+export function Modal({ open, onClose, locked, title, subtitle, size = "md", children }: Props) {
   const panel = useRef<HTMLDivElement>(null);
   const lockedRef = useRef(locked);
   const closeRef = useRef(onClose);
@@ -67,10 +75,11 @@ export function Modal({ open, onClose, locked, title, subtitle, children }: Prop
 
   if (!open) return null;
 
-  return (
+  // Only mounted while open, which is only ever after a click, so document is always there.
+  return createPortal(
     <div
       onClick={() => !locked && onClose()}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(20,20,20,.45)] md:items-center md:p-6"
+      className="fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-[rgba(20,20,20,.45)] md:items-center md:p-6"
       style={{ animation: "fade-in .15s ease" }}
     >
       <div
@@ -80,7 +89,8 @@ export function Modal({ open, onClose, locked, title, subtitle, children }: Prop
         aria-label={title}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className="box-border flex max-h-full w-full max-w-[480px] flex-col gap-[18px] overflow-y-auto rounded-t-3xl bg-white p-6 shadow-modal outline-none md:rounded-modal"
+        // Children never shrink: content taller than the screen scrolls rather than squashing a button.
+        className={`box-border flex max-h-full w-full ${WIDTHS[size]} flex-col gap-[18px] overflow-y-auto overscroll-contain rounded-t-3xl bg-white p-6 shadow-modal outline-none md:rounded-modal [&>*]:shrink-0`}
       >
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -101,6 +111,7 @@ export function Modal({ open, onClose, locked, title, subtitle, children }: Prop
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

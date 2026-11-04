@@ -36,7 +36,7 @@ export interface LawyerRequestEligibility {
 export interface LawyerRequestConsent {
   version: string;
   consentText: string;
-  /** How ilovelawyer is paid: the platform fee on top of the lawyer's quote. */
+  /** How ilovelawyer is paid: its platform fee comes out of what the lawyer receives, not on top. */
   referralDisclosure: string;
 }
 
@@ -63,7 +63,7 @@ export interface LawyerPublicProfile {
 
 export interface LawyerQuote {
   type: QuoteType;
-  /** The lawyer's own fee, paid out to them in full. `Quotation` adds the platform fee and the total. */
+  /** The amount the lawyer quoted, what the client pays. `Quotation` has the full terms. */
   amount: Money;
   message: string;
   sentAt: string;
@@ -77,7 +77,8 @@ export interface EngagementFeedback {
 
 /** One lawyer on the request (several lawyers, ilovelawyer-api phase 5): `claimId` is what hiring and
  * declining take; `quote` and `quotation` are null until they've sent one. `quotation` has what the
- * client pays: the lawyer's fee, ilovelawyer's platform fee on top, the total and the lawyer's expiry. */
+ * client pays: the lawyer's quote (`total`; the platform fee is deducted from it, on the lawyer's
+ * side) and the lawyer's expiry. */
 export interface LawyerOffer {
   claimId: string;
   joinedAt: string;
@@ -136,6 +137,20 @@ export interface LawyerRequest {
   closedAt: string | null;
   closedBy: "LAWYER" | "CLIENT" | null;
   feedback: EngagementFeedback | null;
+  /** The lawyer the client asked for by name, from Find a lawyer; kept once it has gone wider.
+   * Missing from an older API. */
+  requestedLawyer?: { id: string; name: string } | null;
+  /** Only `requestedLawyer` is offered it, until `routingExpiresAt`. Then, or once they pass, it goes
+   * to every matching lawyer. */
+  requestedOnly?: boolean;
+  /** While ROUTED: when lawyers can no longer take it up. */
+  routingExpiresAt?: string | null;
+}
+
+/** The lawyer the request form asks by name (Find a lawyer's Request); none asks every matching lawyer. */
+export interface RequestedLawyer {
+  id: string;
+  name: string;
 }
 
 /** Still open: not closed, expired or withdrawn. */
@@ -167,11 +182,13 @@ export function getEligibility(caseId: string) {
   return apiFetch<LawyerRequestEligibility>(`/api/client/lawyer-requests/eligibility?caseId=${encodeURIComponent(caseId)}`);
 }
 
-export function getConsent() {
-  return apiFetch<LawyerRequestConsent>("/api/client/lawyer-requests/consent");
+/** The consent for asking every matching lawyer, or (`direct`) one lawyer by name first. */
+export function getConsent(direct = false) {
+  return apiFetch<LawyerRequestConsent>(`/api/client/lawyer-requests/consent${direct ? "?direct=true" : ""}`);
 }
 
-export function createLawyerRequest(input: { caseId: string; note: string; consentVersion: string; consentAccepted: true }) {
+/** With `lawyerId`, only that lawyer is offered it for 24 hours; then it goes to every matching lawyer. */
+export function createLawyerRequest(input: { caseId: string; note: string; consentVersion: string; consentAccepted: true; lawyerId?: string }) {
   return requestFrom(post<LawyerRequest>("/api/client/lawyer-requests", input));
 }
 
@@ -296,8 +313,8 @@ export function useLawyerRequestQuery(id: string | null) {
   });
 }
 
-export function useConsentQuery(enabled: boolean) {
-  return useQuery({ queryKey: ["lawyer-request-consent"], queryFn: getConsent, enabled, staleTime: 1000 * 60 * 10 });
+export function useConsentQuery(enabled: boolean, direct = false) {
+  return useQuery({ queryKey: ["lawyer-request-consent", direct], queryFn: () => getConsent(direct), enabled, staleTime: 1000 * 60 * 10 });
 }
 
 /** Every query a change to one case's request can affect: that case's own keys, plus the
@@ -321,7 +338,7 @@ export function useCreateLawyerRequestMutation(caseId: string) {
   const queryClient = useQueryClient();
   const userId = useUserId();
   return useMutation({
-    mutationFn: (input: { note: string; consentVersion: string }) => createLawyerRequest({ caseId, ...input, consentAccepted: true }),
+    mutationFn: (input: { note: string; consentVersion: string; lawyerId?: string }) => createLawyerRequest({ caseId, ...input, consentAccepted: true }),
     onSettled: () => invalidateLawyerRequests(queryClient, userId, caseId),
   });
 }
@@ -371,9 +388,15 @@ export function useEndLawyerRequestMutation(caseId: string) {
   });
 }
 
-/** Which case the request form is open for (null: closed). */
-export const useLawyerRequestForm = create<{ caseId: string | null; openFor: (caseId: string) => void; close: () => void }>((set) => ({
+/** Which case the request form is open for (null: closed), and the lawyer it asks by name, if any. */
+export const useLawyerRequestForm = create<{
+  caseId: string | null;
+  lawyer: RequestedLawyer | null;
+  openFor: (caseId: string, lawyer?: RequestedLawyer) => void;
+  close: () => void;
+}>((set) => ({
   caseId: null,
-  openFor: (caseId) => set({ caseId }),
-  close: () => set({ caseId: null }),
+  lawyer: null,
+  openFor: (caseId, lawyer) => set({ caseId, lawyer: lawyer ?? null }),
+  close: () => set({ caseId: null, lawyer: null }),
 }));

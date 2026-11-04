@@ -1,27 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Check, Star } from "lucide-react";
+import { useParams } from "next/navigation";
+import { ArrowLeft, Star } from "lucide-react";
 import { AreaChip, LawyerAvatar, VerifiedBadge } from "@/components/lawyers/lawyer-parts";
 import { ErrorBox } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
-import { Modal } from "@/components/ui/modal";
 import { Eyebrow } from "@/components/ui/misc";
-import { useCaseAvailability } from "@/components/lawyers/use-case-availability";
-import { useCasesQuery } from "@/lib/cases/queries";
+import { RequestPanel } from "@/components/lawyers/request-panel";
 import { formatDay, firstName } from "@/lib/format";
-import { useLawyerRequestForm } from "@/lib/lawyer-requests/api";
-import {
-  consultationLabel,
-  DIRECT_REQUEST_AVAILABLE,
-  useMarketplaceCase,
-  range,
-  useLawyerQuery,
-  useRequestLawyerMutation,
-  type MarketplaceLawyer,
-} from "@/lib/lawyers/marketplace";
+import { firstConsultationLabel, toneFor, useLawyerQuery, type LawyerRegulator } from "@/lib/lawyers/marketplace";
+
+const REGULATORS: Record<LawyerRegulator, string> = {
+  SRA: "Solicitors Regulation Authority",
+  LSS: "Law Society of Scotland",
+  LSNI: "Law Society of Northern Ireland",
+};
+
+/** "Oct 2026" */
+const monthOf = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { month: "short", year: "numeric" });
 
 function Stars({ n }: { n: number }) {
   return (
@@ -45,87 +43,9 @@ function Section({ title, aside, children }: { title: string; aside?: string; ch
   );
 }
 
-function RequestPanel({ lawyer, onSent }: { lawyer: MarketplaceLawyer; onSent: (caseId: string) => void }) {
-  const { data: cases = [] } = useCasesQuery();
-  const picked = useMarketplaceCase((s) => s.caseId);
-  const request = useRequestLawyerMutation();
-  const [chosen, setChosen] = useState<string | null>(null);
-  // The case picked on the marketplace, if it still exists, else the first.
-  const caseId = chosen ?? (cases.some((c) => c.id === picked) ? picked : null) ?? cases[0]?.id ?? null;
-  const availability = useCaseAvailability(caseId);
-  const name = firstName(lawyer.name) ?? lawyer.name;
-
-  return (
-    <aside id="request" className="flex flex-col gap-4 rounded-card border border-line bg-white p-5 lg:sticky lg:top-6">
-      <dl className="flex flex-col text-[15px]">
-        <div className="flex justify-between border-b border-line py-2.5">
-          <dt className="text-ink-2">First consultation</dt>
-          <dd className="font-semibold">{consultationLabel(lawyer)}</dd>
-        </div>
-        <div className="flex justify-between border-b border-line py-2.5">
-          <dt className="text-ink-2">Fixed fees</dt>
-          <dd className="font-semibold">{lawyer.fixedFees ? range(lawyer.fixedFees) : "—"}</dd>
-        </div>
-        <div className="flex justify-between py-2.5">
-          <dt className="text-ink-2">Hourly</dt>
-          <dd className="font-semibold">{lawyer.hourly ? range(lawyer.hourly) : "—"}</dd>
-        </div>
-      </dl>
-
-      {cases.length === 0 ? (
-        <p className="text-[13px] leading-[1.6] text-ink-2">
-          You need a case to send a request. <Link href="/cases/new">Start one</Link>, then come back.
-        </p>
-      ) : (
-        <>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="request-case" className="text-xs font-semibold text-ink-2">
-              For which case
-            </label>
-            <select
-              id="request-case"
-              value={caseId ?? ""}
-              onChange={(e) => setChosen(e.target.value)}
-              className="h-11 rounded-input border border-line-input bg-white px-3.5 text-sm text-ink outline-none focus:border-ink-2"
-            >
-              {cases.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.title}
-                </option>
-              ))}
-            </select>
-          </div>
-          {availability.reason && <p className="text-[13px] leading-[1.6] text-ink-2">{availability.reason}</p>}
-          {!DIRECT_REQUEST_AVAILABLE && (
-            <p className="text-[13px] leading-[1.6] text-ink-2">Requesting {name} directly isn’t available yet. Use “Let us match me instead” below.</p>
-          )}
-          {request.error && <ErrorBox message="Couldn't send your request. Try again." />}
-          <Button
-            variant="dark"
-            size="xl"
-            className="w-full !text-[14px]"
-            disabled={!DIRECT_REQUEST_AVAILABLE || !availability.canRequest || request.isPending}
-            onClick={() => caseId && request.mutate({ lawyerId: lawyer.id, caseId }, { onSuccess: () => onSent(caseId) })}
-          >
-            {request.isPending ? "Sending…" : `Request ${name}`}
-          </Button>
-          <Button variant="soft" size="lg" className="w-full" disabled={!availability.canRequest} onClick={() => caseId && useLawyerRequestForm.getState().openFor(caseId)}>
-            Let us match me instead
-          </Button>
-        </>
-      )}
-      <p className="text-[12.5px] leading-[1.6] text-ink-2">
-        Only {name} gets this request. They’ll check for conflicts and send a quote within 24 hours. If they can’t take it, we’ll offer to match you with others.
-      </p>
-    </aside>
-  );
-}
-
 export default function LawyerProfilePage() {
-  const router = useRouter();
   const { id } = useParams<{ id: string }>();
-  const { data: lawyer, isLoading } = useLawyerQuery(id);
-  const [sentFor, setSentFor] = useState<string | null>(null);
+  const { data: lawyer, isLoading, error, refetch } = useLawyerQuery(id);
 
   // The card's "Request" link ends in #request, which isn't on the page until the lawyer loads.
   useEffect(() => {
@@ -133,6 +53,17 @@ export default function LawyerProfilePage() {
   }, [lawyer]);
 
   if (isLoading) return <div className="flex-1" aria-busy />;
+
+  if (error) {
+    return (
+      <div className="mx-auto flex w-full max-w-[640px] flex-col items-start gap-3 px-6 py-16">
+        <ErrorBox message="Couldn't load this lawyer." />
+        <Button variant="soft" size="sm" onClick={() => void refetch()}>
+          Try again
+        </Button>
+      </div>
+    );
+  }
 
   if (!lawyer) {
     return (
@@ -148,6 +79,12 @@ export default function LawyerProfilePage() {
 
   const name = firstName(lawyer.name) ?? lawyer.name;
   const max = Math.max(...lawyer.ratingBreakdown, 1);
+  const place = [lawyer.firmName ?? "Independent solicitor", lawyer.town].filter(Boolean).join(" · ");
+  const credentials: [string, string][] = [
+    ["Regulator", lawyer.regulator ? REGULATORS[lawyer.regulator] : "—"],
+    ["Registration no.", lawyer.registrationNumber ?? "—"],
+    ["Verified by ilovelawyer", lawyer.verifiedAt ? formatDay(lawyer.verifiedAt) : "—"],
+  ];
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
@@ -159,86 +96,76 @@ export default function LawyerProfilePage() {
         <div className="grid items-start gap-8 lg:grid-cols-[1fr_340px]">
           <div className="flex min-w-0 flex-col gap-8">
             <header className="flex items-center gap-5">
-              <LawyerAvatar lawyer={lawyer} size={88} />
-              <div className="flex flex-col gap-1">
+              <LawyerAvatar lawyer={{ name: lawyer.name, tone: toneFor(lawyer.id), avatarUrl: lawyer.avatarUrl }} size={88} />
+              <div className="flex min-w-0 flex-col gap-1">
                 <h1 className="font-display text-[36px] leading-tight">{lawyer.name}</h1>
-                <p className="text-[15px] text-ink-2">
-                  {lawyer.title}
-                  {lawyer.firmName ? ` · ${lawyer.firmName}` : ""} · {lawyer.town}
-                </p>
+                <p className="text-[15px] text-ink-2">{place}</p>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-ink-2">
-                  <VerifiedBadge regulator={lawyer.regulator} />
-                  <span>{lawyer.jurisdictions.join(", ")}</span>
-                  <span>{lawyer.languages.join(", ")}</span>
-                  <span>Usually replies in {lawyer.repliesIn}</span>
+                  {lawyer.regulator && <VerifiedBadge regulator={lawyer.regulator} />}
+                  {lawyer.qualifiedJurisdictions.length > 0 && <span>{lawyer.qualifiedJurisdictions.join(", ")}</span>}
+                  {lawyer.languages.length > 0 && <span>{lawyer.languages.join(", ")}</span>}
                 </div>
+                {!lawyer.available && <p className="text-[13px] font-medium text-ink-2">Not taking new requests right now</p>}
               </div>
             </header>
 
             <Section title="About">
-              <p className="text-[16px] leading-[1.65]">{lawyer.bio}</p>
-              <div className="flex flex-wrap gap-2">
-                {lawyer.specialisms.map((s) => (
-                  <AreaChip key={s}>{s}</AreaChip>
-                ))}
-              </div>
+              <p className="whitespace-pre-line text-[16px] leading-[1.65]">{lawyer.bio.trim() || `${name} hasn’t written about their practice yet.`}</p>
+              {lawyer.practiceAreas.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {lawyer.practiceAreas.map((a) => (
+                    <AreaChip key={a}>{a}</AreaChip>
+                  ))}
+                </div>
+              )}
             </Section>
 
-            <Section title="Services and fees">
-              <div className="overflow-hidden rounded-card border border-line">
-                <div className="hidden grid-cols-[1fr_140px_140px] gap-4 border-b border-line bg-subtle px-5 py-3 text-[10px] font-semibold uppercase tracking-[1px] text-ink-2 sm:grid">
-                  <span>Service</span>
-                  <span>How it’s charged</span>
-                  <span className="text-right">Price</span>
-                </div>
-                {lawyer.services.map((s) => (
-                  <div key={s.name} className="grid gap-1 border-b border-line px-5 py-3.5 text-[14.5px] last:border-b-0 sm:grid-cols-[1fr_140px_140px] sm:gap-4">
-                    <span>{s.name}</span>
-                    <span className="text-ink-2">{s.charge}</span>
-                    <span className="font-semibold sm:text-right">
-                      {s.price.max === 0 ? "Free" : range(s.price)}
-                      {s.charge === "Hourly" && "/hr"}
-                    </span>
-                  </div>
-                ))}
+            <Section title="Fees">
+              <div className="flex items-center justify-between rounded-card border border-line px-5 py-4 text-[15px]">
+                <span className="text-ink-2">First consultation</span>
+                <span className="font-semibold">{firstConsultationLabel(lawyer)}</span>
               </div>
-              <p className="text-[13px] text-ink-2">Prices exclude VAT. Your actual price is in the quote {name} sends after reading your case.</p>
+              <p className="text-[13px] text-ink-2">Every other fee is in the quote {name} sends after reading your case, before you pay anything.</p>
             </Section>
 
             <Section title="Reviews" aside="From clients whose engagement has ended">
-              <div className="flex items-center gap-6 rounded-card border border-line p-5">
-                <div className="flex flex-col items-center">
-                  <span className="font-display text-[44px] leading-none">{lawyer.rating.toFixed(1)}</span>
-                  <span className="text-[13px] text-ink-2">{lawyer.reviewCount} reviews</span>
-                </div>
-                <div className="flex flex-1 flex-col gap-1.5">
-                  {lawyer.ratingBreakdown.map((n, i) => (
-                    <div key={i} className="flex items-center gap-3 text-xs text-ink-2">
-                      <span className="w-2">{5 - i}</span>
-                      <div className="h-1.5 flex-1 rounded-full bg-chip">
-                        <div className="h-full rounded-full bg-gold" style={{ width: `${(n / max) * 100}%` }} />
+              {lawyer.rating === null ? (
+                <p className="rounded-card border border-dashed border-line-input p-5 text-sm text-ink-2">No reviews yet.</p>
+              ) : (
+                <>
+                  <div className="flex items-center gap-6 rounded-card border border-line p-5">
+                    <div className="flex flex-col items-center">
+                      <span className="font-display text-[44px] leading-none">{lawyer.rating.toFixed(1)}</span>
+                      <span className="text-[13px] text-ink-2">
+                        {lawyer.reviewCount} {lawyer.reviewCount === 1 ? "review" : "reviews"}
+                      </span>
+                    </div>
+                    <div className="flex flex-1 flex-col gap-1.5">
+                      {lawyer.ratingBreakdown.map((n, i) => (
+                        <div key={i} className="flex items-center gap-3 text-xs text-ink-2">
+                          <span className="w-2">{5 - i}</span>
+                          <div className="h-1.5 flex-1 rounded-full bg-chip">
+                            <div className="h-full rounded-full bg-gold" style={{ width: `${(n / max) * 100}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {lawyer.reviews.map((r, i) => (
+                    <div key={`${r.createdAt}-${i}`} className="flex flex-col gap-1 border-b border-line pb-4 last:border-b-0">
+                      <div className="flex flex-wrap items-center gap-x-2 text-[13px] text-ink-2">
+                        <Stars n={r.rating} /> · Verified client{r.caseAreas.length > 0 && ` · ${r.caseAreas.join(", ")}`} · {monthOf(r.createdAt)}
                       </div>
+                      <p className="whitespace-pre-line text-[15px] leading-[1.6]">{r.comment}</p>
                     </div>
                   ))}
-                </div>
-              </div>
-              {lawyer.reviews.map((r) => (
-                <div key={r.text} className="flex flex-col gap-1 border-b border-line pb-4 last:border-b-0">
-                  <div className="flex items-center gap-2 text-[13px] text-ink-2">
-                    <Stars n={r.rating} /> · Verified client · {r.matter} · {r.month}
-                  </div>
-                  <p className="text-[15px] leading-[1.6]">{r.text}</p>
-                </div>
-              ))}
+                </>
+              )}
             </Section>
 
             <Section title="Credentials">
               <div className="grid gap-3 sm:grid-cols-3">
-                {[
-                  ["Regulator", lawyer.regulator],
-                  ["Registration no.", lawyer.registrationNumber],
-                  ["Verified by ilovelawyer", formatDay(lawyer.verifiedAt)],
-                ].map(([k, v]) => (
+                {credentials.map(([k, v]) => (
                   <div key={k} className="flex flex-col gap-1 rounded-input border border-line bg-subtle px-4 py-3.5">
                     <span className="text-[13px] text-ink-2">{k}</span>
                     <span className="text-[15px] font-medium">{v}</span>
@@ -248,28 +175,9 @@ export default function LawyerProfilePage() {
             </Section>
           </div>
 
-          <RequestPanel lawyer={lawyer} onSent={setSentFor} />
+          <RequestPanel lawyer={lawyer} id="request" className="rounded-card border border-line bg-white p-5 lg:sticky lg:top-6" />
         </div>
       </div>
-
-      <Modal open={!!sentFor} onClose={() => setSentFor(null)} title={`Request sent to ${name}`}>
-        <div className="flex flex-col items-center gap-4 text-center">
-          <div className="flex size-14 items-center justify-center rounded-full bg-success-bg text-success-ink">
-            <Check size={24} aria-hidden />
-          </div>
-          <p className="text-sm leading-[1.6] text-ink-2">
-            {name} will reply with a quote within 24 hours. You’ll see it on your case’s Lawyer tab, and we’ll email you.
-          </p>
-          <div className="flex gap-2">
-            <Button variant="dark" size="lg" onClick={() => router.push(`/cases/${sentFor}`)}>
-              Go to my case
-            </Button>
-            <Button variant="soft" size="lg" onClick={() => setSentFor(null)}>
-              Close
-            </Button>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }
