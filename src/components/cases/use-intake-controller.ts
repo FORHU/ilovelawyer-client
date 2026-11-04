@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useCaseAreasQuery } from "@/lib/cases/case-areas";
+import type { DraftChat } from "@/lib/cases/drafts";
 import { checkFiles, useLimitsQuery } from "@/lib/cases/limits";
 import { type IntakeDraft, useIntakeChat } from "@/lib/cases/use-intake-chat";
 import { useDictation } from "@/lib/voice/use-dictation";
@@ -19,6 +20,10 @@ export type IntakeChatProps = {
   onCreate: (draft: IntakeDraft, files: File[]) => void;
   onEditDetails: (draft: IntakeDraft, files: File[]) => void;
   onUseForm: () => void;
+  /** A saved draft to carry on from (lib/cases/drafts.ts). */
+  initial?: { chat: DraftChat | null; files: File[] };
+  /** The conversation, the composer and the files whenever they change, to save as a draft. */
+  onChange?: (state: { chat: DraftChat; files: File[] }) => void;
   /** The phone's header, where the Check step puts its Edit and Create icons. */
   headerSlot?: HTMLElement | null;
 };
@@ -48,20 +53,27 @@ const PLACEHOLDER = {
 /** Everything the case-creation chat does, shared by its desktop and mobile views: the
  * conversation (use-intake-chat), the composer's text, voice recording, attachments and what to
  * show for the current step. The views only decide how it is laid out. */
-export function useIntakeController({ onFirstMessage }: Pick<IntakeChatProps, "onFirstMessage">) {
+export function useIntakeController({ onFirstMessage, initial, onChange }: Pick<IntakeChatProps, "onFirstMessage" | "initial" | "onChange">) {
   const areasQuery = useCaseAreasQuery();
   const areas = areasQuery.data ?? [];
-  const chat = useIntakeChat({ areas });
-  const { messages, step, typing, files, draft } = chat;
+  const chat = useIntakeChat({ areas, initial: initial?.chat, initialFiles: initial?.files });
+  const { messages, step, typing, files, draft, askedSteps } = chat;
   const { data: limits } = useLimitsQuery();
 
-  // Starts with what they typed into the landing page's search, to edit before sending. Read here
-  // and cleared after mount, so it lands once and a render that never commits can't lose it.
-  const [text, setText] = useState(() => readSearchText() ?? "");
+  // Starts with what they typed into the landing page's search, to edit before sending, else what
+  // was left in a draft. Read here and cleared after mount, so it lands once and a render that never
+  // commits can't lose it.
+  const [text, setText] = useState(() => readSearchText() ?? initial?.chat?.text ?? "");
   useEffect(() => {
     clearSearchText();
   }, []);
   const empty = messages.length === 0;
+
+  // Not while the assistant is "typing": its reply and the next step land together, and a draft
+  // saved in between would come back without them.
+  useEffect(() => {
+    if (!typing) onChange?.({ chat: { messages, step, draft, asked: askedSteps(), text }, files });
+  }, [messages, step, draft, text, files, typing, askedSteps, onChange]);
   // The mic (shown only on the empty, pre-first-message screen) records, transcribes, and sends
   // straight away — a spoken first message goes to onFirstMessage exactly like a typed one, never
   // into `chat`'s own scripted Q&A.

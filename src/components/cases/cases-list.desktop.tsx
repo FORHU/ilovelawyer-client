@@ -12,6 +12,7 @@ import { cn } from "@/lib/cn";
 import { clientRequestStatusLabel } from "@/lib/lawyer-requests/api";
 import { areasLabel } from "@/lib/types";
 import { startNewCase } from "@/lib/wizard-store";
+import { DraftsSection } from "./drafts";
 import { SORT_FIELDS, SORT_LABELS, formatDate, notesLine, useCasesList, type SortField, type SortOrder } from "./use-cases-list";
 
 /** Name, created, updated, lawyer, menu. */
@@ -123,6 +124,8 @@ export function CasesListDesktop() {
             </div>
           </div>
         )}
+
+        {status === "ACTIVE" && !searching && <DraftsSection />}
 
         {list.error && <ErrorBox message={list.error.message} />}
         {restore.error && <ErrorBox message={restore.error.message} />}
