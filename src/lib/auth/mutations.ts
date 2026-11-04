@@ -21,11 +21,18 @@ import {
   type AuthResponse,
 } from "./api";
 import { useSession } from "./session";
+import { readSearchText } from "@/lib/marketing/search-prefill";
 
 // TanStack Query hooks for every auth call. The request functions themselves live in ./api.ts;
 // the signed-in session (token + account) lives in ./session.ts.
 
 export const SIGNED_IN_PATH = "/cases";
+
+/** Where a sign-in lands: the cases, or the new-case chat when they arrived with a problem typed
+ * into the landing page's search box. */
+export function signedInPath() {
+  return readSearchText() ? "/cases/new" : SIGNED_IN_PATH;
+}
 
 export const authKeys = {
   all: ["auth"] as const,
@@ -51,8 +58,8 @@ function useCompleteSignIn() {
     await useApp.persist.rehydrate();
     useApp.getState().claimFor(data.user.id);
     useApp.getState().setBanner(banner);
-    if (replace) router.replace(SIGNED_IN_PATH);
-    else router.push(SIGNED_IN_PATH);
+    if (replace) router.replace(signedInPath());
+    else router.push(signedInPath());
   };
 }
 

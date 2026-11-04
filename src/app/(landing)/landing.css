@@ -1,0 +1,103 @@
+/* Landing page tokens. The design is always dark, and they stay on this wrapper so the app's own
+   theme is untouched. */
+.landing-root {
+  --bg: #0c0c0e;
+  --surface: #17171a;
+  --ink: #f3f1ee;
+  --muted: #a6a29c;
+  --line: rgb(255 255 255 / 0.12);
+  --nav: rgb(12 12 14 / 0.75);
+  --focus: #f3f1ee;
+
+  min-height: 100svh;
+  overflow-x: clip;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* The app's links are gold and underlined; the landing page's are not. */
+.landing-root a {
+  color: inherit;
+  text-decoration: none;
+}
+.landing-root a:not([data-btn]):hover {
+  opacity: 0.62;
+}
+.landing-root :focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.font-archivo {
+  font-family: var(--font-archivo), system-ui, sans-serif;
+}
+.font-landing-mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+.font-caslon-italic {
+  font-family: var(--font-caslon-italic), Georgia, serif;
+  font-style: italic;
+}
+
+/* The header reads white over the hero and takes the page's colours once it is solid. */
+.landing-header {
+  --hc: #fff;
+  --hbd: rgb(255 255 255 / 0.8);
+  --hb: #fff;
+  --hbf: #0c0c0e;
+  color: var(--hc);
+  border-bottom: 1px solid transparent;
+  transition:
+    background 300ms ease,
+    border-color 300ms ease,
+    color 300ms ease;
+}
+.landing-header[data-solid="true"] {
+  --hc: var(--ink);
+  --hbd: var(--ink);
+  --hb: var(--ink);
+  --hbf: var(--bg);
+  background: var(--nav);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom-color: var(--line);
+}
+.landing-header :focus-visible {
+  outline-color: var(--hc);
+}
+.landing-root a.landing-cta {
+  color: var(--hbf);
+}
+
+/* The gold glow behind the dark sections. useGoldDrift moves these points while they're on screen. */
+.landing-gold-a {
+  background-color: #050403;
+  background-image:
+    radial-gradient(60% 50% at var(--gx1, 25%) var(--gy1, 85%), rgb(201 154 46 / 0.24) 0%, rgb(140 98 24 / 0.1) 45%, rgb(0 0 0 / 0) 72%),
+    radial-gradient(45% 40% at var(--gx2, 85%) var(--gy2, 30%), rgb(180 128 30 / 0.14) 0%, rgb(0 0 0 / 0) 70%);
+}
+.landing-gold-footer {
+  background-color: #050403;
+  background-image:
+    linear-gradient(180deg, #050403 0%, rgb(5 4 3 / 0.9) 12%, rgb(5 4 3 / 0.5) 26%, rgb(5 4 3 / 0) 40%),
+    radial-gradient(55% 70% at var(--gx1, 25%) 100%, rgb(201 154 46 / 0.2) 0%, rgb(140 98 24 / 0.08) 45%, rgb(0 0 0 / 0) 72%),
+    radial-gradient(40% 60% at var(--gx2, 85%) 20%, rgb(180 128 30 / 0.1) 0%, rgb(0 0 0 / 0) 70%);
+}
+
+.landing-search::placeholder {
+  color: rgb(255 255 255 / 0.72);
+  opacity: 1;
+}
+.landing-search:focus {
+  border-color: #f3dcae;
+  background: rgb(5 4 3 / 0.68);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-root *,
+  .landing-root *::before,
+  .landing-root *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
