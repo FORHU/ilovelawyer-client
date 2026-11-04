@@ -7,6 +7,7 @@ import { type IntakeDraft, useIntakeChat } from "@/lib/cases/use-intake-chat";
 import { useDictation } from "@/lib/voice/use-dictation";
 import type { CaseRegion } from "@/lib/types";
 import { UK_JURISDICTIONS } from "@/lib/types";
+import { clearSearchText, readSearchText } from "@/lib/marketing/search-prefill";
 
 export type IntakeChatProps = {
   hasDraft: boolean;
@@ -49,7 +50,12 @@ export function useIntakeController() {
   const { messages, step, typing, files, draft } = chat;
   const { data: limits } = useLimitsQuery();
 
-  const [text, setText] = useState("");
+  // Starts with what they typed into the landing page's search, to edit before sending. Read here
+  // and cleared after mount, so it lands once and a render that never commits can't lose it.
+  const [text, setText] = useState(() => readSearchText() ?? "");
+  useEffect(() => {
+    clearSearchText();
+  }, []);
   // Spoken words land in the box, after anything already typed, to be edited before sending.
   const voice = useDictation({ onText: (spoken) => setText((t) => (t.trim() ? `${t.trim()} ${spoken}` : spoken)) });
   const [rejected, setRejected] = useState<string[]>([]);
