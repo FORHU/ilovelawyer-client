@@ -1,6 +1,7 @@
 import { ShieldCheck, Star } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { initialsOf } from "@/components/ui/misc";
+import type { LawyerRegulator } from "@/lib/lawyers/marketplace";
 
 export function LawyerAvatar({ lawyer, size = 48 }: { lawyer: { name: string; tone: string; avatarUrl?: string | null }; size?: number }) {
   if (lawyer.avatarUrl) {
@@ -49,4 +50,24 @@ export function Rating({ rating, count }: { rating: number | null; count: number
 
 export function AreaChip({ children }: { children: string }) {
   return <span className="truncate whitespace-nowrap rounded-full bg-chip px-3 py-1 text-[12.5px] text-ink">{children}</span>;
+}
+
+export const REGULATORS: Record<LawyerRegulator, string> = {
+  SRA: "Solicitors Regulation Authority",
+  LSS: "Law Society of Scotland",
+  LSNI: "Law Society of Northern Ireland",
+};
+
+/** "Oct 2026" */
+export const monthOf = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+
+/** A review's stars, as a number out of 5 for screen readers. */
+export function Stars({ n }: { n: number }) {
+  return (
+    <span className="inline-flex" aria-label={`${n} out of 5`}>
+      {Array.from({ length: n }).map((_, i) => (
+        <Star key={i} size={12} className="fill-gold text-gold" aria-hidden />
+      ))}
+    </span>
+  );
 }
