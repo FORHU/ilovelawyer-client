@@ -40,7 +40,7 @@
   --color-warn-line: #ecd9a8;
   --color-warn-ink: #6d4d00;
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter-extended), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-caslon), Georgia, serif;
 
   --radius-input: 14px;
