@@ -2,8 +2,6 @@
 
 import { createPortal } from "react-dom";
 import { ArrowUp, FilePlus2, FileText, Loader2, Mic, Paperclip, Pencil, Sparkles, Square, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Chip } from "@/components/ui/chip";
 import { ErrorBox } from "@/components/ui/banner";
 import { FilePicker } from "@/components/ui/file-picker";
 import { inputClass, WizardLabel } from "@/components/ui/input";
@@ -50,7 +48,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, hasDraft, onUseForm, headerSlot, controller: c }: IntakeViewProps) {
-  const { chat, areas, step, typing, files, draft, text, setText, recorder, rejected, endRef, box, empty } = c;
+  const { chat, step, typing, files, draft, text, setText, recorder, rejected, endRef, box, empty } = c;
 
   const showChoices = !typing && c.choiceStep;
   const formLink = hasDraft ? "Resume your form draft" : "Prefer a form? Fill it in instead";
@@ -161,7 +159,7 @@ export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, has
               <button
                 key={s}
                 type="button"
-                onClick={() => chat.submitText(s)}
+                onClick={() => c.submitFirst(s)}
                 data-no-tap
                 className="min-h-9 shrink-0 whitespace-nowrap rounded-full border border-line-chip bg-subtle px-3.5 text-[13px] font-medium text-ink active:bg-chip"
               >
@@ -277,22 +275,6 @@ export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, has
       </div>
 
       <ChatBar>
-        {showChoices && step === "type" && (
-          <div role="group" aria-label="Type of issue" className="flex flex-col gap-3">
-            <div className="flex max-h-[38dvh] flex-wrap gap-2 overflow-y-auto overscroll-contain">
-              {areas.map((a) => (
-                <Chip key={a.code} selected={draft.areas.includes(a.code)} onClick={() => chat.toggleArea(a.code)} className="min-h-11">
-                  {a.name}
-                </Chip>
-              ))}
-            </div>
-            {c.areasQuery.isError && <div className="text-[13px] text-error">Couldn&apos;t load the types of issue. Refresh to try again.</div>}
-            <Button size="lg" className="w-full" disabled={draft.areas.length === 0} onClick={chat.confirmAreas}>
-              Continue
-            </Button>
-          </div>
-        )}
-
         {showChoices && step === "region" && (
           <div role="group" aria-label="Which part of the UK?" className="grid grid-cols-2 gap-2">
             {REGIONS.map((r) => (
