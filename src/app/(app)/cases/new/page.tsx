@@ -235,13 +235,13 @@ function NewCase() {
               type="button"
               onClick={() => router.push("/cases")}
               data-no-tap
-              className="flex min-h-11 items-center gap-2 text-[10px] font-semibold uppercase tracking-[1.2px] text-ink-2 md:min-h-8"
+              className="flex min-h-11 items-center gap-2 text-[10px] font-semibold uppercase tracking-[1.2px] text-ink-2 md:hidden"
             >
               <ArrowLeft size={14} aria-hidden="true" />
               Cases
             </button>
             {/* The phone has no top bar on this screen, so the guide is here; on a desktop it is here too, where the chat is. */}
-            <div className="flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-2">
               {device === "mobile" && <div ref={setActionsSlot} className="flex items-center gap-2" />}
               <GuideButton variant={device === "mobile" ? "bar" : "pill"} />
             </div>
