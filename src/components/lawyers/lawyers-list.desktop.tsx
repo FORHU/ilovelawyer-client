@@ -106,8 +106,8 @@ export function LawyersListDesktop({ v }: { v: LawyersList }) {
         </div>
 
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[272px_minmax(0,1fr)]">
-          <aside className="flex flex-col rounded-card border border-line bg-subtle">
-            <div className="flex items-center justify-between gap-3 p-5 max-lg:py-1.5">
+          <aside className="flex flex-col rounded-card border border-line bg-subtle lg:sticky lg:top-8 lg:max-h-[calc(100dvh-4rem)] lg:overflow-hidden">
+            <div className="flex shrink-0 items-center justify-between gap-3 p-5 max-lg:py-1.5">
               <h2 className="hidden text-[15px] font-semibold lg:block">Filters</h2>
               <button
                 type="button"
@@ -135,7 +135,7 @@ export function LawyersListDesktop({ v }: { v: LawyersList }) {
                 Clear all
               </button>
             </div>
-            <div id="lawyer-filters" className={cn("flex-col gap-5 px-5 pb-5", filtersOpen ? "flex" : "hidden lg:flex")}>
+            <div id="lawyer-filters" className={cn("min-h-0 flex-col gap-5 px-5 pb-5 lg:overflow-y-auto lg:overscroll-contain", filtersOpen ? "flex" : "hidden lg:flex")}>
               <Group title="Area of law">
                 <Option active={!filters.area} onClick={() => set({ area: null })}>
                   All areas
