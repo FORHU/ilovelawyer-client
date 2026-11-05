@@ -27,7 +27,7 @@ function Fallback({ name, url, failed }: { name: string; url: string; failed: bo
     <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
       <FileText size={40} className="text-ink-2" aria-hidden />
       <p className="text-[13px] text-ink-2">
-        {failed ? "We couldn't show this file here." : "This kind of file can't be shown here."}
+        {failed ? "We couldn't load this file. Close it and open it again, or download it." : "This kind of file can't be shown here."}
       </p>
       <a href={url} download={name} className="inline-flex items-center gap-1.5 text-[13px] font-medium">
         <Download size={14} aria-hidden />
@@ -38,13 +38,16 @@ function Fallback({ name, url, failed }: { name: string; url: string; failed: bo
 }
 
 /** The file itself, drawn in the page. PDFs and images use the browser's own viewer; .docx, .xlsx
- * and .txt are fetched and drawn here (the file is a same-origin /files/<token> link, so it never
- * goes to a third-party viewer). Fills its parent's height. */
+ * and .txt are drawn here (the file is a same-origin /files/<token> link, so it never goes to a
+ * third-party viewer). Fills its parent's height. */
 export function DocumentPreview({ name, url }: { name: string; url: string }) {
   const kind = previewKind(name);
-  const needsFetch = kind === "docx" || kind === "xlsx" || kind === "text";
+  // PDFs are fetched too: an <iframe> pointed straight at the link shows a blank page when it fails
+  // (an expired link is an empty 404/410), with no way to tell, so the bytes are checked first.
+  const needsFetch = kind === "pdf" || kind === "docx" || kind === "xlsx" || kind === "text";
   const [loading, setLoading] = useState(needsFetch);
   const [failed, setFailed] = useState(false);
+  const [pdfSrc, setPdfSrc] = useState("");
   const [sheets, setSheets] = useState<string[]>([]);
   const [sheet, setSheet] = useState(0);
   const [text, setText] = useState("");
@@ -53,6 +56,7 @@ export function DocumentPreview({ name, url }: { name: string; url: string }) {
   useEffect(() => {
     if (!needsFetch) return;
     let cancelled = false;
+    let objectUrl = "";
     (async () => {
       try {
         const res = await fetch(url);
@@ -64,7 +68,12 @@ export function DocumentPreview({ name, url }: { name: string; url: string }) {
         }
         const blob = await res.blob();
         if (cancelled) return;
-        if (kind === "docx") {
+        if (kind === "pdf") {
+          // Typed here rather than trusting the stored type: as anything else, the browser would
+          // download it instead of showing it, and the frame would be blank again.
+          objectUrl = URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
+          setPdfSrc(objectUrl);
+        } else if (kind === "docx") {
           const { renderAsync } = await import("docx-preview");
           const container = docx.current;
           if (!container || cancelled) return;
@@ -88,20 +97,22 @@ export function DocumentPreview({ name, url }: { name: string; url: string }) {
     })();
     return () => {
       cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [kind, needsFetch, url]);
 
   if (kind === "none" || failed) return <Fallback name={name} url={url} failed={failed} />;
 
   if (kind === "pdf") {
+    if (loading) return <Loading />;
     // FitH: the page starts scaled to the frame width and only needs vertical scroll.
-    return <iframe src={`${url}#view=FitH`} title={name} className="h-full w-full border-0" />;
+    return <iframe src={`${pdfSrc}#view=FitH`} title={name} className="h-full w-full border-0" />;
   }
 
   if (kind === "image") {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- a private, token-proxied file that Next's image optimizer can't fetch
-      <img src={url} alt={name} className="mx-auto h-full max-w-full object-contain p-4" />
+      <img src={url} alt={name} onError={() => setFailed(true)} className="mx-auto h-full max-w-full object-contain p-4" />
     );
   }
 
