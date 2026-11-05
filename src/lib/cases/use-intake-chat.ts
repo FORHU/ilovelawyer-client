@@ -12,7 +12,7 @@ import type { CaseArea, CaseRegion, OtherParty, Side } from "@/lib/types";
 // asks the next thing that's missing. `absorb` + `nextStep` are the seam: a backend extractor can
 // replace them and the screen (components/cases/intake-chat.tsx) doesn't change.
 
-export type IntakeStep = "start" | "type" | "region" | "where" | "side" | "others" | "want" | "more" | "check";
+export type IntakeStep = "start" | "region" | "where" | "side" | "others" | "want" | "more" | "check";
 
 export interface IntakeMessage {
   id: number;
@@ -141,12 +141,12 @@ function addOthers(d: IntakeDraft, names: string[]): IntakeDraft {
  * Reads one message for anything the form asks, filling only what is still empty (never
  * overwriting an answer already given). Returns the new draft and a note of what it picked up.
  */
-function absorb(text: string, d: IntakeDraft, areas: CaseArea[], areasConfirmed: boolean): { draft: IntakeDraft; got: string[] } {
+function absorb(text: string, d: IntakeDraft, areas: CaseArea[]): { draft: IntakeDraft; got: string[] } {
   const got: string[] = [];
   let next = d;
 
-  // The type of issue is a guess until the client confirms it, so a later, clearer message revises it.
-  if (!next.areas.length || !areasConfirmed) {
+  // The type of issue is never asked for directly; it's guessed from what the client says, until a guess lands.
+  if (!next.areas.length) {
     const guess = guessAreas(text, areas);
     if (guess.length && guess.map((a) => a.code).join() !== next.areas.join()) {
       next = { ...next, areas: guess.map((a) => a.code) };
@@ -188,11 +188,10 @@ function absorb(text: string, d: IntakeDraft, areas: CaseArea[], areasConfirmed:
 // ---- Deciding what to ask ----------------------------------------------------------------------
 
 /**
- * The next thing still missing. Required first (type, part of the UK), then each optional question
- * once, skipping any the client has already answered along the way.
+ * The next thing still missing. Required first (part of the UK; the type of issue is guessed, never
+ * asked), then each optional question once, skipping any the client has already answered along the way.
  */
 function nextStep(d: IntakeDraft, asked: ReadonlySet<IntakeStep>, hasFiles: boolean): IntakeStep {
-  if (!asked.has("type") || !d.areas.length) return "type";
   if (!d.region) return "region";
   if (!d.where && !asked.has("where")) return "where";
   if (!d.side && !asked.has("side")) return "side";
@@ -202,14 +201,8 @@ function nextStep(d: IntakeDraft, asked: ReadonlySet<IntakeStep>, hasFiles: bool
   return "check";
 }
 
-function question(step: IntakeStep, d: IntakeDraft, areas: CaseArea[]): string {
+function question(step: IntakeStep): string {
   switch (step) {
-    case "type": {
-      const picked = d.areas.map((c) => areas.find((a) => a.code === c)?.name).filter(Boolean);
-      return picked.length
-        ? `It sounds like this is about ${picked.join(" and ")}. Is that right? Change the selection if not, then press Continue.`
-        : "Which of these best describes it? You can pick more than one.";
-    }
     case "region":
       return "Which part of the UK is this in? The law is different in each.";
     case "where":
@@ -272,7 +265,7 @@ export function useIntakeChat({ areas, initial, initialFiles }: { areas: CaseAre
   /** Moves on to the next missing question, with `lead` in front of it. */
   const ahead = (d: IntakeDraft, lead: string, fileCount = files.length) => {
     const next = nextStep(d, asked.current, fileCount > 0);
-    say(lead + question(next, d, areas), next);
+    say(lead + question(next), next);
   };
 
   const patchDraft = (patch: Partial<IntakeDraft>) => setDraft((d) => ({ ...d, ...patch }));
@@ -287,7 +280,7 @@ export function useIntakeChat({ areas, initial, initialFiles }: { areas: CaseAre
     push("user", text);
 
     // Anything the message says about any field is picked up, whatever question was open.
-    const { draft: read, got } = absorb(text, draft, areas, asked.current.has("type"));
+    const { draft: read, got } = absorb(text, draft, areas);
 
     switch (step) {
       case "start": {
@@ -302,18 +295,6 @@ export function useIntakeChat({ areas, initial, initialFiles }: { areas: CaseAre
         const d = update({ ...read, happened: [draft.happened, text].filter(Boolean).join("\n"), title: draft.title || titleFrom(text) });
         const lead = "Thanks, and I'm sorry you're dealing with this. ";
         ahead(d, got.length ? `${lead}I've noted: ${got.join(", ")}. ` : lead);
-        return;
-      }
-      case "type": {
-        // Typed instead of choosing: use it if it names a kind of issue.
-        const guess = guessAreas(text, areas);
-        if (guess.length) {
-          update({ ...read, areas: [...new Set([...read.areas, ...guess.map((a) => a.code)])] });
-          say(`I've selected ${guess.map((a) => a.name).join(" and ")}. Press Continue, or change it.`, "type");
-        } else {
-          update(read);
-          say("I couldn't tell which kind of issue that is. Please choose from the options below.", "type");
-        }
         return;
       }
       case "region": {
@@ -373,19 +354,6 @@ export function useIntakeChat({ areas, initial, initialFiles }: { areas: CaseAre
     }
   };
 
-  const toggleArea = (code: string) =>
-    setDraft((d) => ({
-      ...d,
-      areas: d.areas.includes(code) ? d.areas.filter((c) => c !== code) : [...d.areas, code],
-    }));
-
-  const confirmAreas = () => {
-    if (typing || draft.areas.length === 0) return;
-    asked.current.add("type");
-    push("user", draft.areas.map((c) => areas.find((a) => a.code === c)?.name).filter(Boolean).join(", "));
-    ahead(draft, "");
-  };
-
   const chooseRegion = (region: CaseRegion, label: string) => {
     if (typing) return;
     push("user", label);
@@ -432,8 +400,6 @@ export function useIntakeChat({ areas, initial, initialFiles }: { areas: CaseAre
     files,
     draft,
     submitText,
-    toggleArea,
-    confirmAreas,
     chooseRegion,
     chooseSide,
     skip,

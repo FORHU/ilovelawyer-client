@@ -2,7 +2,7 @@
 
 import { ArrowRight, ArrowUp, FileText, Mic, Paperclip, Sparkles, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Chip, PromptChip } from "@/components/ui/chip";
+import { PromptChip } from "@/components/ui/chip";
 import { ErrorBox } from "@/components/ui/banner";
 import { DropOverlay } from "@/components/ui/drop-overlay";
 import { FilePicker } from "@/components/ui/file-picker";
@@ -57,8 +57,8 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 
 export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, hasDraft, onUseForm, controller }: IntakeViewProps) {
   const {
-    areasQuery, areas, chat, step, typing, files, draft, text, setText, recorder, rejected, endRef, box,
-    send, canSend, onKey, addFiles, choiceStep, placeholder, areaNames, titleMissing, canAttach, empty, messages, dragging, dragProps,
+    chat, step, typing, files, draft, text, setText, recorder, rejected, endRef, box,
+    send, submitFirst, canSend, onKey, addFiles, choiceStep, placeholder, areaNames, titleMissing, canAttach, empty, messages, dragging, dragProps,
   } = controller;
 
   const composer = (
@@ -212,7 +212,7 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
                   <button
                     key={s}
                     type="button"
-                    onClick={() => chat.submitText(s)}
+                    onClick={() => submitFirst(s)}
                     data-no-tap
                     className="min-h-8 rounded-full border border-line-chip bg-subtle px-3 text-[12.5px] font-medium text-ink transition-colors hover:border-gold"
                   >
@@ -262,29 +262,6 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
                   ))}
                 </span>
               </AiBubble>
-            )}
-
-            {!typing && step === "type" && (
-              <div className="flex flex-col gap-3 pl-[42px]" role="group" aria-label="Type of issue">
-                <div className="flex flex-wrap gap-1.5">
-                  {areas.map((a) => (
-                    <Chip key={a.code} selected={draft.areas.includes(a.code)} onClick={() => chat.toggleArea(a.code)}>
-                      {a.name}
-                    </Chip>
-                  ))}
-                </div>
-                {areasQuery.isError && (
-                  <div className="text-xs text-error">Couldn&apos;t load the types of issue. Refresh to try again.</div>
-                )}
-                <Button
-                  size="sm"
-                  className="self-start"
-                  disabled={draft.areas.length === 0}
-                  onClick={chat.confirmAreas}
-                >
-                  Continue
-                </Button>
-              </div>
             )}
 
             {!typing && step === "region" && (

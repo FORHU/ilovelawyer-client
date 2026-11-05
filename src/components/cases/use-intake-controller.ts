@@ -144,7 +144,7 @@ export function useIntakeController({ onFirstMessage, initial, onChange }: Pick<
   // Dropping files anywhere on the chat attaches them, wherever the paperclip would.
   const { dragging, dragProps } = useFileDrop(addFiles, !canAttach);
 
-  const choiceStep = step === "type" || step === "region" || step === "side";
+  const choiceStep = step === "region" || step === "side";
   const placeholder = choiceStep ? PLACEHOLDER.choice : PLACEHOLDER[step];
   const areaNames = draft.areas
     .map((c) => areas.find((a) => a.code === c)?.name)
@@ -177,6 +177,7 @@ export function useIntakeController({ onFirstMessage, initial, onChange }: Pick<
     endRef,
     box,
     send,
+    submitFirst,
     canSend,
     onKey,
     addFiles,
