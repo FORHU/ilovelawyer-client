@@ -1,6 +1,7 @@
 "use client";
 
 import { ErrorBox } from "@/components/ui/banner";
+import { PullToRefresh } from "@/components/shell/pull-to-refresh";
 import { CaseDetails } from "@/components/case/overview/case-details";
 import { ReadinessBanner } from "@/components/case/overview/readiness-banner";
 import { buildSections, GetLawyerCard, NothingYet } from "./overview-sections";
@@ -26,7 +27,7 @@ export function OverviewMobile({ c, onOpenDocument, onOpenChat }: OverviewProps)
   );
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+    <PullToRefresh>
       <div className="flex w-full flex-col gap-4 px-4 pb-[max(32px,env(safe-area-inset-bottom))] pt-4">
         <h2 className="sr-only">Overview</h2>
 
@@ -49,6 +50,6 @@ export function OverviewMobile({ c, onOpenDocument, onOpenChat }: OverviewProps)
           This is what we&apos;ve gathered from you so far, to help a lawyer get up to speed quickly. It isn&apos;t legal advice.
         </p>
       </div>
-    </div>
+    </PullToRefresh>
   );
 }

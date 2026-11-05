@@ -7,6 +7,7 @@ import { EditCaseModal } from "@/components/case/edit-case-modal";
 import { RemoveCaseModal } from "@/components/case/remove-case-modal";
 import { BottomSheet, SheetRow } from "@/components/mobile/bottom-sheet";
 import { Button } from "@/components/ui/button";
+import { PullToRefresh } from "@/components/shell/pull-to-refresh";
 import { ErrorBox } from "@/components/ui/banner";
 import { cn } from "@/lib/cn";
 import { clientRequestStatusLabel } from "@/lib/lawyer-requests/api";
@@ -92,7 +93,7 @@ export function CasesListMobile() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <PullToRefresh>
         <div className="flex flex-col gap-4 px-4 pb-6 pt-5">
           <div>
             <h1 className="font-display text-[28px] font-normal leading-[1.1] tracking-[-0.02em]">Your cases</h1>
@@ -204,7 +205,7 @@ export function CasesListMobile() {
             <div className="py-8 text-center text-[14px] text-ink-2">No cases match &ldquo;{v.search.trim()}&rdquo;.</div>
           )}
         </div>
-      </div>
+      </PullToRefresh>
 
       <div data-tour="sticky-bar" className="shrink-0 border-t border-line bg-white px-4 py-3">
         <Button size="xl" className="w-full" data-tour="new-case" onClick={v.newCase}>
