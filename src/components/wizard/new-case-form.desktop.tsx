@@ -1,7 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { TourHint } from "@/components/tour/tour-hint";
@@ -18,7 +17,6 @@ const STEPS = [
 ];
 
 export function NewCaseFormDesktop({ included, creating, error, onBack, onNext, onChat }: NewCaseFormProps) {
-  const router = useRouter();
   const wiz = useWizard();
   const { step, maxStep, title, region, side, budget } = wiz;
   const stepDone = (n: number) => (n === 1 ? !!title.trim() && !!region : n === 2 ? !!side : n === 3 ? !!budget.choice || !!budget.fee : false);
@@ -27,15 +25,6 @@ export function NewCaseFormDesktop({ included, creating, error, onBack, onNext, 
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
       <div className="mx-auto grid w-full max-w-[1080px] grid-cols-1 items-start gap-5 px-4 py-7 md:grid-cols-[260px_minmax(0,1fr)] md:gap-12 md:px-10">
         <div className="flex flex-col gap-5">
-          <button
-            type="button"
-            onClick={() => router.push("/cases")}
-            data-no-tap
-            className="flex min-h-8 items-center gap-2 self-start text-[10px] font-semibold uppercase tracking-[1.2px] text-ink-2"
-          >
-            <ArrowLeft size={14} />
-            Cases
-          </button>
           <div className="hidden flex-col gap-2.5 md:flex">
             <h1 className="font-display text-[40px] font-normal leading-none tracking-[-0.02em]">
               New case
