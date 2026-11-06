@@ -23,16 +23,18 @@ COPY . .
 # NEXT_PUBLIC_* are inlined into the browser bundle by `next build`, so they must
 # be there at build time — passing them to `docker run` later ships a bundle that
 # calls localhost from the tester's browser and fails with nothing in any server
-# log. Two ways in: deploy-dev.yml writes them to .env.production (carried in by
-# `COPY . .`); deploy-uk.yml passes them as build args. Any new NEXT_PUBLIC_*
-# needs adding to both.
+# log. Two ways in: deploy-dev.yml writes them to .env.staging
+# (carried in by `COPY . .`, loaded by next.config.ts);
+# deploy-uk.yml passes them as build args. Any new NEXT_PUBLIC_* needs adding to
+# both.
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_LAWYER_APP_URL
 ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
 
 ENV NEXT_TELEMETRY_DISABLED=1
-# A build arg that was given wins over .env.production. One that wasn't is unset
-# first: an environment variable, even an empty one, hides the file's value.
+# A build arg that was given wins over .env.staging. One that
+# wasn't is unset first: an environment variable, even an empty one, hides the
+# file's value (process.loadEnvFile never overwrites one that is set).
 RUN for name in NEXT_PUBLIC_API_URL NEXT_PUBLIC_LAWYER_APP_URL NEXT_PUBLIC_GOOGLE_CLIENT_ID; do \
       [ -n "$(printenv "$name")" ] || unset "$name"; \
     done && pnpm build

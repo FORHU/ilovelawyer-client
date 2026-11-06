@@ -1,5 +1,19 @@
+import fs from "node:fs";
+import path from "node:path";
 import type { NextConfig } from "next";
-import { API_URL, COOKIE_PATHS } from "./src/lib/api/config";
+import { COOKIE_PATHS } from "./src/lib/api/config";
+
+// next build doesn't auto-load .env.staging (only recognizes standard names), so load it
+// explicitly — it's the one file deploy-dev.yml writes NEXT_PUBLIC_* into from the `staging`
+// secrets, as ilovelawyer-app does. Absent locally, where .env.local applies.
+const stagingEnvPath = path.join(import.meta.dirname, ".env.staging");
+if (fs.existsSync(stagingEnvPath)) {
+  process.loadEnvFile(stagingEnvPath);
+}
+
+// Read here, after the file above, rather than imported with COOKIE_PATHS: config.ts reads it as
+// it's imported, and imports run before this file's own code, so its API_URL would miss the file.
+const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001").replace(/\/$/, "");
 
 const nextConfig: NextConfig = {
   /* config options here */
