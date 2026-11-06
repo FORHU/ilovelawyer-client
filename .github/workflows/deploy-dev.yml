@@ -9,12 +9,18 @@ name: Deploy Dev
 # only its own container; it cannot touch another project's, and the deploy
 # role cannot reach any host but this one.
 #
-# Configuration comes from this repo's GitHub `staging` environment, written to
-# .env.production by "Write web env file" before the image is built, as
-# ilovelawyer-app writes its .env.staging. Everything in it is NEXT_PUBLIC_*,
-# inlined by `next build`; setting them later changes nothing. No shared
-# credentials file: nothing in the client needs the database, Redis or the
-# other host credentials, so it isn't given them.
+# Configuration, in two halves as in ilovelawyer-app:
+#   - Build time: this repo's GitHub `staging` environment, written to
+#     .env.staging by "Write web env file" before the image is
+#     built, as ilovelawyer-app writes its .env.staging; next.config.ts loads it.
+#     Everything in it is NEXT_PUBLIC_*, inlined by
+#     `next build`; setting them later changes nothing.
+#   - Runtime: "Publish project env" puts ENV_PARAM in Parameter Store; the
+#     deploy writes it to MERGED_ENV under /opt/forhu-dev on the host, as the
+#     api and app do, and starts the container with --env-file.
+# No shared credentials file (ilovelawyer-app merges one in): nothing in the
+# client needs the database, Redis or the other host credentials, so it isn't
+# given them.
 #
 # BEFORE THE FIRST RUN
 #   1. Repository variable:
@@ -30,6 +36,8 @@ name: Deploy Dev
 #   4. `staging` environment secrets, the names src/ reads: NEXT_PUBLIC_API_URL,
 #      NEXT_PUBLIC_LAWYER_APP_URL and NEXT_PUBLIC_GOOGLE_CLIENT_ID. The deploy
 #      stops if any is empty.
+#   5. The deploy role may write, and the host's instance role read, ENV_PARAM
+#      — as they do /forhu-dev/ilovelawyer-api/env and /forhu-dev/ilovelawyer-app/env.
 
 on:
   # Dev tracks main. Without this the dev container only changes when somebody
@@ -63,6 +71,8 @@ env:
   NETWORK: forhu-dev
   HOST_PORT: "4036"
   APP_PORT: "3002"
+  ENV_PARAM: /forhu-dev/ilovelawyer-client/env
+  MERGED_ENV: /opt/forhu-dev/ilovelawyer-client-dev.env
 
 jobs:
   deploy:
@@ -102,8 +112,9 @@ jobs:
           aws ecr get-login-password --region "${{ env.AWS_REGION }}" \
             | docker login --username AWS --password-stdin "${{ steps.tag.outputs.registry }}"
 
-      # The values from GitHub, as the image's .env.production — the file
-      # `next build` reads NEXT_PUBLIC_* from, inlining them into the bundle. It
+      # The values from GitHub, as the image's .env.staging — the
+      # file `next build` reads NEXT_PUBLIC_* from (next.config.ts loads it),
+      # inlining them into the bundle. It
       # must exist before the image is built: the builder stage's `COPY . .`
       # carries it in. Passing these to `docker run -e` instead would leave the
       # bundle calling localhost from the tester's browser, with nothing in any log.
@@ -126,7 +137,7 @@ jobs:
               exit 1
             fi
           done
-          cat > "${{ github.workspace }}/.env.production" << EOF
+          cat > "${{ github.workspace }}/.env.staging" << EOF
           NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
           NEXT_PUBLIC_LAWYER_APP_URL=${NEXT_PUBLIC_LAWYER_APP_URL}
           NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
@@ -135,7 +146,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # No build-args: the values are in .env.production, written above.
+      # No build-args: the values are in .env.staging, written above.
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
@@ -146,6 +157,28 @@ jobs:
           provenance: false
           tags: ${{ steps.tag.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.tag.outputs.tag }}
 
+      # This project's runtime env only. Anything unset is omitted rather than
+      # written empty: an empty value looks configured and silently disables
+      # whatever reads it.
+      - name: Publish project env to Parameter Store
+        run: |
+          set -euo pipefail
+          umask 077
+
+          # Next reads almost nothing at runtime: every NEXT_PUBLIC_* value was
+          # already inlined by the build above, and PORT/HOSTNAME come from the
+          # Dockerfile. As in ilovelawyer-app, this parameter exists so the
+          # deploy has something to write, and as the place to put a genuine
+          # runtime variable if one ever appears.
+          printf 'NODE_ENV=production\n' > env.tmp
+
+          aws ssm put-parameter \
+            --name "${{ env.ENV_PARAM }}" \
+            --type SecureString --overwrite \
+            --value "file://env.tmp" \
+            --region "${{ env.AWS_REGION }}" > /dev/null
+          rm -f env.tmp
+
       - name: Deploy via SSM
         id: send
         env:
@@ -155,16 +188,18 @@ jobs:
           set -euo pipefail
           IMAGE="${REGISTRY}/${{ env.ECR_REPOSITORY }}:${TAG}"
 
-          # No --env-file: every value was inlined by the build (see "Write web
-          # env file"). NODE_ENV, PORT and HOSTNAME come from the Dockerfile.
+          # MERGED_ENV is ENV_PARAM alone: no shared credentials file to merge in
+          # (see the header). PORT and HOSTNAME come from the Dockerfile.
           COMMANDS=(
             "set -euo pipefail"
+            "aws ssm get-parameter --name ${{ env.ENV_PARAM }} --with-decryption --region ${{ env.AWS_REGION }} --query Parameter.Value --output text > ${{ env.MERGED_ENV }}"
+            "chmod 600 ${{ env.MERGED_ENV }}"
             "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${REGISTRY}"
             "docker container prune -f || true"
             "docker image prune -af || true"
             "docker pull --platform linux/arm64 ${IMAGE}"
             "docker rm -f ${{ env.CONTAINER }} 2>/dev/null || true"
-            "docker run -d --name ${{ env.CONTAINER }} --restart unless-stopped --platform linux/arm64 --network ${{ env.NETWORK }} -p 127.0.0.1:${{ env.HOST_PORT }}:${{ env.APP_PORT }} ${IMAGE}"
+            "docker run -d --name ${{ env.CONTAINER }} --restart unless-stopped --platform linux/arm64 --network ${{ env.NETWORK }} --env-file ${{ env.MERGED_ENV }} -p 127.0.0.1:${{ env.HOST_PORT }}:${{ env.APP_PORT }} ${IMAGE}"
           )
 
           # jq builds the JSON, so a quote inside any command cannot break it.
