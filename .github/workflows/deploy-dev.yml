@@ -9,10 +9,12 @@ name: Deploy Dev
 # only its own container; it cannot touch another project's, and the deploy
 # role cannot reach any host but this one.
 #
-# Shorter than its siblings on purpose: src/ reads no environment variable but
-# NODE_ENV, so there is no Parameter Store step and no shared credentials file.
-# The moment the client calls the API, NEXT_PUBLIC_API_URL goes in as a build
-# arg — see the build step — not as a runtime variable.
+# Configuration comes from this repo's GitHub `staging` environment, written to
+# .env.production by "Write web env file" before the image is built, as
+# ilovelawyer-app writes its .env.staging. Everything in it is NEXT_PUBLIC_*,
+# inlined by `next build`; setting them later changes nothing. No shared
+# credentials file: nothing in the client needs the database, Redis or the
+# other host credentials, so it isn't given them.
 #
 # BEFORE THE FIRST RUN
 #   1. Repository variable:
@@ -25,6 +27,9 @@ name: Deploy Dev
 #   3. HOST_PORT 4036 is free in ilovelawyer's 4030-4039 band (4030-4032 dev,
 #      4033-4035 production). Confirm against /etc/caddy/sites/00-PORTS.md
 #      before the first run and add it there after.
+#   4. `staging` environment secrets, the names src/ reads: NEXT_PUBLIC_API_URL,
+#      NEXT_PUBLIC_LAWYER_APP_URL and NEXT_PUBLIC_GOOGLE_CLIENT_ID. The deploy
+#      stops if any is empty.
 
 on:
   # Dev tracks main. Without this the dev container only changes when somebody
@@ -97,9 +102,40 @@ jobs:
           aws ecr get-login-password --region "${{ env.AWS_REGION }}" \
             | docker login --username AWS --password-stdin "${{ steps.tag.outputs.registry }}"
 
+      # The values from GitHub, as the image's .env.production — the file
+      # `next build` reads NEXT_PUBLIC_* from, inlining them into the bundle. It
+      # must exist before the image is built: the builder stage's `COPY . .`
+      # carries it in. Passing these to `docker run -e` instead would leave the
+      # bundle calling localhost from the tester's browser, with nothing in any log.
+      - name: Write web env file
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_LAWYER_APP_URL: ${{ secrets.NEXT_PUBLIC_LAWYER_APP_URL }}
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+        run: |
+          set -euo pipefail
+          # Each of these compiles and deploys when empty, then fails with nothing
+          # in any log. Fail here instead, as ilovelawyer-app does for the client ID.
+          # An empty NEXT_PUBLIC_API_URL left /files/<token> — which calls the API
+          # from the server, where a relative URL can't be fetched — unable to
+          # open any document; an empty NEXT_PUBLIC_LAWYER_APP_URL sends lawyers
+          # to the local default, http://uk.ilovelawyer.local:3002.
+          for name in NEXT_PUBLIC_API_URL NEXT_PUBLIC_LAWYER_APP_URL NEXT_PUBLIC_GOOGLE_CLIENT_ID; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::${name} is empty. Add it to the 'staging' environment."
+              exit 1
+            fi
+          done
+          cat > "${{ github.workspace }}/.env.production" << EOF
+          NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+          NEXT_PUBLIC_LAWYER_APP_URL=${NEXT_PUBLIC_LAWYER_APP_URL}
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+          EOF
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # No build-args: the values are in .env.production, written above.
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
@@ -109,13 +145,6 @@ jobs:
           platforms: linux/arm64
           provenance: false
           tags: ${{ steps.tag.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.tag.outputs.tag }}
-          # NEXT_PUBLIC_* are inlined by `next build`, so they are build args, not
-          # runtime variables. Values come from the "staging" environment secrets.
-          build-args: |
-            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
-            NEXT_PUBLIC_LAWYER_APP_URL_PH=${{ secrets.NEXT_PUBLIC_LAWYER_APP_URL_PH }}
-            NEXT_PUBLIC_LAWYER_APP_URL_UK=${{ secrets.NEXT_PUBLIC_LAWYER_APP_URL_UK }}
-            NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
 
       - name: Deploy via SSM
         id: send
@@ -126,9 +155,8 @@ jobs:
           set -euo pipefail
           IMAGE="${REGISTRY}/${{ env.ECR_REPOSITORY }}:${TAG}"
 
-          # No --env-file: there is nothing to merge. NODE_ENV, PORT and HOSTNAME
-          # come from the Dockerfile, and an empty env file would fail the run
-          # rather than default harmlessly.
+          # No --env-file: every value was inlined by the build (see "Write web
+          # env file"). NODE_ENV, PORT and HOSTNAME come from the Dockerfile.
           COMMANDS=(
             "set -euo pipefail"
             "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${REGISTRY}"

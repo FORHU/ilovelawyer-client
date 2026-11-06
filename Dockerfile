@@ -20,22 +20,22 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 
-# NEXT_PUBLIC_* are inlined into the browser bundle by `next build`, so they are
-# build args supplied by the deploy workflows — passing them to `docker run`
-# later ships a bundle that calls localhost from the tester's browser and fails
-# with nothing in any server log. Any new NEXT_PUBLIC_* also needs adding to
-# build-args in deploy-dev.yml and deploy-uk.yml.
+# NEXT_PUBLIC_* are inlined into the browser bundle by `next build`, so they must
+# be there at build time — passing them to `docker run` later ships a bundle that
+# calls localhost from the tester's browser and fails with nothing in any server
+# log. Two ways in: deploy-dev.yml writes them to .env.production (carried in by
+# `COPY . .`); deploy-uk.yml passes them as build args. Any new NEXT_PUBLIC_*
+# needs adding to both.
 ARG NEXT_PUBLIC_API_URL
-ARG NEXT_PUBLIC_LAWYER_APP_URL_PH
-ARG NEXT_PUBLIC_LAWYER_APP_URL_UK
+ARG NEXT_PUBLIC_LAWYER_APP_URL
 ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_LAWYER_APP_URL_PH=$NEXT_PUBLIC_LAWYER_APP_URL_PH
-ENV NEXT_PUBLIC_LAWYER_APP_URL_UK=$NEXT_PUBLIC_LAWYER_APP_URL_UK
-ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID
 
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN pnpm build
+# A build arg that was given wins over .env.production. One that wasn't is unset
+# first: an environment variable, even an empty one, hides the file's value.
+RUN for name in NEXT_PUBLIC_API_URL NEXT_PUBLIC_LAWYER_APP_URL NEXT_PUBLIC_GOOGLE_CLIENT_ID; do \
+      [ -n "$(printenv "$name")" ] || unset "$name"; \
+    done && pnpm build
 
 # ---------------------------------------------------------------------------
 # No `output: "standalone"` in next.config.ts, so the runner needs the real
