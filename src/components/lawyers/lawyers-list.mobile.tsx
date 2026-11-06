@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { BottomSheet } from "@/components/mobile/bottom-sheet";
 import { Button } from "@/components/ui/button";
+import { PullToRefresh } from "@/components/shell/pull-to-refresh";
 import { ErrorBox } from "@/components/ui/banner";
 import { Chip } from "@/components/ui/chip";
 import { cn } from "@/lib/cn";
@@ -40,7 +41,7 @@ export function LawyersListMobile({ v }: { v: LawyersList }) {
   for (const l of filters.languages) applied.push({ key: `lang-${l}`, label: l === "Other" ? "Other languages" : l, remove: () => toggleLanguage(l) });
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
+    <PullToRefresh>
       <div className="px-4 pb-2 pt-4">
         <h1 className="font-display text-[28px] leading-tight">Find a lawyer</h1>
         <p className="mt-1 text-[14px] leading-[1.5] text-ink-2">Verified solicitors. Every fee is set by the lawyer and shown before you ask.</p>
@@ -264,6 +265,6 @@ export function LawyersListMobile({ v }: { v: LawyersList }) {
           </Button>
         </div>
       </BottomSheet>
-    </div>
+    </PullToRefresh>
   );
 }

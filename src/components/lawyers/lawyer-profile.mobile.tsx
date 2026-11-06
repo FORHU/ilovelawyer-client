@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Star } from "lucide-react";
 import { BottomSheet } from "@/components/mobile/bottom-sheet";
 import { Button } from "@/components/ui/button";
+import { PullToRefresh } from "@/components/shell/pull-to-refresh";
 import { Eyebrow } from "@/components/ui/misc";
 import { formatDay, firstName } from "@/lib/format";
 import { firstConsultationLabel, toneFor, type ClientLawyerProfile } from "@/lib/lawyers/marketplace";
@@ -51,7 +52,7 @@ export function LawyerProfileMobile({ lawyer }: { lawyer: ClientLawyerProfile })
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <PullToRefresh>
         <Link href="/lawyers" data-no-tap className="flex min-h-11 items-center gap-1.5 px-4 text-[13px] font-medium">
           <ArrowLeft size={16} aria-hidden="true" /> All lawyers
         </Link>
@@ -170,7 +171,7 @@ export function LawyerProfileMobile({ lawyer }: { lawyer: ClientLawyerProfile })
             ))}
           </dl>
         </Section>
-      </div>
+      </PullToRefresh>
 
       {/* Always in reach: the screen above scrolls, this doesn't. */}
       <div className="flex shrink-0 items-center gap-3 border-t border-line bg-white px-4 py-3">
