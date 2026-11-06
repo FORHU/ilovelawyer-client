@@ -157,20 +157,30 @@ jobs:
           provenance: false
           tags: ${{ steps.tag.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.tag.outputs.tag }}
 
-      # This project's runtime env only. Anything unset is omitted rather than
-      # written empty: an empty value looks configured and silently disables
-      # whatever reads it.
+      # This project's env, as MERGED_ENV on the host. Anything unset is omitted
+      # rather than written empty: an empty value looks configured and silently
+      # disables whatever reads it.
       - name: Publish project env to Parameter Store
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_LAWYER_APP_URL: ${{ secrets.NEXT_PUBLIC_LAWYER_APP_URL }}
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
         run: |
           set -euo pipefail
           umask 077
 
-          # Next reads almost nothing at runtime: every NEXT_PUBLIC_* value was
-          # already inlined by the build above, and PORT/HOSTNAME come from the
-          # Dockerfile. As in ilovelawyer-app, this parameter exists so the
-          # deploy has something to write, and as the place to put a genuine
-          # runtime variable if one ever appears.
-          printf 'NODE_ENV=production\n' > env.tmp
+          # The NEXT_PUBLIC_* values are the same secrets the build inlined from
+          # .env.staging, so the host file shows what this deploy was built with.
+          # They are a record, not settings: the app uses the inlined copy, so
+          # editing them here and restarting changes nothing. Change the secret
+          # in the `staging` environment and redeploy instead. PORT/HOSTNAME come
+          # from the Dockerfile.
+          {
+            printf 'NODE_ENV=production\n'
+            for name in NEXT_PUBLIC_API_URL NEXT_PUBLIC_LAWYER_APP_URL NEXT_PUBLIC_GOOGLE_CLIENT_ID; do
+              if [ -n "${!name:-}" ]; then printf '%s=%s\n' "$name" "${!name}"; fi
+            done
+          } > env.tmp
 
           aws ssm put-parameter \
             --name "${{ env.ENV_PARAM }}" \
