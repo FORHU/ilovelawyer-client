@@ -2,6 +2,8 @@
 
 import { Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLawyerReadinessQuery } from "@/lib/cases/readiness";
+import { useMessagesQuery } from "@/lib/cases/queries";
 import { useEligibilityQuery, useLawyerRequestForm, useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
 import { useApp } from "@/lib/store";
 
@@ -14,15 +16,23 @@ export const NOT_AVAILABLE_TEXT = {
 /**
  * The case header's lawyer button, decided by the API (GET /api/client/lawyer-requests/eligibility):
  * "Get a lawyer" on a UK case, "Not available yet" outside the UK, and a short explanation for
- * personal injury. Nothing while there's already a request.
+ * personal injury. Nothing while there's already a request, or while the case is missing what a
+ * lawyer needs (lib/cases/readiness.ts).
  */
 export function GetLawyerAction({ caseId }: { caseId: string }) {
   const { data: openRequest } = useOpenLawyerRequestQuery(caseId);
   const { data } = useEligibilityQuery(caseId);
+  const { data: messages } = useMessagesQuery(caseId);
+  const latestAnswerId = messages?.messages.findLast((m) => m.role === "ai")?.id;
+  const { data: readiness } = useLawyerReadinessQuery(caseId, latestAnswerId);
 
   if (!data || openRequest) return null;
 
   if (data.eligible) {
+    // Same check as the Interview's suggestion: only offer a lawyer once the case has what one
+    // needs. Until that's known (or if the check couldn't run) there's nothing to offer; with the
+    // check switched off on the API, offer it as before.
+    if (!readiness || readiness.unavailable || (readiness.enabled && !readiness.ready)) return null;
     return (
       <Button variant="soft" size="md" data-no-tap data-tour="get-lawyer" className="h-11 flex-1 !px-4 md:h-9 md:flex-none" onClick={() => useLawyerRequestForm.getState().openFor(caseId)}>
         <Scale size={14} />

@@ -35,13 +35,6 @@ export function LandingHeaderMobile({ solid, onAnchor }: HeaderViewProps) {
             <span className="h-[1.5px] w-4 bg-current" />
             <span className="h-[1.5px] w-4 bg-current" />
           </button>
-          <Link
-            href="/signup"
-            data-btn
-            className="landing-cta whitespace-nowrap rounded-full bg-(--hb) px-[15px] py-[11px] text-[14px] font-medium"
-          >
-            Start your case
-          </Link>
         </div>
       </header>
       {open && (
