@@ -149,14 +149,9 @@ function QuoteBreakdown({ quotation, lawyerFirst }: { quotation: Quotation; lawy
   );
 }
 
-/** What hiring a lawyer hands over, shown again at the step that does it. Mirrors the API's
- * client-request consent text (CLIENT_REQUEST_CONSENT_TEXT), which is still awaiting a UK
- * solicitor's review (#846): keep the two in step if that wording changes. */
-const HIRE_SHARING_NOTICE =
-  "Once you hire a lawyer and pay, they can read your case, its documents and your chat with the AI. They may keep a copy of your case afterwards, as solicitors are required to keep their files.";
-
-/** How ilovelawyer is paid: shown before any Accept button, since accepting a quote acknowledges it. */
-function ReferralDisclosure({ text }: { text: string }) {
+/** A short notice in a grey box: how ilovelawyer is paid, and what hiring a lawyer hands over. Both
+ * are shown before any Accept button, since accepting a quote acknowledges them. */
+function DisclosureNote({ text }: { text: string }) {
   return <div className="rounded-input border border-line bg-subtle px-4 py-3 text-xs leading-[1.6] text-ink-2">{text}</div>;
 }
 
@@ -380,7 +375,8 @@ export function QuoteStage({
         <div className="flex items-center gap-2 rounded-xl border border-warn-line bg-warn-bg px-3.5 py-3 text-[13px] text-warn-ink">
           You confirmed {first}. They&apos;re finishing setup on their side — you&apos;ll be able to message them here in a few minutes. Nothing else for you to do.
         </div>
-        {request.referralDisclosure && <ReferralDisclosure text={request.referralDisclosure} />}
+        {request.referralDisclosure && <DisclosureNote text={request.referralDisclosure} />}
+        {request.sharingNotice && <DisclosureNote text={request.sharingNotice} />}
       </div>
     );
   }
@@ -394,10 +390,9 @@ export function QuoteStage({
       )}
 
       {/* Above the offers, so it's read before any Accept, which acknowledges it. The sharing
-          sentence repeats what the request form's consent said, because Accept is the step that
-          gives the lawyer the case (#922). */}
-      {request.referralDisclosure && <ReferralDisclosure text={request.referralDisclosure} />}
-      <ReferralDisclosure text={HIRE_SHARING_NOTICE} />
+          notice comes from the API, in the words the client agreed to when asking (#922). */}
+      {request.referralDisclosure && <DisclosureNote text={request.referralDisclosure} />}
+      {request.sharingNotice && <DisclosureNote text={request.sharingNotice} />}
 
       {request.lawyers.map((offer) => (
         <OfferCard
@@ -520,6 +515,8 @@ function PayStage({ c, request, quotation }: { c: Case; request: LawyerRequest; 
           )}
         </p>
         <QuoteBreakdown quotation={quotation} lawyerFirst={first} />
+        {/* Paying is what gives the lawyer the case, so the notice is here too, above the Pay button. */}
+        {!expired && request.sharingNotice && <DisclosureNote text={request.sharingNotice} />}
         {error && <ErrorBox message={error} />}
         {checking ? (
           <div className="py-2 text-center text-[13px] text-ink-2">Confirming your payment…</div>
