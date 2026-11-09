@@ -17,8 +17,12 @@ import {
   useDeclineLawyerRequestMutation,
   useEligibilityQuery,
   useEndLawyerRequestMutation,
+  useConfirmCompletionMutation,
+  useDeclineCompletionMutation,
   useLawyerRequestForm,
+  COMPLETION_REASON_MAX_LENGTH,
   useWithdrawLawyerRequestMutation,
+  type ClientRefundSummary,
   type LawyerOffer,
   type LawyerRequest,
   type PaymentStart,
@@ -570,6 +574,100 @@ export function PaymentSuccess({ request, onDismiss }: { request: LawyerRequest;
   );
 }
 
+/**
+ * The lawyer says the work is finished: the client confirms it, which closes the engagement, or says
+ * what's left, which goes to the lawyer and keeps it open. Unanswered, it closes by itself on
+ * `autoClosesAt`. After a "not yet", a line says so until the lawyer asks again.
+ */
+export function CompletionCard({ c, request }: { c: Case; request: LawyerRequest }) {
+  const confirm = useConfirmCompletionMutation(c.id);
+  const decline = useDeclineCompletionMutation(c.id);
+  const [declining, setDeclining] = useState(false);
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState("");
+  const completion = request.completion;
+  const first = firstName(request.lawyer?.name) ?? "Your lawyer";
+  if (!completion) return null;
+  if (!completion.requestedAt) {
+    if (!completion.declinedAt) return null;
+    return (
+      <p className="rounded-input border border-line bg-subtle px-4 py-3 text-[13px] text-ink-2">
+        You told {first} the work isn&apos;t finished on {day(completion.declinedAt)}. They&apos;ll let you know when it is.
+      </p>
+    );
+  }
+  const busy = confirm.isPending || decline.isPending;
+  const fail = (err: unknown, fallback: string) => setError(err instanceof Error ? err.message : fallback);
+  return (
+    <section aria-labelledby="completion-heading" className="flex flex-col gap-3 rounded-input border border-gold/40 bg-warn-bg px-4 py-4">
+      <h2 id="completion-heading" className="text-[15px] font-semibold">
+        {first} says the work is finished
+      </h2>
+      {completion.note && <p className="whitespace-pre-wrap break-words text-[13.5px] leading-[1.5] text-ink">&ldquo;{completion.note}&rdquo;</p>}
+      <p className="text-[13px] text-ink-2">
+        Confirm it to close the engagement, or tell {first} what&apos;s left.
+        {completion.autoClosesAt && ` If you don't answer by ${day(completion.autoClosesAt)}, it closes by itself.`}
+      </p>
+      {error && <ErrorBox message={error} />}
+      {declining ? (
+        <div className="flex flex-col gap-2">
+          <label htmlFor="completion-reason" className="text-[13px] font-semibold">
+            What&apos;s left to do?
+          </label>
+          <textarea
+            id="completion-reason"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            maxLength={COMPLETION_REASON_MAX_LENGTH}
+            rows={3}
+            disabled={busy}
+            autoFocus
+            className="w-full resize-none rounded-input border border-line-input bg-white px-3.5 py-2.5 text-[14px] outline-none focus:border-ink disabled:opacity-60"
+          />
+          <div className="flex flex-wrap gap-2.5">
+            <Button variant="soft" size="sm" className="max-md:!h-11 max-md:flex-1" disabled={busy} onClick={() => setDeclining(false)}>
+              Back
+            </Button>
+            <Button
+              variant="dark"
+              size="sm"
+              className="max-md:!h-11 max-md:flex-1"
+              disabled={busy || reason.trim() === ""}
+              onClick={() => {
+                setError("");
+                decline.mutate(
+                  { id: request.id, reason: reason.trim() },
+                  { onSuccess: () => setDeclining(false), onError: (err) => fail(err, "Couldn't send that. Try again.") },
+                );
+              }}
+            >
+              {decline.isPending ? "Sending…" : `Send to ${first}`}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2.5">
+          <Button
+            variant="dark"
+            size="sm"
+            className="max-md:!h-11 max-md:flex-1"
+            disabled={busy}
+            onClick={() => {
+              setError("");
+              confirm.mutate(request.id, { onError: (err) => fail(err, "Couldn't confirm. Try again.") });
+            }}
+          >
+            {confirm.isPending ? "Confirming…" : "Confirm and close"}
+          </Button>
+          <Button variant="soft" size="sm" className="max-md:!h-11 max-md:flex-1" disabled={busy} onClick={() => setDeclining(true)}>
+            It&apos;s not finished
+          </Button>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function EngagedStage({ c, request }: { c: Case; request: LawyerRequest }) {
   const end = useEndLawyerRequestMutation(c.id);
   const [asking, setAsking] = useState(false);
@@ -583,6 +681,8 @@ export function EngagedStage({ c, request }: { c: Case; request: LawyerRequest }
           You&apos;re working with {lawyer.name}
         </LawyerHeader>
       )}
+      <CompletionCard c={c} request={request} />
+      {request.refund && <RefundSummary refund={request.refund} />}
       <LawyerMessages c={c} requestId={request.id} lawyerName={lawyer?.name ?? "your lawyer"} closed={false} />
       {error && <ErrorBox message={error} />}
       {asking ? (
@@ -621,21 +721,65 @@ export function EngagedStage({ c, request }: { c: Case; request: LawyerRequest }
   );
 }
 
+/** Where a refund stands, as the client reads it: what the Lawyer Exit's status means for their money. */
+const EXIT_REFUND_STATUS: Record<NonNullable<ClientRefundSummary["lawyerExit"]>["status"], string> = {
+  REFUNDING: "Your refund is on its way.",
+  AWAITING_REVIEW: "We're reviewing your refund, to decide how much of your payment comes back to you. We'll let you know.",
+  WAITING_ON_DISPUTE: "Your bank is looking at a dispute on this payment, so it decides what you get back.",
+  NEEDS_ATTENTION: "We're sorting out your refund. You don't need to do anything.",
+  SETTLED: "Your refund is settled.",
+};
+
+/** The client's payment for the lawyer they hired and what's come back of it: shown once anything has
+ * been, or is being, refunded, and always after a lawyer stopped acting. */
+export function RefundSummary({ refund }: { refund: ClientRefundSummary }) {
+  const exit = refund.lawyerExit;
+  const done = refund.refunds.filter((r) => r.status === "SUCCEEDED");
+  if (!exit && done.length === 0 && refund.pending.amountMinor === 0) return null;
+  return (
+    <div className="flex flex-col gap-3 rounded-input border border-line bg-subtle px-4 py-3.5">
+      <div className="flex flex-wrap gap-2.5">
+        <Tile label="You paid">{money(refund.paid)}</Tile>
+        <Tile label="Refunded to your card">{money(refund.refunded)}</Tile>
+        {refund.pending.amountMinor > 0 && <Tile label="On its way">{money(refund.pending)}</Tile>}
+      </div>
+      {exit && <p className="text-[13px] text-ink-2">{exit.status === "SETTLED" && refund.refunded.amountMinor === 0 ? "No refund is due." : EXIT_REFUND_STATUS[exit.status]}</p>}
+      {(done.length > 0 || refund.pending.amountMinor > 0) && (
+        <p className="text-[12.5px] text-ink-2">A refund can take 5 to 10 working days to show on your statement.</p>
+      )}
+    </div>
+  );
+}
+
 export function ClosedStage({ c, request }: { c: Case; request: LawyerRequest }) {
   const { data: eligibility } = useEligibilityQuery(c.id);
   const name = request.lawyer?.name;
+  // The lawyer stopped acting (a Lawyer Exit): they couldn't continue, rather than finished the work.
+  const exited = !!request.refund?.lawyerExit;
   return (
     <div className="flex flex-col gap-4">
       <section className={CARD}>
-        <h2 className={HEADING}>Engagement ended</h2>
+        <h2 className={HEADING}>{exited ? `${firstName(name) ?? "Your lawyer"} can't continue` : "Engagement ended"}</h2>
         <p className="text-[#4a4a4a]">
-          {request.closedBy === "LAWYER" ? "Your lawyer closed this engagement." : "You ended this engagement."}
+          {exited
+            ? "Your lawyer has stopped acting on your case."
+            : request.closedBy === "CLIENT"
+              ? "You ended this engagement."
+              : request.completion?.confirmedBy === "CLIENT"
+                ? "You confirmed the work is finished."
+                : request.completion?.confirmedBy === "AUTO"
+                  ? "Your lawyer said the work was finished, and it closed after 7 days without an answer."
+                  : "Your lawyer closed this engagement."}
           {name && request.engagedAt && request.closedAt && ` You worked with ${name} from ${day(request.engagedAt)} to ${day(request.closedAt)}.`} They no longer have access to your case; your messages stay below.
         </p>
+        {request.refund && <RefundSummary refund={request.refund} />}
         {eligibility?.eligible && (
-          <Button variant="dark" size="md" className="self-start max-md:w-full" onClick={() => useLawyerRequestForm.getState().openFor(c.id)}>
-            Get another lawyer
-          </Button>
+          <>
+            {exited && <p className="text-[13px] text-ink-2">You can ask for another lawyer on this case. {firstName(name) ?? "This lawyer"} won&apos;t be offered it.</p>}
+            <Button variant="dark" size="md" className="self-start max-md:w-full" onClick={() => useLawyerRequestForm.getState().openFor(c.id)}>
+              Get another lawyer
+            </Button>
+          </>
         )}
       </section>
       {/* The thread stays readable after the engagement ends (ilovelawyer-api#517). */}
