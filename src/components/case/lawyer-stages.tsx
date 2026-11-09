@@ -149,6 +149,12 @@ function QuoteBreakdown({ quotation, lawyerFirst }: { quotation: Quotation; lawy
   );
 }
 
+/** What hiring a lawyer hands over, shown again at the step that does it. Mirrors the API's
+ * client-request consent text (CLIENT_REQUEST_CONSENT_TEXT), which is still awaiting a UK
+ * solicitor's review (#846): keep the two in step if that wording changes. */
+const HIRE_SHARING_NOTICE =
+  "Once you hire a lawyer and pay, they can read your case, its documents and your chat with the AI. They may keep a copy of your case afterwards, as solicitors are required to keep their files.";
+
 /** How ilovelawyer is paid: shown before any Accept button, since accepting a quote acknowledges it. */
 function ReferralDisclosure({ text }: { text: string }) {
   return <div className="rounded-input border border-line bg-subtle px-4 py-3 text-xs leading-[1.6] text-ink-2">{text}</div>;
@@ -387,8 +393,11 @@ export function QuoteStage({
         <p className="text-[13px] text-ink-2">Choose a lawyer by {pickByTime(request.pickByAt)}. If you don&apos;t, this request closes and you can ask again.</p>
       )}
 
-      {/* Above the offers, so it's read before any Accept, which acknowledges it. */}
+      {/* Above the offers, so it's read before any Accept, which acknowledges it. The sharing
+          sentence repeats what the request form's consent said, because Accept is the step that
+          gives the lawyer the case (#922). */}
       {request.referralDisclosure && <ReferralDisclosure text={request.referralDisclosure} />}
+      <ReferralDisclosure text={HIRE_SHARING_NOTICE} />
 
       {request.lawyers.map((offer) => (
         <OfferCard
