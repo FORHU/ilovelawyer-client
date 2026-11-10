@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check, CircleCheck, MessageCircleMore, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
+import { Modal } from "@/components/ui/modal";
 import { Avatar, Eyebrow, initialsOf } from "@/components/ui/misc";
 import { useDevice } from "@/components/device/device-provider";
 import { cn } from "@/lib/cn";
@@ -579,9 +580,51 @@ export function PaymentSuccess({ request, onDismiss }: { request: LawyerRequest;
  * what's left, which goes to the lawyer and keeps it open. Unanswered, it closes by itself on
  * `autoClosesAt`. After a "not yet", a line says so until the lawyer asks again.
  */
-export function CompletionCard({ c, request }: { c: Case; request: LawyerRequest }) {
+/** "Confirm and close", said twice: what closing means for the client, before it happens. It can't
+ * be undone: the lawyer loses access, and any payment goes to them after the usual hold. */
+function ConfirmCompletionModal({ c, request, onClose }: { c: Case; request: LawyerRequest; onClose: () => void }) {
   const confirm = useConfirmCompletionMutation(c.id);
+  const [error, setError] = useState("");
+  const first = firstName(request.lawyer?.name) ?? "Your lawyer";
+  const paid = paidThroughUs(request.quotation);
+  return (
+    <Modal open onClose={onClose} locked={confirm.isPending} title="Is the work finished?" subtitle={`Confirm that ${first} has finished the work on your case.`}>
+      <ul className="flex list-disc flex-col gap-1.5 pl-5 text-[13.5px] leading-[1.5] text-ink-2">
+        <li>The engagement closes, and {first} no longer has access to your case.</li>
+        {paid ? (
+          <li>Nothing is refunded: {first} is paid for the work after the usual holding period.</li>
+        ) : (
+          <li>Nothing was paid through ilovelawyer, so there&apos;s nothing to refund.</li>
+        )}
+        <li>You can rate {first} once it&apos;s closed.</li>
+        <li>You can&apos;t undo this. If something is still left to do, choose &ldquo;It&apos;s not finished&rdquo; instead.</li>
+      </ul>
+      {error && <ErrorBox message={error} />}
+      <div className="flex justify-end gap-2.5">
+        <Button variant="outline" onClick={onClose} disabled={confirm.isPending}>
+          Not yet
+        </Button>
+        <Button
+          variant="primary"
+          disabled={confirm.isPending}
+          onClick={() => {
+            setError("");
+            confirm.mutate(request.id, {
+              onSuccess: onClose,
+              onError: (err) => setError(err instanceof Error ? err.message : "Couldn't confirm. Try again."),
+            });
+          }}
+        >
+          {confirm.isPending ? "Confirming…" : "Yes, close the engagement"}
+        </Button>
+      </div>
+    </Modal>
+  );
+}
+
+export function CompletionCard({ c, request }: { c: Case; request: LawyerRequest }) {
   const decline = useDeclineCompletionMutation(c.id);
+  const [confirming, setConfirming] = useState(false);
   const [declining, setDeclining] = useState(false);
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
@@ -596,7 +639,7 @@ export function CompletionCard({ c, request }: { c: Case; request: LawyerRequest
       </p>
     );
   }
-  const busy = confirm.isPending || decline.isPending;
+  const busy = decline.isPending;
   const fail = (err: unknown, fallback: string) => setError(err instanceof Error ? err.message : fallback);
   return (
     <section aria-labelledby="completion-heading" className="flex flex-col gap-3 rounded-input border border-gold/40 bg-warn-bg px-4 py-4">
@@ -654,16 +697,17 @@ export function CompletionCard({ c, request }: { c: Case; request: LawyerRequest
             disabled={busy}
             onClick={() => {
               setError("");
-              confirm.mutate(request.id, { onError: (err) => fail(err, "Couldn't confirm. Try again.") });
+              setConfirming(true);
             }}
           >
-            {confirm.isPending ? "Confirming…" : "Confirm and close"}
+            Confirm and close
           </Button>
           <Button variant="soft" size="sm" className="max-md:!h-11 max-md:flex-1" disabled={busy} onClick={() => setDeclining(true)}>
             It&apos;s not finished
           </Button>
         </div>
       )}
+      {confirming && <ConfirmCompletionModal c={c} request={request} onClose={() => setConfirming(false)} />}
     </section>
   );
 }
