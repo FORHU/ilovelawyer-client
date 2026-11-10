@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3004",
+    "dev:https": "next dev -p 3004 --experimental-https --hostname client-local.ilovelawyer.com",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

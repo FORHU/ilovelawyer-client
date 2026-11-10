@@ -46,3 +46,4 @@ package-lock.json
 
 # local handoff notes, not for the repo
 /docs/
+certificates
