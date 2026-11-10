@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowUpDown, RotateCw, Search, Upload } from "lucide-react";
+import { ArrowUpDown, Mail, RotateCw, Search, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FilePicker } from "@/components/ui/file-picker";
+import { GmailImportModal } from "@/components/gmail/gmail-import-modal";
 import { BottomSheet, SheetRow } from "@/components/mobile/bottom-sheet";
 import { ChatBar } from "@/components/mobile/chat";
 import { describeLimits } from "@/lib/cases/limits";
@@ -23,6 +24,7 @@ export function DocumentsMobile({ c, focusDocumentId, onFocused, onOpenOverview 
     add, retry, usedCount, tests, needle, visible, totalBytes, hasAny, registerRow,
   } = useDocuments(c, focusDocumentId, onFocused);
   const [sorting, setSorting] = useState(false);
+  const [gmailOpen, setGmailOpen] = useState(false);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -140,16 +142,24 @@ export function DocumentsMobile({ c, focusDocumentId, onFocused, onOpenOverview 
       </div>
 
       <ChatBar>
-        <FilePicker onPick={add}>
-          {(open) => (
-            <Button variant="dark" size="lg" className="w-full" onClick={open} disabled={upload.isPending}>
-              <Upload size={16} aria-hidden />
-              {upload.isPending ? "Uploading…" : "Upload documents"}
-            </Button>
-          )}
-        </FilePicker>
+        <div className="flex gap-2">
+          <Button variant="soft" size="lg" className="shrink-0" onClick={() => setGmailOpen(true)} aria-label="Find emails in Gmail">
+            <Mail size={16} aria-hidden />
+            Gmail
+          </Button>
+          <FilePicker onPick={add}>
+            {(open) => (
+              <Button variant="dark" size="lg" className="min-w-0 flex-1" onClick={open} disabled={upload.isPending}>
+                <Upload size={16} aria-hidden />
+                {upload.isPending ? "Uploading…" : "Upload documents"}
+              </Button>
+            )}
+          </FilePicker>
+        </div>
         <p className="mt-2 text-center text-[11.5px] leading-[1.4] text-muted">{describeLimits(limits)}</p>
       </ChatBar>
+
+      <GmailImportModal open={gmailOpen} onClose={() => setGmailOpen(false)} />
 
       <BottomSheet open={sorting} onClose={() => setSorting(false)} title="Sort documents">
         {SORTS.map((s) => (

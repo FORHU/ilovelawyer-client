@@ -97,6 +97,37 @@ async function throwIfNotOk(res: Response): Promise<void> {
   throw new ApiError(message, res.status, body.code, body);
 }
 
+/** The filename from a Content-Disposition header, preferring the exact UTF-8 `filename*`. */
+function filenameFrom(disposition: string | null): string | null {
+  if (!disposition) return null;
+  const star = /filename\*=UTF-8''([^;]+)/i.exec(disposition);
+  if (star) {
+    try {
+      return decodeURIComponent(star[1]);
+    } catch {
+      // fall through to the plain filename
+    }
+  }
+  return /filename="?([^";]+)"?/i.exec(disposition)?.[1] ?? null;
+}
+
+/** A file from the API (a download route), with the same auth refresh as apiFetch. Errors come
+ * back as ApiError, read from the JSON error body. */
+export async function apiFetchBlob(path: string): Promise<{ blob: Blob; filename: string | null }> {
+  let res = await send(path, {});
+  if (res.status === 401) {
+    try {
+      await refreshAccessToken();
+    } catch (err) {
+      useSession.getState().clear();
+      throw err;
+    }
+    res = await send(path, {});
+  }
+  await throwIfNotOk(res);
+  return { blob: await res.blob(), filename: filenameFrom(res.headers.get("Content-Disposition")) };
+}
+
 export async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T> {
   let res = await send(path, options);
 
