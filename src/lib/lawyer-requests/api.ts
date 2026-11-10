@@ -6,8 +6,10 @@ import { caseKeys } from "@/lib/cases/queries";
 import {
   clientRequestStage,
   clientRequestStatusLabel,
+  type ClientRefundSummary,
   type ClientRequestStage,
   type ClientRequestStatus,
+  type EngagementCompletion,
   type LawyerRegulator,
   type Money,
   type Quotation,
@@ -19,7 +21,7 @@ import {
 // Asking for a lawyer on a case (ilovelawyer-api /api/client/lawyer-requests, the UK client-to-lawyer
 // hand-off). Only client accounts reach these routes.
 
-export type { ClientRequestStage, ClientRequestStatus, Quotation };
+export type { ClientRefundSummary, ClientRequestStage, ClientRequestStatus, EngagementCompletion, Quotation };
 export { clientRequestStage, clientRequestStatusLabel };
 
 /** Why a case can't have a lawyer (the API's codes). */
@@ -145,6 +147,13 @@ export interface LawyerRequest {
   requestedOnly?: boolean;
   /** While ROUTED: when lawyers can no longer take it up. */
   routingExpiresAt?: string | null;
+  /** What the client paid the lawyer they hired, and any refunds. `lawyerExit` is set when the lawyer
+   * stopped acting (they couldn't continue): where the refund stands, never why. Null until paid
+   * through ilovelawyer; missing from an older API. */
+  refund?: ClientRefundSummary | null;
+  /** The lawyer says the work is finished: confirm it (the engagement closes) or say what's left.
+   * Null until they've said it; missing from an older API. */
+  completion?: EngagementCompletion | null;
 }
 
 /** The lawyer the request form asks by name (Find a lawyer's Request); none asks every matching lawyer. */
@@ -232,6 +241,18 @@ export function declineLawyerRequest(id: string, claimId: string, reason?: strin
 export function endLawyerRequest(id: string, reason?: string) {
   return requestFrom(post<LawyerRequest>(`/api/client/lawyer-requests/${id}/end`, reason ? { reason } : {}));
 }
+
+/** The lawyer said the work is finished, and the client agrees: the engagement closes. */
+export function confirmCompletion(id: string) {
+  return requestFrom(post<LawyerRequest>(`/api/client/lawyer-requests/${id}/completion/confirm`, {}));
+}
+
+/** The lawyer said the work is finished, and it isn't yet: `reason` (what's left) goes to them. */
+export function declineCompletion(id: string, reason: string) {
+  return requestFrom(post<LawyerRequest>(`/api/client/lawyer-requests/${id}/completion/decline`, { reason }));
+}
+
+export const COMPLETION_REASON_MAX_LENGTH = 1000;
 
 export const lawyerRequestKeys = {
   all: (userId: string | undefined, caseId: string) => [...caseKeys.all(userId), "lawyer-request", caseId] as const,
@@ -384,6 +405,24 @@ export function useEndLawyerRequestMutation(caseId: string) {
   const userId = useUserId();
   return useMutation({
     mutationFn: ({ id, reason }: { id: string; reason?: string }) => endLawyerRequest(id, reason),
+    onSettled: () => invalidateLawyerRequests(queryClient, userId, caseId),
+  });
+}
+
+export function useConfirmCompletionMutation(caseId: string) {
+  const queryClient = useQueryClient();
+  const userId = useUserId();
+  return useMutation({
+    mutationFn: (id: string) => confirmCompletion(id),
+    onSettled: () => invalidateLawyerRequests(queryClient, userId, caseId),
+  });
+}
+
+export function useDeclineCompletionMutation(caseId: string) {
+  const queryClient = useQueryClient();
+  const userId = useUserId();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => declineCompletion(id, reason),
     onSettled: () => invalidateLawyerRequests(queryClient, userId, caseId),
   });
 }
