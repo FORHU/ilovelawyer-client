@@ -1,9 +1,11 @@
 "use client";
 
-import { Eye, Lock, RotateCw, Search, Upload } from "lucide-react";
+import { useState } from "react";
+import { Eye, Lock, Mail, RotateCw, Search, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropOverlay } from "@/components/ui/drop-overlay";
 import { FilePicker } from "@/components/ui/file-picker";
+import { GmailImportModal } from "@/components/gmail/gmail-import-modal";
 import { describeLimits } from "@/lib/cases/limits";
 import { cn } from "@/lib/cn";
 import { FILTERS, SORTS, type SortKey } from "@/lib/documents/filter-sort";
@@ -18,6 +20,7 @@ export function DocumentsDesktop({ c, focusDocumentId, onFocused, onOpenOverview
     upload, limits, failed, citations, opener, leftOver, uploading, confirmingId, setConfirmingId, filter, setFilter, sort, setSort,
     query, setQuery, setPickedId, dragging, dragProps, add, retry, usedCount, tests, needle, visible, picked, totalBytes, hasAny, registerRow,
   } = useDocuments(c, focusDocumentId, onFocused);
+  const [gmailOpen, setGmailOpen] = useState(false);
 
   // The panel always shows a document: the picked one, or else the first in the list.
   const selected = picked ?? visible[0] ?? null;
@@ -25,6 +28,7 @@ export function DocumentsDesktop({ c, focusDocumentId, onFocused, onOpenOverview
   return (
     <div className="relative flex min-h-0 flex-1 flex-col" {...dragProps}>
       {opener.modal}
+      <GmailImportModal caseId={c.id} open={gmailOpen} onClose={() => setGmailOpen(false)} />
       {dragging && <DropOverlay label="Drop to upload" />}
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
       <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-[18px] px-4 pb-14 pt-7 md:px-10">
@@ -62,6 +66,10 @@ export function DocumentsDesktop({ c, focusDocumentId, onFocused, onOpenOverview
                 ))}
               </select>
             </label>
+            <Button variant="soft" onClick={() => setGmailOpen(true)} className="!h-[38px] !px-4">
+              <Mail size={14} aria-hidden />
+              From Gmail
+            </Button>
             <FilePicker onPick={add}>
               {(open) => (
                 <Button variant="dark" onClick={open} className="!h-[38px] !px-4">
