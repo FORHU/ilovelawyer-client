@@ -2,7 +2,17 @@ import { useEffect } from "react";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession, type SessionUser } from "@/lib/auth/session";
 import { caseKeys } from "@/lib/cases/queries";
-import { connectGmail, disconnectGmail, getGmailMessage, importGmailToCase, needsGmailConnect, searchGmail, type GmailCaseImport } from "./api";
+import {
+  connectGmail,
+  disconnectGmail,
+  getGmailMessage,
+  importGmailToCase,
+  needsGmailConnect,
+  searchGmail,
+  suggestGmailForCase,
+  type GmailCaseImport,
+} from "./api";
+import { isEmailImportConsentError, useRefreshConsents } from "./consent";
 
 // TanStack Query hooks for the client's Gmail. The request functions live in ./api.ts.
 
@@ -34,19 +44,34 @@ export function useConnectGmailMutation() {
   return useMutation({ mutationFn: (code: string) => connectGmail(code), onSuccess: apply });
 }
 
+/** Disconnecting also withdraws email-import consent (#989), so the consent answers are re-read
+ * and connecting again asks for it again. */
 export function useDisconnectGmailMutation() {
   const apply = useApplyUser();
-  return useMutation({ mutationFn: disconnectGmail, onSuccess: apply });
+  const refreshConsents = useRefreshConsents();
+  return useMutation({
+    mutationFn: disconnectGmail,
+    onSuccess: (user) => {
+      apply(user);
+      refreshConsents();
+    },
+  });
 }
 
 /** When the API says the grant is gone, it has already forgotten it, so the session follows and
- * the app shows Connect again. */
+ * the app shows Connect again. When it says email-import consent is missing, the answers are
+ * re-read, which brings the consent step back. */
 function useForgetGmailOn(error: unknown) {
+  const refreshConsents = useRefreshConsents();
   useEffect(() => {
+    if (isEmailImportConsentError(error)) {
+      refreshConsents();
+      return;
+    }
     if (!needsGmailConnect(error)) return;
     const { user, setUser } = useSession.getState();
     if (user?.gmailConnected) setUser({ ...user, gmailConnected: false, gmailEmail: null });
-  }, [error]);
+  }, [error, refreshConsents]);
 }
 
 /** Pages of the inbox matching `q` (Gmail search syntax). Only runs while Gmail is connected and
@@ -93,6 +118,14 @@ export function useImportGmailToCaseMutation(caseId: string) {
       queryClient.invalidateQueries({ queryKey: caseKeys.intake(userId, caseId) });
     },
   });
+  useForgetGmailOn(mutation.error);
+  return mutation;
+}
+
+/** "Suggest by AI" for the case. A mutation, not a query: it runs only when the client asks (each
+ * run is an AI call), and its result is kept by the modal until they ask again. */
+export function useSuggestGmailMutation(caseId: string) {
+  const mutation = useMutation({ mutationFn: () => suggestGmailForCase(caseId) });
   useForgetGmailOn(mutation.error);
   return mutation;
 }

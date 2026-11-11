@@ -1,18 +1,21 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { ArrowLeft, Download, Paperclip, Search } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { ErrorBox } from "@/components/ui/banner";
 import { useSession } from "@/lib/auth/session";
-import { formatBytes, formatDateTime, formatDay } from "@/lib/format";
+import { formatBytes, formatDateTime } from "@/lib/format";
 import { downloadGmailAttachment, type GmailAttachment, type GmailMessage } from "@/lib/gmail/api";
-import { useGmailMessage, useGmailSearch } from "@/lib/gmail/queries";
+import { useGmailMessage, useGmailSearch, useSuggestGmailMutation } from "@/lib/gmail/queries";
 import { AddToCasePanel } from "./add-to-case-panel";
-import { ConnectGmailButton } from "./connect-gmail-button";
+import { useAgreeToEmailImportMutation, useEmailImportConsent } from "@/lib/gmail/consent";
+import { ConnectGmailButton, EmailImportConsentPoints } from "./connect-gmail-button";
 import { EmailBodyFrame } from "./email-body-frame";
+import { MessageRow } from "./message-row";
+import { SuggestCard, SuggestionsView } from "./suggestions-view";
 
 /** Quick filters, as the Gmail search operators they add to the typed search. */
 const FILTERS = [
@@ -36,30 +39,47 @@ function useSearchState() {
 
 type SearchState = ReturnType<typeof useSearchState>;
 
-/** "Ana Cruz <ana@example.com>" reads as "Ana Cruz"; a bare address stays as it is. */
-function displayName(from: string | null): string {
-  if (!from) return "Unknown sender";
-  const name = /^\s*"?([^"<]+?)"?\s*</.exec(from)?.[1];
-  return name?.trim() || from;
-}
-
 function NotConnected() {
   return (
     <div className="flex flex-col gap-4 py-2">
       <p className="text-[14px] leading-[1.6] text-ink-2">
         Connect your Gmail to find emails about this case, like messages from the other side, letters and the files attached to them.
       </p>
-      <ul className="flex list-disc flex-col gap-1.5 pl-5 text-[13px] leading-[1.55] text-ink-2">
-        <li>Read-only. We can’t send, change or delete your email.</li>
-        <li>We only look at your inbox when you search here.</li>
-        <li>Nothing is added to your case until you choose it.</li>
-      </ul>
       <ConnectGmailButton />
     </div>
   );
 }
 
-function SearchView({ state, onOpen }: { state: SearchState; onOpen: (id: string) => void }) {
+/** Connected, but without email-import consent for the current text (#989): connected before it
+ * was asked for, or the text has changed since. Nothing is read until the client agrees. */
+function ConsentGate() {
+  const agree = useAgreeToEmailImportMutation();
+  return (
+    <div className="flex flex-col gap-4 py-2">
+      <p className="text-[14px] leading-[1.6] text-ink-2">Before we read your Gmail, please confirm you’re happy with how it works:</p>
+      <EmailImportConsentPoints />
+      {agree.error && <ErrorBox message={(agree.error as Error).message} />}
+      <div className="flex flex-col items-start gap-2">
+        <Button variant="dark" onClick={() => agree.mutate()} disabled={agree.isPending}>
+          {agree.isPending ? "Saving…" : "I agree, continue"}
+        </Button>
+        <p className="text-[12px] text-muted">Not happy with this? Disconnect Gmail in Settings › Connected accounts.</p>
+      </div>
+    </div>
+  );
+}
+
+function SearchView({
+  state,
+  onOpen,
+  onSuggest,
+  hasSuggestions,
+}: {
+  state: SearchState;
+  onOpen: (id: string) => void;
+  onSuggest: () => void;
+  hasSuggestions: boolean;
+}) {
   const { typed, setTyped, submitted, setSubmitted, filters, setFilters } = state;
 
   const q = [submitted, ...FILTERS.filter((f) => filters.has(f.id)).map((f) => f.operator)].filter(Boolean).join(" ");
@@ -80,6 +100,7 @@ function SearchView({ state, onOpen }: { state: SearchState; onOpen: (id: string
 
   return (
     <div className="flex flex-col gap-4">
+      <SuggestCard onSuggest={onSuggest} hasResults={hasSuggestions} />
       <form onSubmit={submit} className="flex gap-2">
         <label className="relative flex min-w-0 flex-1 items-center">
           <Search size={15} aria-hidden className="pointer-events-none absolute left-3.5 text-ink-2" />
@@ -119,23 +140,7 @@ function SearchView({ state, onOpen }: { state: SearchState; onOpen: (id: string
       ) : (
         <ul className="flex flex-col divide-y divide-line rounded-card border border-line bg-white">
           {rows.map((row) => (
-            <li key={row.id}>
-              <button
-                type="button"
-                onClick={() => onOpen(row.id)}
-                className="flex w-full flex-col gap-1 px-4 py-3 text-left hover:bg-subtle focus-visible:bg-subtle focus-visible:outline-none"
-              >
-                <span className="flex items-baseline gap-3">
-                  <span className="min-w-0 flex-1 truncate text-[14px] font-semibold text-ink">{displayName(row.from)}</span>
-                  {row.attachmentNames.length > 0 && (
-                    <Paperclip size={13} aria-label={`${row.attachmentNames.length} attachments`} className="shrink-0 text-ink-2" />
-                  )}
-                  {row.date && <span className="shrink-0 text-[12px] tabular-nums text-ink-2">{formatDay(row.date)}</span>}
-                </span>
-                <span className="truncate text-[13.5px] text-ink">{row.subject || "(no subject)"}</span>
-                <span className="line-clamp-2 text-[12.5px] leading-[1.5] text-ink-2">{row.snippet}</span>
-              </button>
-            </li>
+            <MessageRow key={row.id} row={row} onOpen={onOpen} />
           ))}
         </ul>
       )}
@@ -244,22 +249,38 @@ function MessageView({ caseId, id, onBack }: { caseId: string; id: string; onBac
 }
 
 /**
- * Find emails for a case in the client's Gmail (EPIC #982, #983): connect, search, open an email,
- * download its attachments, and add the email (as a PDF) and chosen attachments to the case
- * (#986/#987). A centred panel on web, a bottom sheet on a phone (Modal).
+ * Find emails for a case in the client's Gmail (EPIC #982, #983): connect, search or let the AI
+ * suggest emails about the case (#984, #988), open an email, download its attachments, and add the
+ * email (as a PDF) and chosen attachments to the case (#986/#987). A centred panel on web, a
+ * bottom sheet on a phone (Modal).
  */
 export function GmailImportModal({ caseId, open, onClose }: { caseId: string; open: boolean; onClose: () => void }) {
   const connected = useSession((s) => !!s.user?.gmailConnected);
   const gmailEmail = useSession((s) => s.user?.gmailEmail);
+  const consented = useEmailImportConsent();
   const [openId, setOpenId] = useState<string | null>(null);
   const search = useSearchState();
+  // "Suggest by AI" (#984): its results live here, like the search, so going back from an email
+  // lands on them, and they stay until the client asks again.
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggest = useSuggestGmailMutation(caseId);
+  const openSuggestions = () => {
+    setShowSuggestions(true);
+    if (!suggest.data && !suggest.isPending) suggest.mutate();
+  };
 
   // A disconnect or reconnect starts over from the search, never on an email from the old grant.
   const [wasConnected, setWasConnected] = useState(connected);
   if (connected !== wasConnected) {
     setWasConnected(connected);
     setOpenId(null);
+    setShowSuggestions(false);
   }
+  // Suggestions from the old grant go too (outside render: reset notifies the mutation's observers).
+  const resetSuggest = suggest.reset;
+  useEffect(() => {
+    resetSuggest();
+  }, [connected, resetSuggest]);
 
   // Reopening starts on the results (the search itself is kept), not on the last email viewed.
   const close = () => {
@@ -275,7 +296,19 @@ export function GmailImportModal({ caseId, open, onClose }: { caseId: string; op
       title="Find emails in Gmail"
       subtitle={connected && gmailEmail ? `Searching ${gmailEmail}` : undefined}
     >
-      {!connected ? <NotConnected /> : openId ? <MessageView caseId={caseId} id={openId} onBack={() => setOpenId(null)} /> : <SearchView state={search} onOpen={setOpenId} />}
+      {!connected ? (
+        <NotConnected />
+      ) : consented === undefined ? (
+        <p className="py-6 text-center text-[13px] text-ink-2">Loading…</p>
+      ) : !consented ? (
+        <ConsentGate />
+      ) : openId ? (
+        <MessageView caseId={caseId} id={openId} onBack={() => setOpenId(null)} />
+      ) : showSuggestions ? (
+        <SuggestionsView suggest={suggest} onBack={() => setShowSuggestions(false)} onOpen={setOpenId} />
+      ) : (
+        <SearchView state={search} onOpen={setOpenId} onSuggest={openSuggestions} hasSuggestions={!!suggest.data} />
+      )}
     </Modal>
   );
 }

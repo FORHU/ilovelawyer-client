@@ -70,14 +70,17 @@ function ConnectedAccountsTab() {
           <p className="text-sm leading-[1.6] text-ink-2">
             {connected
               ? `Connected as ${gmailEmail ?? "your Gmail account"}. You can search it from a case’s Documents tab.`
-              : "Find emails and attachments for your case without forwarding them. Read-only: we can’t send, change or delete your email, we only look when you search, and nothing is added to a case until you choose it."}
+              : "Find emails and attachments for your case without forwarding them."}
           </p>
         </div>
         {!connected ? (
           <ConnectGmailButton />
         ) : confirming ? (
           <div className="flex flex-col gap-3 rounded-input border border-line bg-subtle px-4 py-3.5">
-            <p className="text-sm text-ink">Disconnect Gmail? You can connect it again at any time. Anything already added to a case stays there.</p>
+            <p className="text-sm text-ink">
+              Disconnect Gmail? This ends our access and withdraws your consent to read your Gmail. You can connect again at any time. Anything already
+              added to a case stays there.
+            </p>
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="danger"

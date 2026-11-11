@@ -87,6 +87,21 @@ export async function downloadGmailAttachment(messageId: string, attachment: Gma
   setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
 
+/** An email "Suggest by AI" found for the case, with why. */
+export interface GmailSuggestion extends GmailSearchRow {
+  /** "high": clearly about the case; "medium": probably related. */
+  relevance: "high" | "medium";
+  reason: string;
+}
+
+/** "Suggest by AI" (EPIC #982, #984): the case's Intake searches the inbox for emails about the
+ * case and ranks them. `searched` is how many candidates it looked at. */
+export function suggestGmailForCase(caseId: string) {
+  return apiFetch<{ matches: GmailSuggestion[]; searched: number }>(`/api/client/cases/${encodeURIComponent(caseId)}/gmail-suggestions`, {
+    method: "POST",
+  });
+}
+
 export interface GmailCaseImport {
   messageId: string;
   /** Add the email itself, as a PDF with its From/To/Cc/Bcc/Date/Subject and text. */
