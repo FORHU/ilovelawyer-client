@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession, type SessionUser } from "@/lib/auth/session";
-import { connectGmail, disconnectGmail, getGmailMessage, needsGmailConnect, searchGmail } from "./api";
+import { caseKeys } from "@/lib/cases/queries";
+import { connectGmail, disconnectGmail, getGmailMessage, importGmailToCase, needsGmailConnect, searchGmail, type GmailCaseImport } from "./api";
 
 // TanStack Query hooks for the client's Gmail. The request functions live in ./api.ts.
 
@@ -77,4 +78,21 @@ export function useGmailMessage(id: string | null) {
   });
   useForgetGmailOn(query.error);
   return query;
+}
+
+/** Adds an email and/or attachments to the case. The case, its row in the list and its intake
+ * refresh afterwards, as after an upload, so the new documents show at once. */
+export function useImportGmailToCaseMutation(caseId: string) {
+  const queryClient = useQueryClient();
+  const userId = useUserId();
+  const mutation = useMutation({
+    mutationFn: (input: GmailCaseImport) => importGmailToCase(caseId, input),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: caseKeys.detail(userId, caseId) });
+      queryClient.invalidateQueries({ queryKey: caseKeys.list(userId) });
+      queryClient.invalidateQueries({ queryKey: caseKeys.intake(userId, caseId) });
+    },
+  });
+  useForgetGmailOn(mutation.error);
+  return mutation;
 }

@@ -10,6 +10,7 @@ import { useSession } from "@/lib/auth/session";
 import { formatBytes, formatDateTime, formatDay } from "@/lib/format";
 import { downloadGmailAttachment, type GmailAttachment, type GmailMessage } from "@/lib/gmail/api";
 import { useGmailMessage, useGmailSearch } from "@/lib/gmail/queries";
+import { AddToCasePanel } from "./add-to-case-panel";
 import { ConnectGmailButton } from "./connect-gmail-button";
 import { EmailBodyFrame } from "./email-body-frame";
 
@@ -192,7 +193,7 @@ function AttachmentRow({ messageId, attachment }: { messageId: string; attachmen
   );
 }
 
-function MessageDetails({ message }: { message: GmailMessage }) {
+function MessageDetails({ caseId, message }: { caseId: string; message: GmailMessage }) {
   const files = [...message.attachments].sort((a, b) => Number(a.inline) - Number(b.inline));
   return (
     <div className="flex flex-col gap-4">
@@ -204,8 +205,7 @@ function MessageDetails({ message }: { message: GmailMessage }) {
         <HeaderRow label="Bcc" value={message.bcc} />
         <HeaderRow label="Date" value={message.date ? formatDateTime(message.date) : message.dateHeader} />
       </dl>
-      {/* Keyed by email so "Show images" never carries over to the next one opened. */}
-      <EmailBodyFrame key={message.id} html={message.htmlBody} text={message.textBody} />
+      <EmailBodyFrame html={message.htmlBody} text={message.textBody} />
       {files.length > 0 && (
         <section className="flex flex-col gap-2">
           <h4 className="text-[13px] font-semibold text-ink">
@@ -218,11 +218,12 @@ function MessageDetails({ message }: { message: GmailMessage }) {
           </ul>
         </section>
       )}
+      <AddToCasePanel caseId={caseId} message={message} />
     </div>
   );
 }
 
-function MessageView({ id, onBack }: { id: string; onBack: () => void }) {
+function MessageView({ caseId, id, onBack }: { caseId: string; id: string; onBack: () => void }) {
   const { data, error, isPending } = useGmailMessage(id);
   return (
     <div className="flex flex-col gap-4">
@@ -235,18 +236,19 @@ function MessageView({ id, onBack }: { id: string; onBack: () => void }) {
       ) : isPending ? (
         <p className="py-6 text-center text-[13px] text-ink-2">Opening email…</p>
       ) : (
-        <MessageDetails message={data} />
+        // Keyed by email so "Show images", the ticks and "Added" never carry over to the next one.
+        <MessageDetails key={data.id} caseId={caseId} message={data} />
       )}
     </div>
   );
 }
 
 /**
- * Find emails for a case in the client's Gmail (EPIC #982, #983): connect, search, open an email
- * and download its attachments. Adding an email to the case comes in a later step. A centred
- * panel on web, a bottom sheet on a phone (Modal).
+ * Find emails for a case in the client's Gmail (EPIC #982, #983): connect, search, open an email,
+ * download its attachments, and add the email (as a PDF) and chosen attachments to the case
+ * (#986/#987). A centred panel on web, a bottom sheet on a phone (Modal).
  */
-export function GmailImportModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function GmailImportModal({ caseId, open, onClose }: { caseId: string; open: boolean; onClose: () => void }) {
   const connected = useSession((s) => !!s.user?.gmailConnected);
   const gmailEmail = useSession((s) => s.user?.gmailEmail);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -273,7 +275,7 @@ export function GmailImportModal({ open, onClose }: { open: boolean; onClose: ()
       title="Find emails in Gmail"
       subtitle={connected && gmailEmail ? `Searching ${gmailEmail}` : undefined}
     >
-      {!connected ? <NotConnected /> : openId ? <MessageView id={openId} onBack={() => setOpenId(null)} /> : <SearchView state={search} onOpen={setOpenId} />}
+      {!connected ? <NotConnected /> : openId ? <MessageView caseId={caseId} id={openId} onBack={() => setOpenId(null)} /> : <SearchView state={search} onOpen={setOpenId} />}
     </Modal>
   );
 }

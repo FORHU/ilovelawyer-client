@@ -1,5 +1,6 @@
 import { ApiError, apiFetch, apiFetchBlob } from "@/lib/api/fetch";
 import type { SessionUser } from "@/lib/auth/session";
+import type { CaseDocument } from "@/lib/types";
 
 // The client's own Gmail, read-only (ilovelawyer-api's /api/client/gmail, EPIC #982). Nothing read
 // here is stored: search results, bodies and attachments come straight from Gmail on each call.
@@ -84,6 +85,23 @@ export async function downloadGmailAttachment(messageId: string, attachment: Gma
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 30_000);
+}
+
+export interface GmailCaseImport {
+  messageId: string;
+  /** Add the email itself, as a PDF with its From/To/Cc/Bcc/Date/Subject and text. */
+  includeEmail: boolean;
+  /** Attachments to add, each as its own case document. */
+  attachmentPartIds: string[];
+}
+
+/** Adds an email and/or its chosen attachments to the case as documents (EPIC #982, #986/#987).
+ * Answers with the new documents, which then read like any upload. */
+export function importGmailToCase(caseId: string, input: GmailCaseImport) {
+  return apiFetch<{ documents: CaseDocument[] }>(`/api/client/cases/${encodeURIComponent(caseId)}/gmail-imports`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 /** The API's answer when Gmail isn't connected, or Google stopped accepting the stored grant

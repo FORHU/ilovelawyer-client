@@ -159,7 +159,7 @@ export function DocumentsMobile({ c, focusDocumentId, onFocused, onOpenOverview 
         <p className="mt-2 text-center text-[11.5px] leading-[1.4] text-muted">{describeLimits(limits)}</p>
       </ChatBar>
 
-      <GmailImportModal open={gmailOpen} onClose={() => setGmailOpen(false)} />
+      <GmailImportModal caseId={c.id} open={gmailOpen} onClose={() => setGmailOpen(false)} />
 
       <BottomSheet open={sorting} onClose={() => setSorting(false)} title="Sort documents">
         {SORTS.map((s) => (

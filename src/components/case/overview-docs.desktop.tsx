@@ -28,7 +28,7 @@ export function DocumentsDesktop({ c, focusDocumentId, onFocused, onOpenOverview
   return (
     <div className="relative flex min-h-0 flex-1 flex-col" {...dragProps}>
       {opener.modal}
-      <GmailImportModal open={gmailOpen} onClose={() => setGmailOpen(false)} />
+      <GmailImportModal caseId={c.id} open={gmailOpen} onClose={() => setGmailOpen(false)} />
       {dragging && <DropOverlay label="Drop to upload" />}
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
       <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-[18px] px-4 pb-14 pt-7 md:px-10">
