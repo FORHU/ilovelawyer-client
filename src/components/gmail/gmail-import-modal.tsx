@@ -204,7 +204,8 @@ function MessageDetails({ message }: { message: GmailMessage }) {
         <HeaderRow label="Bcc" value={message.bcc} />
         <HeaderRow label="Date" value={message.date ? formatDateTime(message.date) : message.dateHeader} />
       </dl>
-      <EmailBodyFrame html={message.htmlBody} text={message.textBody} />
+      {/* Keyed by email so "Show images" never carries over to the next one opened. */}
+      <EmailBodyFrame key={message.id} html={message.htmlBody} text={message.textBody} />
       {files.length > 0 && (
         <section className="flex flex-col gap-2">
           <h4 className="text-[13px] font-semibold text-ink">
