@@ -3,7 +3,7 @@
 // fetch, no server or DOM.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
-import { UPSTREAM_FETCH_TIMEOUT_MS } from "../response";
+import { resolveEndpoint, UPSTREAM_FETCH_TIMEOUT_MS } from "../response";
 import { GET } from "../route";
 
 const RESOLVE_URL_PREFIX = "http://localhost:3001/api/files/resolve";
@@ -25,6 +25,16 @@ function makeRequest(rangeHeader?: string) {
 function callGet(token = "some-token", rangeHeader?: string) {
   return GET(makeRequest(rangeHeader), { params: Promise.resolve({ token }) });
 }
+
+describe("resolveEndpoint", () => {
+  it("calls the API's own origin when the build has one", () => {
+    expect(resolveEndpoint("http://localhost:3001", "https://app-dev.ilovelawyer.com")).toBe("http://localhost:3001/api/files/resolve");
+  });
+
+  it("calls back through this app's domain when the build's API URL is empty (deployed dev), never a relative URL", () => {
+    expect(resolveEndpoint("", "https://app-dev.ilovelawyer.com")).toBe("https://app-dev.ilovelawyer.com/api/files/resolve");
+  });
+});
 
 describe("GET /files/[token]", () => {
   beforeEach(() => {
