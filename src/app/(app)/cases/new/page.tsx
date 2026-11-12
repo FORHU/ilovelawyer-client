@@ -12,6 +12,7 @@ import { NewCaseForm } from "@/components/wizard/new-case-form";
 import { useSession } from "@/lib/auth/session";
 import { sendMessage } from "@/lib/cases/api";
 import { describeCasePayload } from "@/lib/cases/describe-case";
+import { useCaseAreasQuery } from "@/lib/cases/case-areas";
 import {
   formHasContent,
   formOf,
@@ -43,6 +44,7 @@ function NewCase() {
   const included = pricing?.case.credits ?? "…";
   const { create, creating, error } = useCreateCaseFromWizard();
   const createCaseDirect = useCreateCaseMutation();
+  const { data: caseAreas } = useCaseAreasQuery();
   const stillHere = useStillHere();
   const [chatCreating, setChatCreating] = useState(false);
   const [chatError, setChatError] = useState("");
@@ -200,7 +202,7 @@ function NewCase() {
     const id = draftId.current;
     let created;
     try {
-      created = await createCaseDirect.mutateAsync(describeCasePayload(text));
+      created = await createCaseDirect.mutateAsync(describeCasePayload(text, caseAreas ?? []));
     } catch (err) {
       setChatCreating(false);
       setChatError(err instanceof Error && err.message ? err.message : "We couldn't create the case. Try again.");

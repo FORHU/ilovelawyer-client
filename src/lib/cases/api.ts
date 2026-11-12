@@ -11,8 +11,11 @@ export interface NewCase {
   title: string;
   /** Case area codes, one or more. */
   areas: string[];
-  /** null: it happened outside the UK. */
+  /** null: outside the UK, or not known yet (see outsideUk). */
   ukJurisdiction: UkJurisdiction | null;
+  /** With ukJurisdiction null: true is outside the UK, false not known yet. Always send it with a
+   * null ukJurisdiction: left out, the API reads null as outside the UK, for older apps. */
+  outsideUk?: boolean;
   where: string;
   side: "CLAIMANT" | "RESPONDENT" | null;
   others: Omit<OtherParty, "id">[];

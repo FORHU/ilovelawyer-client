@@ -25,7 +25,9 @@ export type { ClientRefundSummary, ClientRequestStage, ClientRequestStatus, Enga
 export { clientRequestStage, clientRequestStatusLabel };
 
 /** Why a case can't have a lawyer (the API's codes). */
-export type IneligibleReason = "NOT_UK_CASE" | "PERSONAL_INJURY_EXCLUDED" | "REQUEST_ALREADY_OPEN";
+/** NOT_UK_CASE: the client said it's outside the UK. REGION_UNKNOWN: nobody has said which part of
+ * the UK yet, so ask (#973). */
+export type IneligibleReason = "NOT_UK_CASE" | "REGION_UNKNOWN" | "PERSONAL_INJURY_EXCLUDED" | "REQUEST_ALREADY_OPEN";
 
 export interface LawyerRequestEligibility {
   eligible: boolean;

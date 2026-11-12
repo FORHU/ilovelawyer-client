@@ -9,7 +9,7 @@ import { composeNotes } from "@/lib/cases/notes";
 import { uploadAll, useCreateCaseMutation } from "@/lib/cases/queries";
 import { useFailedUploads } from "@/lib/failed-uploads";
 import { useApp } from "@/lib/store";
-import type { CaseRegion, OtherParty, Side } from "@/lib/types";
+import { regionFields, type CaseRegion, type OtherParty, type Side } from "@/lib/types";
 import { useWizard } from "@/lib/wizard-store";
 
 /** What the new-case wizard asks for. */
@@ -31,7 +31,8 @@ export function newCaseFromDraft(draft: CaseDraft): NewCase {
   return {
     title: draft.title.trim(),
     areas: draft.areas,
-    ukJurisdiction: draft.region === "OUTSIDE_UK" || !draft.region ? null : draft.region,
+    // No answer is "not known yet", never outside the UK (#973).
+    ...(draft.region ? regionFields(draft.region) : { ukJurisdiction: null, outsideUk: false }),
     where: draft.where.trim(),
     side: draft.side || null,
     others: draft.others.filter((o) => o.name.trim()).map(({ name, role }) => ({ name: name.trim(), role })),

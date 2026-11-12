@@ -10,13 +10,14 @@ import { useApp } from "@/lib/store";
 /** Why there's no lawyer for this case, in words the client can act on. */
 export const NOT_AVAILABLE_TEXT = {
   NOT_UK_CASE: "Lawyers are only available for cases in England and Wales, Scotland or Northern Ireland for now.",
+  REGION_UNKNOWN: "Choose which part of the UK your case is in, and we can look for a lawyer.",
   PERSONAL_INJURY_EXCLUDED: "We can't connect personal injury cases with a lawyer yet.",
 } as const;
 
 /**
  * The case header's lawyer button, decided by the API (GET /api/client/lawyer-requests/eligibility):
- * "Get a lawyer" on a UK case, "Not available yet" outside the UK, and a short explanation for
- * personal injury. Nothing while there's already a request, or while the case is missing what a
+ * "Get a lawyer" on a UK case, "Not available yet" outside the UK, "Part of the UK?" while nobody has
+ * said which part (the chat asks, see RegionPrompt), and a short explanation for personal injury. Nothing while there's already a request, or while the case is missing what a
  * lawyer needs (lib/cases/readiness.ts).
  */
 export function GetLawyerAction({ caseId }: { caseId: string }) {
@@ -41,7 +42,7 @@ export function GetLawyerAction({ caseId }: { caseId: string }) {
     );
   }
 
-  if (data.reason === "NOT_UK_CASE" || data.reason === "PERSONAL_INJURY_EXCLUDED") {
+  if (data.reason === "NOT_UK_CASE" || data.reason === "REGION_UNKNOWN" || data.reason === "PERSONAL_INJURY_EXCLUDED") {
     const why = NOT_AVAILABLE_TEXT[data.reason];
     // A button, not a tooltip, so the reason can be read on a phone too.
     return (
@@ -54,7 +55,7 @@ export function GetLawyerAction({ caseId }: { caseId: string }) {
         className="flex h-11 flex-1 shrink-0 items-center justify-center gap-2 rounded-full border border-dashed border-line px-4 text-[12.5px] text-muted md:h-9 md:flex-none"
       >
         <Scale size={14} />
-        {data.reason === "NOT_UK_CASE" ? "Not available yet" : "Can't refer yet"}
+        {data.reason === "NOT_UK_CASE" ? "Not available yet" : data.reason === "REGION_UNKNOWN" ? "Part of the UK?" : "Can't refer yet"}
       </button>
     );
   }

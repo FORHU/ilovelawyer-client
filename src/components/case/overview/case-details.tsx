@@ -17,7 +17,7 @@ export function CaseDetails({ c, defaultOpen }: { c: Case; defaultOpen: boolean 
   const rows: { k: string; v: string }[] = [
     { k: "Case title", v: c.title },
     { k: "Type of issue", v: areasLabel(c.areas) },
-    { k: "Part of the UK", v: regionLabel(c.ukJurisdiction) },
+    { k: "Part of the UK", v: regionLabel(c) },
     { k: "Town or city", v: c.where || "Not set" },
     { k: "Your side", v: sideLabel(c.side) },
     { k: "Others involved", v: c.others.length ? c.others.map((o) => `${o.name} (${o.role})`).join(", ") : "None added" },

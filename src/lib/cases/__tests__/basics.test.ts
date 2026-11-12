@@ -17,6 +17,11 @@ describe("caseBasics", () => {
     expect(met(b)).toEqual(["problem", "where", "other-side"]);
   });
 
+  it("counts outside the UK as answered, but not a part of the UK nobody has given yet (#973)", () => {
+    expect(met(caseBasics({ ...bare, outsideUk: true }, empty))).toEqual(["where"]);
+    expect(met(caseBasics({ ...bare, outsideUk: false }, empty))).toEqual([]);
+  });
+
   it("counts what happened and what you want from the form's notes", () => {
     const b = caseBasics({ ...bare, notes: "What happened: sacked\n\nWhat I want: my job back" }, empty);
     expect(met(b)).toEqual(["what-happened", "what-you-want"]);

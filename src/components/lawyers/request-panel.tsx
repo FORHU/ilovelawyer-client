@@ -86,9 +86,17 @@ export function RequestPanel({
     };
   } else if (theCase && availability.code) {
     blocked = {
-      title: availability.code === "NOT_UK_CASE" ? "This case isn’t in the UK" : "We can’t send this case to a lawyer",
+      title:
+        availability.code === "NOT_UK_CASE"
+          ? "This case isn’t in the UK"
+          : availability.code === "REGION_UNKNOWN"
+            ? "Which part of the UK is this case in?"
+            : "We can’t send this case to a lawyer",
       body: availability.reason ?? "",
-      link: availability.code === "NOT_UK_CASE" ? { href: `/cases/${theCase.id}`, label: "Check the case’s details" } : undefined,
+      link:
+        availability.code === "NOT_UK_CASE" || availability.code === "REGION_UNKNOWN"
+          ? { href: `/cases/${theCase.id}`, label: "Check the case’s details" }
+          : undefined,
     };
   } else if (!available) {
     blocked = {

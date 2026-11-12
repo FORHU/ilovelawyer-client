@@ -7,9 +7,10 @@ import { FilePicker } from "@/components/ui/file-picker";
 import { AiMark } from "@/components/ui/misc";
 import { ChatBar, ChatScreen, ComposerButton, ComposerPill } from "@/components/mobile/chat";
 import { LawyerSuggestion } from "@/components/case/lawyer-suggestion";
+import { RegionPrompt } from "@/components/case/region-prompt";
 import { cn } from "@/lib/cn";
 import { usePayment } from "@/lib/payment-store";
-import type { Case } from "@/lib/types";
+import { caseRegion, type Case } from "@/lib/types";
 import { PROMPTS, type Consultation } from "./use-consultation";
 
 export function ConsultationMobile({ c, consultation }: { c: Case; consultation: Consultation }) {
@@ -65,7 +66,10 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
               ),
             )}
             {lastFailed && !thinking && <div className="ml-[38px] text-[14px] text-error">That didn&apos;t go through. Try asking again.</div>}
-            {latestAnswer && !thinking && !openRequest && <LawyerSuggestion caseId={c.id} latestAnswerId={latestAnswer.id} />}
+            {latestAnswer && !thinking && !openRequest && (
+              // Until the case knows where it is, asking that comes before any lawyer (#973).
+              caseRegion(c) === "" ? <RegionPrompt caseId={c.id} /> : <LawyerSuggestion caseId={c.id} latestAnswerId={latestAnswer.id} />
+            )}
             {thinking && (
               <div className="flex gap-2.5" role="status" aria-label="The assistant is typing">
                 <AiMark size={28} />
