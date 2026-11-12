@@ -149,9 +149,20 @@ function QuoteBreakdown({ quotation, lawyerFirst }: { quotation: Quotation; lawy
   );
 }
 
-/** How ilovelawyer is paid: shown before any Accept button, since accepting a quote acknowledges it. */
-function ReferralDisclosure({ text }: { text: string }) {
+/** A short notice in a grey box: how ilovelawyer is paid, and what hiring a lawyer hands over. Both
+ * are shown before any Accept button, since accepting a quote acknowledges them. */
+function DisclosureNote({ text }: { text: string }) {
   return <div className="rounded-input border border-line bg-subtle px-4 py-3 text-xs leading-[1.6] text-ink-2">{text}</div>;
+}
+
+/** The fee note, then what hiring hands over: the two things read before any Accept. */
+function Disclosures({ request }: { request: LawyerRequest }) {
+  return (
+    <>
+      {request.referralDisclosure && <DisclosureNote text={request.referralDisclosure} />}
+      {request.sharingNotice && <DisclosureNote text={request.sharingNotice} />}
+    </>
+  );
 }
 
 export function WithdrawControl({ request, withdraw, disabled }: { request: LawyerRequest; withdraw: ReturnType<typeof useWithdrawLawyerRequestMutation>; disabled?: boolean }) {
@@ -374,7 +385,7 @@ export function QuoteStage({
         <div className="flex items-center gap-2 rounded-xl border border-warn-line bg-warn-bg px-3.5 py-3 text-[13px] text-warn-ink">
           You confirmed {first}. They&apos;re finishing setup on their side — you&apos;ll be able to message them here in a few minutes. Nothing else for you to do.
         </div>
-        {request.referralDisclosure && <ReferralDisclosure text={request.referralDisclosure} />}
+        <Disclosures request={request} />
       </div>
     );
   }
@@ -387,8 +398,9 @@ export function QuoteStage({
         <p className="text-[13px] text-ink-2">Choose a lawyer by {pickByTime(request.pickByAt)}. If you don&apos;t, this request closes and you can ask again.</p>
       )}
 
-      {/* Above the offers, so it's read before any Accept, which acknowledges it. */}
-      {request.referralDisclosure && <ReferralDisclosure text={request.referralDisclosure} />}
+      {/* Above the offers, so it's read before any Accept, which acknowledges it. The sharing
+          notice comes from the API, in the words the client agreed to when asking (#922). */}
+      <Disclosures request={request} />
 
       {request.lawyers.map((offer) => (
         <OfferCard
@@ -511,6 +523,8 @@ function PayStage({ c, request, quotation }: { c: Case; request: LawyerRequest; 
           )}
         </p>
         <QuoteBreakdown quotation={quotation} lawyerFirst={first} />
+        {/* Paying is what gives the lawyer the case, so the notice is here too, above the Pay button. */}
+        {!expired && request.sharingNotice && <DisclosureNote text={request.sharingNotice} />}
         {error && <ErrorBox message={error} />}
         {checking ? (
           <div className="py-2 text-center text-[13px] text-ink-2">Confirming your payment…</div>

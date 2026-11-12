@@ -135,6 +135,8 @@ export interface LawyerRequest {
   awaitingPayment: boolean;
   /** Shown again on the quote screen; acknowledged to confirm. */
   referralDisclosure: string | null;
+  /** What hiring a lawyer hands over, in the same words as the consent text. Shown with the quotes and on the payment screen. Null until a quote arrives. */
+  sharingNotice: string | null;
   engagedAt: string | null;
   closedAt: string | null;
   closedBy: "LAWYER" | "CLIENT" | null;
