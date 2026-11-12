@@ -37,8 +37,9 @@ export function refreshAllChats(queryClient: QueryClient, userId: string | undef
   return queryClient.invalidateQueries({ predicate: (query) => isMessagesKey(userId, query.queryKey) });
 }
 
-/** Refetches what an AI reply's end changes: the chat, and after a finished reply also the
- * Overview (the API refreshes it after each reply) and the lawyer check (asked after each answer). */
+/** Refetches what an AI reply's end changes: the chat, after a failed or stopped reply also the
+ * case (its credit was given back), and after a finished reply also the Overview (the API
+ * refreshes it after each reply) and the lawyer check (asked after each answer). */
 export function refreshForChatEvent(
   queryClient: QueryClient,
   userId: string | undefined,
@@ -48,10 +49,17 @@ export function refreshForChatEvent(
   const caseId = payload?.caseId;
   if (!caseId) return refreshAllChats(queryClient, userId);
   const refreshes = [queryClient.invalidateQueries({ queryKey: caseKeys.messages(userId, caseId) })];
+  if (event === "chat:error" || event === "chat:cancelled") {
+    // A failed or stopped answer has had its credit given back: the case holds the balance.
+    refreshes.push(
+      queryClient.invalidateQueries({ queryKey: caseKeys.detail(userId, caseId) }),
+      queryClient.invalidateQueries({ queryKey: caseKeys.list(userId) }),
+    );
+  }
   if (event === "chat:done") {
     refreshes.push(
       queryClient.invalidateQueries({ queryKey: caseKeys.intake(userId, caseId) }),
-      queryClient.invalidateQueries({ queryKey: [...caseKeys.all(userId), "lawyer-readiness", caseId] }),
+      queryClient.invalidateQueries({ queryKey: caseKeys.lawyerReadiness(userId, caseId) }),
       // The AI may have just written the case's own fields (e.g. the create_case intake tool),
       // so the case's detail and its row in the list need refetching too, not just its chat.
       queryClient.invalidateQueries({ queryKey: caseKeys.detail(userId, caseId) }),

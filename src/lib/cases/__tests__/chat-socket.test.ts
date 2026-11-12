@@ -36,9 +36,14 @@ describe("refreshForChatEvent", () => {
     expect(invalidated()).toEqual([messagesA, intakeA, readinessA, detailA, list].map((k) => JSON.stringify(k)));
   });
 
-  it("chat:error refetches only that case's chat, which then shows the reply failed", async () => {
+  it("chat:error refetches that case's chat (which then shows the reply failed) and its credits, which were given back", async () => {
     await refreshForChatEvent(queryClient, USER, "chat:error", { caseId: "case-a" });
-    expect(invalidated()).toEqual([JSON.stringify(messagesA)]);
+    expect(invalidated()).toEqual([messagesA, detailA, list].map((k) => JSON.stringify(k)));
+  });
+
+  it("chat:cancelled refetches that case's chat and its credits, which were given back", async () => {
+    await refreshForChatEvent(queryClient, USER, "chat:cancelled", { caseId: "case-a" });
+    expect(invalidated()).toEqual([messagesA, detailA, list].map((k) => JSON.stringify(k)));
   });
 
   it("an event without a case id (an older API) refetches every chat", async () => {

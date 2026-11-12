@@ -103,6 +103,16 @@ export interface ChatMessage {
   createdAt: string;
 }
 
+/** POST /api/client/cases/:caseId/messages/:messageId/cancel (the Stop button). CANCELLED means this
+ * Stop ended the answer and the message's credit came back; any other status means the answer had
+ * already ended and nothing changed. */
+export interface CancelMessageResponse {
+  messageId: string;
+  replyStatus: ChatMessage["replyStatus"];
+  /** The partial answer that was kept, when anything had been written yet. */
+  assistantMessageId?: string;
+}
+
 /** The Overview tab's content and status (GET /api/client/cases/:id/intake). Mirrors
  * ilovelawyer-api's src/types/client-intake.ts — change both together. Deliberately has no
  * points that help/hurt the case, no computed deadline, no outlook or win likelihood: this is an

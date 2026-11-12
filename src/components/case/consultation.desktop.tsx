@@ -7,6 +7,7 @@ import { FilePicker } from "@/components/ui/file-picker";
 import { AiMark } from "@/components/ui/misc";
 import { LawyerSuggestion } from "@/components/case/lawyer-suggestion";
 import { RegionPrompt } from "@/components/case/region-prompt";
+import { DeleteConfirm, MessageMenu } from "@/components/case/message-actions";
 import { usePayment } from "@/lib/payment-store";
 import { caseRegion, type Case } from "@/lib/types";
 import { PROMPTS, type Consultation } from "./use-consultation";
@@ -16,6 +17,7 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
     credits, openRequest, loadError, upload, connected, input, setInput, notice, dragging, scroller, textareaRef, recorder,
     messages, documentById, thinking, out, lastFailed, latestAnswer, missing, attachmentPending, failedAttachedIds,
     sendableAttachedIds, attachedIds, removeAttached, send, attach, onDrop, onDragEnter, onDragLeave, onPaste,
+    stop, canStop,
   } = consultation;
 
   return (
@@ -40,39 +42,56 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
             )}
             {messages.map((m) =>
               m.role === "user" ? (
-                <div key={m.id} className="flex max-w-[80%] flex-col items-end gap-1.5 self-end">
-                  <div className="rounded-[18px_18px_4px_18px] border border-line bg-bubble px-4 py-3 text-[15px] leading-[1.6]">
-                    {m.text}
-                  </div>
-                  {m.audioUrl && <audio controls src={m.audioUrl} className="h-8 w-56" />}
-                  {(m.documentIds ?? []).length > 0 && (
-                    <div className="flex flex-wrap justify-end gap-1.5">
-                      {(m.documentIds ?? []).map((id) => {
-                        const d = documentById.get(id);
-                        return (
-                          <span key={id} className="inline-flex items-center gap-1 rounded-full bg-chip px-2 py-0.5 text-[11px] text-ink-2">
-                            <FileText size={10} />
-                            {d?.name ?? "Document"}
-                          </span>
-                        );
-                      })}
+                <div key={m.id} className="group flex flex-col gap-2">
+                  <div className="flex max-w-[80%] flex-col items-end gap-1.5 self-end">
+                    <div className="flex items-center gap-1">
+                      <MessageMenu m={m} consultation={consultation} />
+                      <div className="min-w-0 rounded-[18px_18px_4px_18px] border border-line bg-bubble px-4 py-3 text-[15px] leading-[1.6]">
+                        {m.text}
+                      </div>
                     </div>
-                  )}
+                    {m.audioUrl && <audio controls src={m.audioUrl} className="h-8 w-56" />}
+                    {(m.documentIds ?? []).length > 0 && (
+                      <div className="flex flex-wrap justify-end gap-1.5">
+                        {(m.documentIds ?? []).map((id) => {
+                          const d = documentById.get(id);
+                          return (
+                            <span key={id} className="inline-flex items-center gap-1 rounded-full bg-chip px-2 py-0.5 text-[11px] text-ink-2">
+                              <FileText size={10} />
+                              {d?.name ?? "Document"}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {m.replyStatus === "CANCELLED" && (
+                      <div className="text-[12px] text-muted">You stopped this answer. Your credit was given back.</div>
+                    )}
+                  </div>
+                  <DeleteConfirm m={m} consultation={consultation} />
                 </div>
               ) : (
-                <div key={m.id} className="flex gap-3">
-                  <AiMark />
-                  <div className="flex min-w-0 flex-col gap-2.5 text-[15px] leading-[1.7]">
-                    <div className="whitespace-pre-line">{m.text}</div>
-                    {m.audioUrl && <audio controls src={m.audioUrl} className="h-8 w-56" />}
-                    <div className="text-xs text-muted">I collect and organise your information for a lawyer. I can&apos;t give legal advice.</div>
+                <div key={m.id} className="group flex flex-col gap-2">
+                  <div className="flex gap-3">
+                    <AiMark />
+                    <div className="flex min-w-0 flex-1 flex-col gap-2.5 text-[15px] leading-[1.7]">
+                      <div className="whitespace-pre-line">{m.text}</div>
+                      {m.audioUrl && <audio controls src={m.audioUrl} className="h-8 w-56" />}
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-xs text-muted">I collect and organise your information for a lawyer. I can&apos;t give legal advice.</div>
+                        <MessageMenu m={m} consultation={consultation} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="pl-[38px]">
+                    <DeleteConfirm m={m} consultation={consultation} />
                   </div>
                 </div>
               ),
             )}
             {lastFailed && !thinking && (
               <div className="ml-[38px] text-[13px] text-error">
-                That didn&apos;t go through. Try asking again.
+                That didn&apos;t go through, so it didn&apos;t use a credit. Try asking again.
               </div>
             )}
             {latestAnswer && !thinking && !openRequest && (
@@ -260,18 +279,34 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
                     ? "Uploading…"
                     : `${credits} credits`}
             </span>
-            <button
-              type="submit"
-              aria-label="Send"
-              disabled={out || thinking || attachmentPending || (!input.trim() && sendableAttachedIds.length === 0)}
-              data-no-tap
-              className="flex size-9 shrink-0 items-center justify-center self-end rounded-full bg-gold text-white disabled:opacity-60"
-            >
-              <ArrowUpRight size={14} />
-            </button>
+            {thinking ? (
+              <button
+                key="stop"
+                type="button"
+                title="Stop the answer"
+                aria-label="Stop the answer"
+                disabled={!canStop}
+                onClick={stop}
+                data-no-tap
+                className="flex size-9 shrink-0 items-center justify-center self-end rounded-full bg-gold text-white disabled:opacity-60"
+              >
+                <Square size={13} className="fill-current" />
+              </button>
+            ) : (
+              <button
+                key="send"
+                type="submit"
+                aria-label="Send"
+                disabled={out || attachmentPending || (!input.trim() && sendableAttachedIds.length === 0)}
+                data-no-tap
+                className="flex size-9 shrink-0 items-center justify-center self-end rounded-full bg-gold text-white disabled:opacity-60"
+              >
+                <ArrowUpRight size={14} />
+              </button>
+            )}
           </form>
           <div className="text-center text-[11px] text-muted">
-            I collect and organise your information for a lawyer; I&apos;m not a lawyer myself. Each message uses 1 credit.
+            I collect and organise your information for a lawyer; I&apos;m not a lawyer myself. Each answer uses 1 credit. Stopped or failed answers are free.
           </div>
         </div>
       </div>

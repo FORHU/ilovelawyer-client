@@ -3,9 +3,11 @@ import { useSession } from "@/lib/auth/session";
 import type { Case, CaseDocument, CaseIntake } from "@/lib/types";
 import {
   archiveCase,
+  cancelMessage,
   createCase,
   deleteCase,
   deleteDocument,
+  deleteMessage,
   getCase,
   getDocumentUrl,
   getIntake,
@@ -37,6 +39,8 @@ export const caseKeys = {
   detail: (userId: string | undefined, id: string) => [...caseKeys.all(userId), "detail", id] as const,
   messages: (userId: string | undefined, id: string) => [...caseKeys.all(userId), "messages", id] as const,
   intake: (userId: string | undefined, id: string) => [...caseKeys.all(userId), "intake", id] as const,
+  /** The lawyer check; each answer adds its own entry beneath this one (see readiness.ts). */
+  lawyerReadiness: (userId: string | undefined, id: string) => [...caseKeys.all(userId), "lawyer-readiness", id] as const,
 };
 
 function useUserId() {
@@ -128,7 +132,7 @@ export function useUpdateCaseMutation(caseId: string) {
     onSuccess: (updated) => {
       queryClient.setQueryData(caseKeys.detail(userId, caseId), updated);
       queryClient.invalidateQueries({ queryKey: caseKeys.list(userId) });
-      queryClient.invalidateQueries({ queryKey: [...caseKeys.all(userId), "lawyer-readiness", caseId] });
+      queryClient.invalidateQueries({ queryKey: caseKeys.lawyerReadiness(userId, caseId) });
       // Whether a lawyer can be asked rests on the case's details too (setting the part of the UK
       // ends REGION_UNKNOWN, #973). lawyerRequestKeys.eligibility, spelled out: that module imports this one.
       queryClient.invalidateQueries({ queryKey: [...caseKeys.all(userId), "lawyer-request", caseId, "eligibility"] });
@@ -162,6 +166,35 @@ export function useSendMessageMutation(caseId: string) {
     mutationFn: ({ text, documentIds }: { text: string; documentIds?: string[] }) => sendMessage(caseId, text, documentIds),
     // The case too: sending used a credit.
     onSettled: () => queryClient.invalidateQueries({ queryKey: caseKeys.all(userId) }),
+  });
+}
+
+/** The Stop button. A stopped answer is refunded, so the case (its credits) is refetched too. */
+export function useCancelMessageMutation(caseId: string) {
+  const queryClient = useQueryClient();
+  const userId = useUserId();
+  return useMutation({
+    mutationFn: (messageId: string) => cancelMessage(caseId, messageId),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: caseKeys.messages(userId, caseId) });
+      queryClient.invalidateQueries({ queryKey: caseKeys.detail(userId, caseId) });
+      queryClient.invalidateQueries({ queryKey: caseKeys.list(userId) });
+    },
+  });
+}
+
+/** Deleting costs and refunds nothing, but the Overview and the lawyer check are built from the
+ * chat, so both are asked again. */
+export function useDeleteMessageMutation(caseId: string) {
+  const queryClient = useQueryClient();
+  const userId = useUserId();
+  return useMutation({
+    mutationFn: (messageId: string) => deleteMessage(caseId, messageId),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: caseKeys.messages(userId, caseId) });
+      queryClient.invalidateQueries({ queryKey: caseKeys.intake(userId, caseId) });
+      queryClient.invalidateQueries({ queryKey: caseKeys.lawyerReadiness(userId, caseId) });
+    },
   });
 }
 

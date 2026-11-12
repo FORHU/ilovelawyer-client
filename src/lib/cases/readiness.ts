@@ -30,7 +30,7 @@ export function getLawyerReadiness(caseId: string) {
 export function useLawyerReadinessQuery(caseId: string, latestAnswerId: string | undefined) {
   const userId = useSession((s) => s.user?.id);
   return useQuery({
-    queryKey: [...caseKeys.all(userId), "lawyer-readiness", caseId, latestAnswerId ?? "none"],
+    queryKey: [...caseKeys.lawyerReadiness(userId, caseId), latestAnswerId ?? "none"],
     queryFn: () => getLawyerReadiness(caseId),
     enabled: !!userId && !!latestAnswerId,
     staleTime: Infinity,
