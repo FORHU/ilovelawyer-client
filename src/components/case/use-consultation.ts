@@ -1,11 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent } from "react";
-import { useIntakeQuery, useMessagesQuery, useSendMessageMutation, useUploadDocumentsMutation } from "@/lib/cases/queries";
+import {
+  useCancelMessageMutation,
+  useDeleteMessageMutation,
+  useIntakeQuery,
+  useMessagesQuery,
+  useSendMessageMutation,
+  useUploadDocumentsMutation,
+} from "@/lib/cases/queries";
+import { canDeleteMessage, pendingTurnId, stopNotice } from "@/lib/cases/chat-actions";
 import { useDictation } from "@/lib/voice/use-dictation";
 import { useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
 import { useSocketConnected } from "@/lib/socket";
-import type { Case } from "@/lib/types";
+import type { Case, ChatMessage } from "@/lib/types";
 
 export const PROMPTS = [
   "Tell you what happened",
@@ -26,6 +34,8 @@ export function useConsultation(c: Case) {
   const { data: intake } = useIntakeQuery(c.id, c.documents.some((d) => d.status === "PENDING"));
   const sendMessage = useSendMessageMutation(c.id);
   const upload = useUploadDocumentsMutation(c.id);
+  const cancel = useCancelMessageMutation(c.id);
+  const remove = useDeleteMessageMutation(c.id);
   // The reply arrives over the socket, so while it's down the wait is the connection's, not the AI's.
   const connected = useSocketConnected();
 
@@ -33,6 +43,8 @@ export function useConsultation(c: Case) {
   const [notice, setNotice] = useState("");
   const [attachedIds, setAttachedIds] = useState<string[]>([]);
   const [dragging, setDragging] = useState(false);
+  // The message asking "delete this?" — one at a time.
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const dragCounter = useRef(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -46,6 +58,9 @@ export function useConsultation(c: Case) {
   const out = credits <= 0;
   const lastFailed = messages.at(-1)?.replyStatus === "FAILED";
   const latestAnswer = messages.findLast((m) => m.role === "ai");
+  // Just after Send, before the API's message is in the list, there's nothing to stop yet.
+  const pendingId = pendingTurnId(messages);
+  const canStop = thinking && !!pendingId && !cancel.isPending;
   const missing = intake?.missing.length ?? 0;
   // A just-dropped/pasted file is attached right away but may still be reading; sending before
   // that finishes would just bounce off the API's READY check.
@@ -106,6 +121,29 @@ export function useConsultation(c: Case) {
     );
   };
 
+  /** The Stop button: the API keeps what was written and gives the credit back. */
+  const stop = () => {
+    if (!pendingId || cancel.isPending) return;
+    setNotice("");
+    cancel.mutate(pendingId, {
+      onSuccess: (res) => setNotice(stopNotice(res)),
+      onError: (err) => setNotice(err instanceof Error ? err.message : "Couldn't stop it. Try again."),
+    });
+  };
+
+  const removeMessage = (id: string) => {
+    setNotice("");
+    remove.mutate(id, {
+      onSuccess: () => setConfirmingId(null),
+      onError: (err) => {
+        setConfirmingId(null);
+        setNotice(err instanceof Error ? err.message : "Couldn't delete that. Try again.");
+      },
+    });
+  };
+
+  const canDelete = (m: ChatMessage) => canDeleteMessage(m, thinking);
+
   const attach = (files: File[]) => {
     if (!files.length) return;
     setNotice("");
@@ -161,6 +199,8 @@ export function useConsultation(c: Case) {
     messages, documentById, thinking, out, lastFailed, latestAnswer, missing,
     attachmentPending, failedAttachedIds, sendableAttachedIds,
     removeAttached, send, attach, onDrop, onDragEnter, onDragLeave, onPaste,
+    stop, canStop, stopping: cancel.isPending,
+    confirmingId, setConfirmingId, removeMessage, deleting: remove.isPending, canDelete,
   };
 }
 
