@@ -19,8 +19,22 @@ export const UK_JURISDICTIONS: UkJurisdiction[] = ["England and Wales", "Scotlan
 /** What the wizard asks: one of the three, or outside the UK (no UK jurisdiction). */
 export type CaseRegion = UkJurisdiction | "OUTSIDE_UK";
 
-export function regionLabel(ukJurisdiction: UkJurisdiction | null) {
-  return ukJurisdiction ?? "Outside the UK";
+/** Where a case is: one of the three, outside the UK (the client said so), or "" when nobody has
+ * said yet — a case started from the first message begins that way, and it is never read as
+ * outside the UK (#973). */
+export function caseRegion(c: Pick<Case, "ukJurisdiction" | "outsideUk">): CaseRegion | "" {
+  return c.ukJurisdiction ?? (c.outsideUk ? "OUTSIDE_UK" : "");
+}
+
+/** "Scotland", "Outside the UK", or "Not set". */
+export function regionLabel(c: Pick<Case, "ukJurisdiction" | "outsideUk">) {
+  const region = caseRegion(c);
+  return region === "OUTSIDE_UK" ? "Outside the UK" : region || "Not set";
+}
+
+/** What to send the API to put a case in `region` (POST or PATCH /api/client/cases). */
+export function regionFields(region: CaseRegion): { ukJurisdiction: UkJurisdiction | null; outsideUk: boolean } {
+  return region === "OUTSIDE_UK" ? { ukJurisdiction: null, outsideUk: true } : { ukJurisdiction: region, outsideUk: false };
 }
 
 export type Side = "CLAIMANT" | "RESPONDENT" | "";
@@ -54,7 +68,11 @@ export interface Case {
   title: string;
   /** One or more, in the list's order. May include one an admin has since switched off. */
   areas: CaseArea[];
+  /** Null when outside the UK or not known yet; outsideUk tells which (caseRegion). */
   ukJurisdiction: UkJurisdiction | null;
+  /** True: the client said it's outside the UK. False with no ukJurisdiction: not known yet. Absent
+   * from an API that predates it. */
+  outsideUk?: boolean;
   where: string;
   /** What happened and what the client wants (lib/cases/notes.ts). Empty when not given. */
   notes: string;

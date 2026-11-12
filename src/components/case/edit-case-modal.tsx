@@ -12,7 +12,7 @@ import { useUpdateCaseMutation } from "@/lib/cases/queries";
 import { useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
 import { useApp } from "@/lib/store";
 import { cn } from "@/lib/cn";
-import type { Case, CaseRegion, OtherParty, Side } from "@/lib/types";
+import { caseRegion, regionFields, type Case, type CaseRegion, type OtherParty, type Side } from "@/lib/types";
 
 /** Once a lawyer holds the request their conflict check and quote rest on these, so the API fixes
  * the type of issue, the part of the UK and the people (409 CASE_LOCKED_BY_REQUEST). */
@@ -30,7 +30,9 @@ export function EditCaseModal({ c, onClose }: { c: Case; onClose: () => void }) 
 
   const [title, setTitle] = useState(c.title);
   const [areas, setAreas] = useState<string[]>(c.areas.map((a) => a.code));
-  const [region, setRegion] = useState<CaseRegion>(c.ukJurisdiction ?? "OUTSIDE_UK");
+  // Starts unset when nobody has said where the case is: saving then leaves it unset, rather than
+  // quietly writing "outside the UK" (#973).
+  const [region, setRegion] = useState<CaseRegion | "">(caseRegion(c));
   const [where, setWhere] = useState(c.where);
   const [side, setSide] = useState<Side>(c.side ?? "");
   const [others, setOthers] = useState<OtherParty[]>(c.others);
@@ -54,7 +56,7 @@ export function EditCaseModal({ c, onClose }: { c: Case; onClose: () => void }) 
       {
         title: title.trim(),
         areas,
-        ukJurisdiction: region === "OUTSIDE_UK" ? null : region,
+        ...(region ? regionFields(region) : {}),
         where: where.trim(),
         side: side || null,
         others: others.filter((o) => o.name.trim()).map(({ name, role }) => ({ name: name.trim(), role })),

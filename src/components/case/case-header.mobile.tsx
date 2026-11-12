@@ -5,7 +5,7 @@ import { ArrowLeft, TriangleAlert } from "lucide-react";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { GetLawyerAction } from "@/components/case/get-lawyer-action";
 import { cn } from "@/lib/cn";
-import { areasLabel, type Case } from "@/lib/types";
+import { areasLabel, regionLabel, type Case } from "@/lib/types";
 import { usePayment } from "@/lib/payment-store";
 import { useCaseActions } from "./use-case-actions";
 import { useCaseCredits } from "./use-case-credits";
@@ -42,7 +42,7 @@ export function CaseHeaderMobile({ c }: { c: Case }) {
         <div className="min-w-0 flex-1">
           <div className="truncate text-[10.5px] font-semibold uppercase tracking-[0.8px] text-gold">
             {areasLabel(c.areas)}
-            {` · ${c.where || c.ukJurisdiction || "Outside the UK"}`}
+            {` · ${c.where || regionLabel(c)}`}
           </div>
           <h1 className="truncate font-display text-[18px] leading-[1.25] tracking-[-0.01em]">{c.title}</h1>
         </div>

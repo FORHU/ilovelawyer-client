@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { ProgressBar, type ProgressTone } from "@/components/ui/progress-bar";
 import { GetLawyerAction } from "@/components/case/get-lawyer-action";
-import { areasLabel, type Case } from "@/lib/types";
+import { areasLabel, regionLabel, type Case } from "@/lib/types";
 import { usePayment } from "@/lib/payment-store";
 import { creditsStatus } from "@/lib/cases/credit-usage";
 import { useCaseActions } from "./use-case-actions";
@@ -42,7 +42,7 @@ export function CaseHeaderDesktop({ c }: { c: Case }) {
       <div className="min-w-0 flex-1">
         <div className="text-[10px] font-semibold uppercase tracking-[1px] text-gold">
           {areasLabel(c.areas)}
-          {` · ${c.where || c.ukJurisdiction || "Outside the UK"}`}
+          {` · ${c.where || regionLabel(c)}`}
         </div>
         <div className="font-display text-xl leading-[1.25] tracking-[-0.02em] truncate">
           {c.title}

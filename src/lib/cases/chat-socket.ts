@@ -64,6 +64,8 @@ export function refreshForChatEvent(
       // so the case's detail and its row in the list need refetching too, not just its chat.
       queryClient.invalidateQueries({ queryKey: caseKeys.detail(userId, caseId) }),
       queryClient.invalidateQueries({ queryKey: caseKeys.list(userId) }),
+      // ...and so whether a lawyer can be asked (create_case setting the part of the UK, #973).
+      queryClient.invalidateQueries({ queryKey: [...caseKeys.all(userId), "lawyer-request", caseId, "eligibility"] }),
     );
   }
   return Promise.all(refreshes);
