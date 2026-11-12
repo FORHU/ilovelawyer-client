@@ -58,9 +58,11 @@ export function useConsultation(c: Case) {
   const out = credits <= 0;
   const lastFailed = messages.at(-1)?.replyStatus === "FAILED";
   const latestAnswer = messages.findLast((m) => m.role === "ai");
-  // Just after Send, before the API's message is in the list, there's nothing to stop yet.
+  // Just after Send, before the API's message is in the list, there's nothing to stop yet. One press
+  // per answer: after it succeeds the button stays off until the refetch drops `thinking` (send()
+  // resets it for the next answer).
   const pendingId = pendingTurnId(messages);
-  const canStop = thinking && !!pendingId && !cancel.isPending;
+  const canStop = thinking && !!pendingId && !cancel.isPending && !cancel.isSuccess;
   const missing = intake?.missing.length ?? 0;
   // A just-dropped/pasted file is attached right away but may still be reading; sending before
   // that finishes would just bounce off the API's READY check.
@@ -109,6 +111,7 @@ export function useConsultation(c: Case) {
     setInput("");
     setNotice("");
     setAttachedIds([]);
+    cancel.reset();
     sendMessage.mutate(
       { text: body, documentIds: documentIds.length ? documentIds : undefined },
       {
@@ -199,7 +202,7 @@ export function useConsultation(c: Case) {
     messages, documentById, thinking, out, lastFailed, latestAnswer, missing,
     attachmentPending, failedAttachedIds, sendableAttachedIds,
     removeAttached, send, attach, onDrop, onDragEnter, onDragLeave, onPaste,
-    stop, canStop, stopping: cancel.isPending,
+    stop, canStop,
     confirmingId, setConfirmingId, removeMessage, deleting: remove.isPending, canDelete,
   };
 }

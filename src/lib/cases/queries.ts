@@ -39,6 +39,8 @@ export const caseKeys = {
   detail: (userId: string | undefined, id: string) => [...caseKeys.all(userId), "detail", id] as const,
   messages: (userId: string | undefined, id: string) => [...caseKeys.all(userId), "messages", id] as const,
   intake: (userId: string | undefined, id: string) => [...caseKeys.all(userId), "intake", id] as const,
+  /** The lawyer check; each answer adds its own entry beneath this one (see readiness.ts). */
+  lawyerReadiness: (userId: string | undefined, id: string) => [...caseKeys.all(userId), "lawyer-readiness", id] as const,
 };
 
 function useUserId() {
@@ -130,7 +132,7 @@ export function useUpdateCaseMutation(caseId: string) {
     onSuccess: (updated) => {
       queryClient.setQueryData(caseKeys.detail(userId, caseId), updated);
       queryClient.invalidateQueries({ queryKey: caseKeys.list(userId) });
-      queryClient.invalidateQueries({ queryKey: [...caseKeys.all(userId), "lawyer-readiness", caseId] });
+      queryClient.invalidateQueries({ queryKey: caseKeys.lawyerReadiness(userId, caseId) });
     },
   });
 }
@@ -188,7 +190,7 @@ export function useDeleteMessageMutation(caseId: string) {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: caseKeys.messages(userId, caseId) });
       queryClient.invalidateQueries({ queryKey: caseKeys.intake(userId, caseId) });
-      queryClient.invalidateQueries({ queryKey: [...caseKeys.all(userId), "lawyer-readiness", caseId] });
+      queryClient.invalidateQueries({ queryKey: caseKeys.lawyerReadiness(userId, caseId) });
     },
   });
 }

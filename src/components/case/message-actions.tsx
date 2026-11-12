@@ -8,7 +8,7 @@ import { deleteQuestion } from "@/lib/cases/chat-actions";
 import type { ChatMessage } from "@/lib/types";
 import type { Consultation } from "./use-consultation";
 
-/** The "…" beside a chat message: Delete, dimmed while the AI is answering (see canDeleteMessage).
+/** The "…" beside a chat message: Delete, disabled while the AI is answering (see canDeleteMessage).
  * On a wide screen it shows when the message is hovered or focused (or its menu is open), so a long
  * chat isn't a column of buttons; on a phone, where there is no hover, it is always there. The
  * message it sits in must be a `group`. */
@@ -57,7 +57,7 @@ export function DeleteConfirm({ m, consultation }: { m: ChatMessage; consultatio
           variant="danger"
           size="sm"
           className="!normal-case !text-[13px] !font-semibold tracking-normal max-md:!h-11"
-          disabled={deleting}
+          disabled={deleting || !consultation.canDelete(m)}
           onClick={() => removeMessage(m.id)}
         >
           {deleting ? "Deleting…" : "Delete"}

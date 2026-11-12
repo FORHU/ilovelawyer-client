@@ -59,7 +59,7 @@ export function refreshForChatEvent(
   if (event === "chat:done") {
     refreshes.push(
       queryClient.invalidateQueries({ queryKey: caseKeys.intake(userId, caseId) }),
-      queryClient.invalidateQueries({ queryKey: [...caseKeys.all(userId), "lawyer-readiness", caseId] }),
+      queryClient.invalidateQueries({ queryKey: caseKeys.lawyerReadiness(userId, caseId) }),
       // The AI may have just written the case's own fields (e.g. the create_case intake tool),
       // so the case's detail and its row in the list need refetching too, not just its chat.
       queryClient.invalidateQueries({ queryKey: caseKeys.detail(userId, caseId) }),
