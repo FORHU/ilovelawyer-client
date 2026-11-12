@@ -3,9 +3,11 @@ import { useSession } from "@/lib/auth/session";
 import type { Case, CaseDocument, CaseIntake } from "@/lib/types";
 import {
   archiveCase,
+  cancelMessage,
   createCase,
   deleteCase,
   deleteDocument,
+  deleteMessage,
   getCase,
   getDocumentUrl,
   getIntake,
@@ -159,6 +161,35 @@ export function useSendMessageMutation(caseId: string) {
     mutationFn: ({ text, documentIds }: { text: string; documentIds?: string[] }) => sendMessage(caseId, text, documentIds),
     // The case too: sending used a credit.
     onSettled: () => queryClient.invalidateQueries({ queryKey: caseKeys.all(userId) }),
+  });
+}
+
+/** The Stop button. A stopped answer is refunded, so the case (its credits) is refetched too. */
+export function useCancelMessageMutation(caseId: string) {
+  const queryClient = useQueryClient();
+  const userId = useUserId();
+  return useMutation({
+    mutationFn: (messageId: string) => cancelMessage(caseId, messageId),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: caseKeys.messages(userId, caseId) });
+      queryClient.invalidateQueries({ queryKey: caseKeys.detail(userId, caseId) });
+      queryClient.invalidateQueries({ queryKey: caseKeys.list(userId) });
+    },
+  });
+}
+
+/** Deleting costs and refunds nothing, but the Overview and the lawyer check are built from the
+ * chat, so both are asked again. */
+export function useDeleteMessageMutation(caseId: string) {
+  const queryClient = useQueryClient();
+  const userId = useUserId();
+  return useMutation({
+    mutationFn: (messageId: string) => deleteMessage(caseId, messageId),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: caseKeys.messages(userId, caseId) });
+      queryClient.invalidateQueries({ queryKey: caseKeys.intake(userId, caseId) });
+      queryClient.invalidateQueries({ queryKey: [...caseKeys.all(userId), "lawyer-readiness", caseId] });
+    },
   });
 }
 

@@ -1,6 +1,6 @@
 import { apiFetch } from "@/lib/api/fetch";
 import type { ClientBudget } from "@/lib/cases/budget";
-import type { Case, CaseDocument, CaseIntake, ChatMessage, OtherParty, UkJurisdiction } from "@/lib/types";
+import type { CancelMessageResponse, Case, CaseDocument, CaseIntake, ChatMessage, OtherParty, UkJurisdiction } from "@/lib/types";
 
 // The client app's own routes (/api/client, ilovelawyer-api's client.route.ts). They only answer
 // a client account, and always work in that client's personal workspace, so no organization
@@ -87,6 +87,19 @@ export function refreshIntake(caseId: string) {
  * DOCUMENTS_NOT_READY, with a message naming it. */
 export function sendMessage(caseId: string, text: string, documentIds?: string[]) {
   return post<{ messageId: string }>(`/api/client/cases/${caseId}/messages`, { text, documentIds });
+}
+
+/** The Stop button. `messageId` is the client's own message whose answer is being written. Keeps
+ * what was written so far and gives the credit back, once. An answer that already ended comes back
+ * with its current replyStatus and nothing changes. */
+export function cancelMessage(caseId: string, messageId: string) {
+  return post<CancelMessageResponse>(`/api/client/cases/${caseId}/messages/${messageId}/cancel`, {});
+}
+
+/** Deletes a message (a question takes its answer with it). 409 TURN_IN_PROGRESS while its answer
+ * is being written. No credit back. */
+export function deleteMessage(caseId: string, messageId: string) {
+  return apiFetch<void>(`/api/client/cases/${caseId}/messages/${messageId}`, { method: "DELETE" });
 }
 
 /** Removes the document from the case for good. If it was READY, the overview turns STALE. */
