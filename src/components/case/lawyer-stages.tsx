@@ -155,6 +155,16 @@ function DisclosureNote({ text }: { text: string }) {
   return <div className="rounded-input border border-line bg-subtle px-4 py-3 text-xs leading-[1.6] text-ink-2">{text}</div>;
 }
 
+/** The fee note, then what hiring hands over: the two things read before any Accept. */
+function Disclosures({ request }: { request: LawyerRequest }) {
+  return (
+    <>
+      {request.referralDisclosure && <DisclosureNote text={request.referralDisclosure} />}
+      {request.sharingNotice && <DisclosureNote text={request.sharingNotice} />}
+    </>
+  );
+}
+
 export function WithdrawControl({ request, withdraw, disabled }: { request: LawyerRequest; withdraw: ReturnType<typeof useWithdrawLawyerRequestMutation>; disabled?: boolean }) {
   const [asking, setAsking] = useState(false);
   const [error, setError] = useState("");
@@ -375,8 +385,7 @@ export function QuoteStage({
         <div className="flex items-center gap-2 rounded-xl border border-warn-line bg-warn-bg px-3.5 py-3 text-[13px] text-warn-ink">
           You confirmed {first}. They&apos;re finishing setup on their side — you&apos;ll be able to message them here in a few minutes. Nothing else for you to do.
         </div>
-        {request.referralDisclosure && <DisclosureNote text={request.referralDisclosure} />}
-        {request.sharingNotice && <DisclosureNote text={request.sharingNotice} />}
+        <Disclosures request={request} />
       </div>
     );
   }
@@ -391,8 +400,7 @@ export function QuoteStage({
 
       {/* Above the offers, so it's read before any Accept, which acknowledges it. The sharing
           notice comes from the API, in the words the client agreed to when asking (#922). */}
-      {request.referralDisclosure && <DisclosureNote text={request.referralDisclosure} />}
-      {request.sharingNotice && <DisclosureNote text={request.sharingNotice} />}
+      <Disclosures request={request} />
 
       {request.lawyers.map((offer) => (
         <OfferCard
