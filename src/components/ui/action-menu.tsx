@@ -32,7 +32,20 @@ interface Placement {
  * off. It flips above the button near the bottom of the window, and closes on Escape, a click
  * outside, a scroll or a resize, and after a pick. Focus returns to the button.
  */
-export function ActionMenu({ label, items, className, tourId }: { label: string; items: ActionMenuItem[]; className?: string; tourId?: string }) {
+export function ActionMenu({
+  label,
+  items,
+  className,
+  tourId,
+  quiet = false,
+}: {
+  label: string;
+  items: ActionMenuItem[];
+  className?: string;
+  tourId?: string;
+  /** A borderless "…" for rows that repeat (chat messages): it doesn't draw a circle under each one. */
+  quiet?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [placement, setPlacement] = useState<Placement | null>(null);
   const button = useRef<HTMLButtonElement>(null);
@@ -102,7 +115,12 @@ export function ActionMenu({ label, items, className, tourId }: { label: string;
         data-tour={tourId}
         onClick={() => (open ? close(false) : setOpen(true))}
         data-no-tap
-        className="flex size-11 shrink-0 items-center justify-center rounded-full border border-line bg-white text-ink-2 transition-colors hover:border-line-hover focus-visible:outline-2 focus-visible:outline-gold md:size-9"
+        className={cn(
+          "flex size-11 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-gold",
+          quiet
+            ? "text-muted hover:bg-chip hover:text-ink aria-expanded:bg-chip aria-expanded:text-ink md:size-8"
+            : "border border-line bg-white text-ink-2 hover:border-line-hover md:size-9",
+        )}
       >
         <MoreHorizontal size={16} aria-hidden />
       </button>

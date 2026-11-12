@@ -7,6 +7,7 @@ import { FilePicker } from "@/components/ui/file-picker";
 import { AiMark } from "@/components/ui/misc";
 import { ChatBar, ChatScreen, ComposerButton, ComposerPill } from "@/components/mobile/chat";
 import { LawyerSuggestion } from "@/components/case/lawyer-suggestion";
+import { DeleteConfirm, MessageMenu } from "@/components/case/message-actions";
 import { cn } from "@/lib/cn";
 import { usePayment } from "@/lib/payment-store";
 import type { Case } from "@/lib/types";
@@ -14,7 +15,7 @@ import { PROMPTS, type Consultation } from "./use-consultation";
 
 export function ConsultationMobile({ c, consultation }: { c: Case; consultation: Consultation }) {
   const {
-    recorder, out, thinking, messages, documentById, scroller, missing, openRequest, lastFailed, latestAnswer, connected, loadError, notice, credits, attachedIds, failedAttachedIds, removeAttached, input, setInput, onPaste, textareaRef, attach, upload, attachmentPending, sendableAttachedIds, send,
+    recorder, out, thinking, messages, documentById, scroller, missing, openRequest, lastFailed, latestAnswer, connected, loadError, notice, credits, attachedIds, failedAttachedIds, removeAttached, input, setInput, onPaste, textareaRef, attach, upload, attachmentPending, sendableAttachedIds, send, stop, canStop,
   } = consultation;
 
   return (
@@ -36,35 +37,52 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
             )}
             {messages.map((m) =>
               m.role === "user" ? (
-                <div key={m.id} className="flex max-w-[85%] flex-col items-end gap-1.5 self-end">
-                  <div className="whitespace-pre-wrap break-words rounded-[18px_18px_4px_18px] border border-line bg-bubble px-3.5 py-2.5 text-[15px] leading-[1.5]">
-                    <span className="sr-only">You: </span>
-                    {m.text}
-                  </div>
-                  {m.audioUrl && <audio controls src={m.audioUrl} className="h-8 w-56" />}
-                  {(m.documentIds ?? []).length > 0 && (
-                    <div className="flex flex-wrap justify-end gap-1.5">
-                      {(m.documentIds ?? []).map((id) => (
-                        <span key={id} className="inline-flex max-w-full items-center gap-1 rounded-full bg-chip px-2.5 py-1 text-[12px] text-ink-2">
-                          <FileText size={11} className="shrink-0" aria-hidden="true" />
-                          <span className="truncate">{documentById.get(id)?.name ?? "Document"}</span>
-                        </span>
-                      ))}
+                <div key={m.id} className="group flex flex-col gap-2">
+                  <div className="flex max-w-[92%] flex-col items-end gap-1.5 self-end">
+                    <div className="flex items-center">
+                      <MessageMenu m={m} consultation={consultation} />
+                      <div className="min-w-0 whitespace-pre-wrap break-words rounded-[18px_18px_4px_18px] border border-line bg-bubble px-3.5 py-2.5 text-[15px] leading-[1.5]">
+                        <span className="sr-only">You: </span>
+                        {m.text}
+                      </div>
                     </div>
-                  )}
+                    {m.audioUrl && <audio controls src={m.audioUrl} className="h-8 w-56" />}
+                    {(m.documentIds ?? []).length > 0 && (
+                      <div className="flex flex-wrap justify-end gap-1.5">
+                        {(m.documentIds ?? []).map((id) => (
+                          <span key={id} className="inline-flex max-w-full items-center gap-1 rounded-full bg-chip px-2.5 py-1 text-[12px] text-ink-2">
+                            <FileText size={11} className="shrink-0" aria-hidden="true" />
+                            <span className="truncate">{documentById.get(id)?.name ?? "Document"}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {m.replyStatus === "CANCELLED" && (
+                      <div className="text-[13px] text-muted">You stopped this answer. Your credit was given back.</div>
+                    )}
+                  </div>
+                  <DeleteConfirm m={m} consultation={consultation} />
                 </div>
               ) : (
-                <div key={m.id} className="flex gap-2.5">
-                  <AiMark size={28} />
-                  <div className="min-w-0 flex flex-col gap-2 whitespace-pre-line break-words text-[15px] leading-[1.6]">
-                    <span className="sr-only">ilovelawyer AI: </span>
-                    {m.text}
-                    {m.audioUrl && <audio controls src={m.audioUrl} className="h-8 w-56" />}
+                <div key={m.id} className="group flex flex-col gap-2">
+                  <div className="flex gap-2.5">
+                    <AiMark size={28} />
+                    <div className="flex min-w-0 flex-1 flex-col gap-1 break-words text-[15px] leading-[1.6]">
+                      <span className="sr-only">ilovelawyer AI: </span>
+                      <div className="whitespace-pre-line">{m.text}</div>
+                      {m.audioUrl && <audio controls src={m.audioUrl} className="h-8 w-56" />}
+                      <div className="-mb-2 flex justify-end">
+                        <MessageMenu m={m} consultation={consultation} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="pl-[38px]">
+                    <DeleteConfirm m={m} consultation={consultation} />
                   </div>
                 </div>
               ),
             )}
-            {lastFailed && !thinking && <div className="ml-[38px] text-[14px] text-error">That didn&apos;t go through. Try asking again.</div>}
+            {lastFailed && !thinking && <div className="ml-[38px] text-[14px] text-error">That didn&apos;t go through, so it didn&apos;t use a credit. Try asking again.</div>}
             {latestAnswer && !thinking && !openRequest && <LawyerSuggestion caseId={c.id} latestAnswerId={latestAnswer.id} />}
             {thinking && (
               <div className="flex gap-2.5" role="status" aria-label="The assistant is typing">
@@ -196,14 +214,21 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
                 >
                   <Mic size={20} aria-hidden="true" />
                 </ComposerButton>
-                <ComposerButton
-                  type="submit"
-                  tone="send"
-                  aria-label="Send"
-                  disabled={out || thinking || attachmentPending || (!input.trim() && sendableAttachedIds.length === 0)}
-                >
-                  <ArrowUp size={20} aria-hidden="true" />
-                </ComposerButton>
+                {thinking ? (
+                  <ComposerButton key="stop" tone="send" onClick={stop} disabled={!canStop} aria-label="Stop the answer">
+                    <Square size={16} className="fill-current" aria-hidden="true" />
+                  </ComposerButton>
+                ) : (
+                  <ComposerButton
+                    key="send"
+                    type="submit"
+                    tone="send"
+                    aria-label="Send"
+                    disabled={out || attachmentPending || (!input.trim() && sendableAttachedIds.length === 0)}
+                  >
+                    <ArrowUp size={20} aria-hidden="true" />
+                  </ComposerButton>
+                )}
               </>
             )}
           </ComposerPill>
@@ -215,7 +240,7 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
               ? "Transcribing…"
               : upload.isPending || attachmentPending
                 ? "Uploading…"
-                : `${credits} credits left · 1 per message`}
+                : `${credits} credits left · 1 per answer, free if stopped or failed`}
           . I&apos;m not a lawyer and can&apos;t give legal advice.
         </p>
       </ChatBar>
