@@ -129,6 +129,9 @@ export function useUpdateCaseMutation(caseId: string) {
       queryClient.setQueryData(caseKeys.detail(userId, caseId), updated);
       queryClient.invalidateQueries({ queryKey: caseKeys.list(userId) });
       queryClient.invalidateQueries({ queryKey: [...caseKeys.all(userId), "lawyer-readiness", caseId] });
+      // Whether a lawyer can be asked rests on the case's details too (setting the part of the UK
+      // ends REGION_UNKNOWN, #973). lawyerRequestKeys.eligibility, spelled out: that module imports this one.
+      queryClient.invalidateQueries({ queryKey: [...caseKeys.all(userId), "lawyer-request", caseId, "eligibility"] });
     },
   });
 }
