@@ -12,6 +12,8 @@ import { fetchSeen } from "@/lib/tour/api";
 import { useTour } from "@/lib/tour/store";
 import { guideContext, tourForContext } from "@/lib/tour/tours";
 import { useTourHydrated } from "@/lib/tour/use-tour-hydrated";
+import { SupportSheet } from "@/components/support/support-sheet";
+import { SUPPORT_CHAT_ENABLED } from "@/lib/support/store";
 import { GuideDrawer } from "./guide-drawer";
 import { barBottom, TourRunner, useStickyHeight } from "./tour-runner";
 import { useViewport } from "./use-viewport";
@@ -159,6 +161,7 @@ export function TourLayer() {
       {guideOpen && <GuideDrawer pathname={pathname} credits={credits} onTourPage={tourThisPage} />}
       {tour && <TourRunner key={tour.id === "G" ? `G:${tour.question}` : tour.id} tour={tour} credits={credits} />}
       {toast && <TourToast />}
+      {SUPPORT_CHAT_ENABLED && <SupportSheet />}
     </>
   );
 }
