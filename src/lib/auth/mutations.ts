@@ -1,10 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { resetLanding } from "@/lib/landing";
 import { useApp } from "@/lib/store";
 import { useWizard } from "@/lib/wizard-store";
 import {
   cancelSignup,
+  deleteAccount,
   fetchMe,
   forgotPassword,
   googleLink,
@@ -169,6 +170,14 @@ export function useResetPasswordMutation() {
   });
 }
 
+/** Drops everything of the account this browser holds: its local data and every cached query. */
+function clearAccountData(queryClient: QueryClient) {
+  useApp.getState().signOut();
+  useWizard.getState().claimFor("");
+  resetLanding();
+  queryClient.clear();
+}
+
 /** Ends the session on the API, clears the account's local data and every cached query, then
  * reloads into /login (see leaveToLogin). A failed call still signs out here. */
 export function useLogoutMutation() {
@@ -176,11 +185,25 @@ export function useLogoutMutation() {
   return useMutation({
     mutationFn: logout,
     onSettled: () => {
-      useApp.getState().signOut();
-      useWizard.getState().claimFor("");
-      resetLanding();
-      queryClient.clear();
+      clearAccountData(queryClient);
       leaveToLogin();
+    },
+  });
+}
+
+/** Where a deleted account lands: the sign-in page, saying so. */
+export const DELETED_ACCOUNT_PATH = "/login?deleted=1";
+
+/** Schedules the account for deletion. The API has already ended every session, so there is
+ * nothing more to log out of: clear this browser and go to the sign-in page. */
+export function useDeleteAccountMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (password?: string) => deleteAccount(password),
+    onSuccess: () => {
+      useSession.getState().clear();
+      clearAccountData(queryClient);
+      leaveToLogin(DELETED_ACCOUNT_PATH);
     },
   });
 }

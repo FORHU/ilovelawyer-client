@@ -181,3 +181,19 @@ describe("returning to the topics", () => {
     expect(state.prompt).toEqual({ kind: "MENU" });
   });
 });
+
+describe("an action's result", () => {
+  it("shows a card under the assistant's message, then carries on", () => {
+    const waiting = play([{ type: "START_FLOW", flowId: "action" }]).state;
+    const card = { kind: "CREDITS" as const, cases: [{ caseId: "c1", title: "Dispute", credits: 12 }] };
+    const { state } = play([{ type: "ACTION_RESULT", ok: true, text: "Here you go.", card }], waiting);
+    const shown = state.messages.find((m) => m.card);
+    expect(shown).toMatchObject({ from: "bot", text: "Here you go.", card });
+  });
+
+  it("shows a card even with no words of its own", () => {
+    const waiting = play([{ type: "START_FLOW", flowId: "action" }]).state;
+    const card = { kind: "BLOCKING" as const, requests: [] };
+    expect(play([{ type: "ACTION_RESULT", ok: false, card }], waiting).state.messages.some((m) => m.card)).toBe(true);
+  });
+});

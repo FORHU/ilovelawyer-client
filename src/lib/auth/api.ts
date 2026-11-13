@@ -125,8 +125,15 @@ export function restoreSession(): Promise<void> {
  * router navigation would bring back the old /login exactly as it was left (the OTP step, or the
  * typed email and password) and keep the signed-out account's /cases tree in memory. A fresh
  * document drops all of it. */
-export function leaveToLogin(): void {
-  window.location.replace("/login");
+export function leaveToLogin(path = "/login"): void {
+  window.location.replace(path);
+}
+
+/** Schedules the signed-in account for deletion (30 days). A password account sends its password;
+ * a Google account sends none. The API revokes every session and clears the refresh cookie. A client
+ * with an open lawyer request is refused: 409 OPEN_LAWYER_REQUESTS. */
+export function deleteAccount(password?: string) {
+  return apiFetch<unknown>("/api/users/me", { method: "DELETE", body: JSON.stringify(password ? { password } : {}) });
 }
 
 /** Ends this device's session on the API (clearing both cookies), then locally. A failed call
