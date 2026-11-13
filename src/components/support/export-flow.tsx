@@ -35,7 +35,7 @@ export function ExportFlow({ onDone }: { onDone: (result: ActionResult) => void 
   };
 
   return (
-    <form onSubmit={submit} aria-label="Export my data" className="flex flex-col gap-3 rounded-2xl border border-line bg-white p-4">
+    <form onSubmit={submit} aria-label="Export my data" className="flex flex-col gap-3 rounded-card border border-line bg-white p-4">
       {check.isError ? (
         <>
           <ErrorBox message="I couldn't check your account just now." />
@@ -53,7 +53,7 @@ export function ExportFlow({ onDone }: { onDone: (result: ActionResult) => void 
           <Button type="submit" variant="dark" size="lg" disabled={busy || check.isPending || (needsPassword && password === "")}>
             {busy ? "Preparing your download…" : "Download my data"}
           </Button>
-          <Button variant="quiet" size="lg" disabled={busy} onClick={() => onDone({ ok: false, text: "No problem. Nothing has been downloaded." })}>
+          <Button variant="quiet" size="lg" className="underline decoration-line-input underline-offset-4" disabled={busy} onClick={() => onDone({ ok: false, text: "No problem. Nothing has been downloaded." })}>
             Never mind
           </Button>
         </>

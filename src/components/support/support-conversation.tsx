@@ -51,7 +51,7 @@ function TalkToPerson({ ctx, onOpened }: { ctx: PromptContext; onOpened?: () => 
 
   if (activeThread) {
     return (
-      <div className="flex flex-col gap-2 rounded-2xl border border-line bg-white p-4">
+      <div className="flex flex-col gap-2 rounded-card border border-line bg-white p-4">
         <p className="text-[14px] leading-[1.5] text-ink">You already have a conversation open with the team. Anything you write there joins it.</p>
         <ChoiceList
           label="Next step"
@@ -127,11 +127,11 @@ function TeamCard({ thread, onOpen }: { thread: SupportThread; onOpen: () => voi
     <button
       type="button"
       onClick={onOpen}
-      className="flex min-h-14 w-full items-center gap-3 rounded-2xl border border-line-chip bg-white px-4 py-3 text-left transition-colors hover:border-line-hover"
+      className="flex min-h-14 w-full items-center gap-3 rounded-card border border-line-chip bg-white px-4 py-3 text-left transition-colors hover:border-line-hover"
     >
       <LifeBuoy size={18} className="shrink-0 text-gold" aria-hidden />
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="text-[14.5px] font-semibold text-ink">Your conversation with the team</span>
+        <span className="text-[15px] font-semibold text-ink">Your conversation with the team</span>
         <span className="text-[13px] text-ink-2">{unread > 0 ? `${unread} new ${unread === 1 ? "reply" : "replies"}` : "Open it to read or reply"}</span>
       </span>
       {unread > 0 && <span aria-hidden className="size-2.5 shrink-0 rounded-full bg-error" />}
@@ -211,7 +211,7 @@ export function SupportConversation({
             <MessageBubble key={message.id} message={message} assistant={assistant} />
           ))}
         </ol>
-        {typing && <TypingBubble assistant={assistant} />}
+        {typing && <TypingBubble />}
         {prompt && <PromptView prompt={prompt} ctx={ctx} />}
       </div>
 
@@ -239,7 +239,7 @@ export function SupportConversation({
               autoComplete="off"
               enterKeyHint="send"
               placeholder="Type your question…"
-              className="min-h-11 min-w-0 flex-1 bg-transparent px-3 text-[16px] text-ink outline-none placeholder:text-muted"
+              className="min-h-11 min-w-0 flex-1 bg-transparent px-3 text-[16px] text-ink outline-none placeholder:text-ink-2"
             />
             <ComposerButton type="submit" tone="send" aria-label="Send" disabled={composerOff || text.trim() === ""}>
               <ArrowUp size={20} aria-hidden />

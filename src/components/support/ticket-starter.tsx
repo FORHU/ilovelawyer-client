@@ -1,15 +1,18 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { Field, TextArea } from "@/components/ui/input";
+import { useSupport } from "@/lib/support/store";
 import { TICKET_MESSAGE_MAX, ticketContext } from "@/lib/support/ticket";
 import { usePostSupportMessageMutation } from "@/lib/support/ticket-queries";
 
+const QUIET = "underline decoration-line-input underline-offset-4";
+
 /** "Talk to a person" for a signed-in client: the first message of a Support Ticket. It carries the
  * help topics tried, the page the client is on and the case, if there is one. Never the case's
- * documents or chats. */
+ * documents or chats. What is typed is kept as a draft until it is sent. */
 export function TicketStarter({
   flowPath,
   pathname,
@@ -22,8 +25,18 @@ export function TicketStarter({
   onBack: () => void;
 }) {
   const post = usePostSupportMessageMutation();
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(() => useSupport.getState().drafts.ticket);
   const [error, setError] = useState<string | null>(null);
+
+  // They chose to write: the cursor is already in the box.
+  useEffect(() => {
+    document.getElementById("support-ticket-message")?.focus();
+  }, []);
+
+  const change = (value: string) => {
+    setMessage(value);
+    useSupport.getState().setDraft("ticket", value);
+  };
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -31,12 +44,18 @@ export function TicketStarter({
     setError(null);
     post.mutate(
       { body: message.trim(), context: ticketContext(flowPath, pathname) },
-      { onSuccess: onOpened, onError: () => setError("We couldn't send that. Check your connection and try again.") },
+      {
+        onSuccess: () => {
+          useSupport.getState().setDraft("ticket", "");
+          onOpened();
+        },
+        onError: () => setError("We couldn't send that. Check your connection and try again."),
+      },
     );
   };
 
   return (
-    <form onSubmit={submit} aria-label="Write to the team" className="flex flex-col gap-3 rounded-2xl border border-line bg-white p-4">
+    <form onSubmit={submit} aria-label="Write to the team" className="flex flex-col gap-3 rounded-card border border-line bg-white p-4">
       <Field label="What would you like to tell the team?" htmlFor="support-ticket-message">
         <TextArea
           id="support-ticket-message"
@@ -44,7 +63,7 @@ export function TicketStarter({
           rows={4}
           maxLength={TICKET_MESSAGE_MAX}
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onChange={(e) => change(e.target.value)}
           aria-describedby="support-ticket-hint"
           className="text-[16px]"
         />
@@ -56,7 +75,7 @@ export function TicketStarter({
       <Button type="submit" variant="dark" size="lg" disabled={post.isPending || message.trim() === ""}>
         {post.isPending ? "Sending…" : "Send to the team"}
       </Button>
-      <Button variant="quiet" size="lg" disabled={post.isPending} onClick={onBack}>
+      <Button variant="quiet" size="lg" className={QUIET} disabled={post.isPending} onClick={onBack}>
         Back to topics
       </Button>
     </form>

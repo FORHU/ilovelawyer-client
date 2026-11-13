@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "re
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import type { SupportMenuCard } from "@/lib/support/types";
 
-const arrow = "flex size-11 items-center justify-center rounded-full border border-line bg-white text-ink-2 hover:border-line-hover disabled:opacity-30";
+const arrow = "flex size-11 items-center justify-center rounded-full border border-line bg-white text-ink-2 hover:border-line-hover aria-disabled:opacity-30 aria-disabled:hover:border-line";
 
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -52,10 +52,10 @@ export function MenuCards({ cards, onPick }: { cards: SupportMenuCard[]; onPick:
         <h3 className="text-[11px] font-semibold uppercase tracking-[1.4px] text-ink-2">Topics</h3>
         {scrollable && (
           <div className="flex gap-1">
-            <button type="button" aria-label="Previous topics" disabled={edge.start} onClick={() => scrollBy(-1)} className={arrow}>
+            <button type="button" aria-label="Previous topics" aria-disabled={edge.start} onClick={() => !edge.start && scrollBy(-1)} className={arrow}>
               <ChevronLeft size={18} aria-hidden />
             </button>
-            <button type="button" aria-label="Next topics" disabled={edge.end} onClick={() => scrollBy(1)} className={arrow}>
+            <button type="button" aria-label="Next topics" aria-disabled={edge.end} onClick={() => !edge.end && scrollBy(1)} className={arrow}>
               <ChevronRight size={18} aria-hidden />
             </button>
           </div>
@@ -68,7 +68,7 @@ export function MenuCards({ cards, onPick }: { cards: SupportMenuCard[]; onPick:
               type="button"
               onClick={() => onPick(card)}
               onFocus={(e) => e.currentTarget.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "auto" })}
-              className="flex h-full min-h-28 w-full flex-col items-start gap-1 rounded-2xl border border-line bg-white p-4 text-left transition-colors hover:border-line-hover active:bg-chip"
+              className="flex h-full min-h-28 w-full flex-col items-start gap-1 rounded-card border border-line bg-white p-4 text-left transition-colors hover:border-line-hover active:bg-chip"
             >
               <span className="text-[15px] font-semibold leading-snug text-ink">{card.title}</span>
               {card.subtitle && <span className="text-[13px] leading-snug text-ink-2">{card.subtitle}</span>}

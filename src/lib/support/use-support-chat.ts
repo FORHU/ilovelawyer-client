@@ -2,13 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { executeAction, isInteractiveAction } from "./actions";
-import { initialState, reduce, type ChatAction, type ChatMessage, type ChatState, type Prompt } from "./engine";
+import { initialState, reduce, typingDelay, type ChatAction, type ChatMessage, type ChatState, type Prompt } from "./engine";
 import { postOutcomes } from "./api";
 import { createOutcomeReporter } from "./outcomes";
 import type { PublishedSupportContent, SupportAudience, SupportOutcomeEvent } from "./types";
-
-/** How long the typing dots show before each assistant message. */
-const TYPING_MS = 600;
 
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -72,8 +69,8 @@ export function useSupportChat({
 
   useEffect(() => {
     if (shown >= state.messages.length) return;
-    const instant = state.messages[shown].from === "user" || reducedMotion();
-    const id = setTimeout(() => setShown((n) => n + 1), instant ? 0 : TYPING_MS);
+    const delay = reducedMotion() ? 0 : typingDelay(state.messages[shown]);
+    const id = setTimeout(() => setShown((n) => n + 1), delay);
     return () => clearTimeout(id);
   }, [shown, state.messages]);
 

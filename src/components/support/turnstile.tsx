@@ -6,6 +6,8 @@ import { useEffect, useRef } from "react";
 // API verifies the token it produces (ilovelawyer-api src/utils/turnstile.ts).
 
 const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+/** Below this screen width the widget is drawn in its compact size (see render below). */
+const COMPACT_BELOW = 364;
 const SCRIPT = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
 
 interface TurnstileApi {
@@ -63,6 +65,8 @@ export function Turnstile({ onToken, resetKey = 0 }: { onToken: (token: string) 
         if (!live) return;
         widget.current = turnstile.render(element, {
           sitekey: SITE_KEY,
+          // The normal widget is 300px wide; in the sheet that needs a 364px screen.
+          size: window.innerWidth < COMPACT_BELOW ? "compact" : "normal",
           callback: (token: string) => callback.current(token),
           "expired-callback": () => callback.current(""),
           "error-callback": () => callback.current(""),
@@ -82,5 +86,5 @@ export function Turnstile({ onToken, resetKey = 0 }: { onToken: (token: string) 
   }, [resetKey]);
 
   if (!SITE_KEY) return null;
-  return <div ref={container} aria-label="Security check" className="min-h-[65px]" />;
+  return <div ref={container} role="group" aria-label="Security check" className="min-h-[65px]" />;
 }

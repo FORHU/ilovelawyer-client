@@ -8,7 +8,15 @@ import { SupportSheet } from "./support-sheet";
  * signed in (a shorter list of topics, and no account to look at). Closes the chat when the page
  * goes, so it never carries over into the app after signing in. */
 export function NeedHelp() {
-  useEffect(() => () => useSupport.getState().close(), []);
+  useEffect(
+    () => () => {
+      const { close, setDraft } = useSupport.getState();
+      close();
+      setDraft("visitorEmail", "");
+      setDraft("visitorMessage", "");
+    },
+    [],
+  );
   return (
     <>
       <button

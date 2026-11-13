@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fillGreeting, initialState, reduce, type ChatAction, type ChatState } from "../engine";
+import { fillGreeting, initialState, reduce, typingDelay, type ChatAction, type ChatState } from "../engine";
 import type { SupportOutcomeEvent } from "../types";
 import { content } from "./fixtures";
 
@@ -195,5 +195,26 @@ describe("an action's result", () => {
     const waiting = play([{ type: "START_FLOW", flowId: "action" }]).state;
     const card = { kind: "BLOCKING" as const, requests: [] };
     expect(play([{ type: "ACTION_RESULT", ok: false, card }], waiting).state.messages.some((m) => m.card)).toBe(true);
+  });
+});
+
+describe("typingDelay", () => {
+  const bot = (text: string) => ({ id: 1, from: "bot" as const, text });
+
+  it("shows the client's own words at once", () => {
+    expect(typingDelay({ id: 1, from: "user", text: "hello" })).toBe(0);
+  });
+
+  it("waits longer for more to read, but never long enough to feel stuck", () => {
+    const short = typingDelay(bot("Done."));
+    const medium = typingDelay(bot("Check your spam folder first, then try again in a minute."));
+    const long = typingDelay(bot(Array.from({ length: 80 }, () => "word").join(" ")));
+    expect(short).toBeLessThan(medium);
+    expect(medium).toBeLessThan(long);
+    expect(long).toBe(900);
+  });
+
+  it("is brief for a result that is all card and no words", () => {
+    expect(typingDelay({ id: 1, from: "bot", text: "" })).toBe(300);
   });
 });

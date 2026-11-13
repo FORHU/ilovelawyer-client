@@ -12,8 +12,8 @@ import type { SupportActionCard, SupportPayment } from "@/lib/support/types";
 
 const closeSupport = () => useSupport.getState().close();
 
-const row = "flex flex-col gap-1.5 rounded-xl border border-line bg-white px-3.5 py-3";
-const caseLink = "min-w-0 break-words text-[14.5px] font-semibold text-ink underline decoration-line-input underline-offset-2 hover:decoration-ink";
+const row = "flex flex-col gap-1.5 rounded-card border border-line bg-white px-3.5 py-3";
+const caseLink = "min-w-0 break-words text-[15px] font-semibold text-ink underline decoration-line-input underline-offset-2 hover:decoration-ink";
 
 /** Words as well as colour and an icon, so the status never depends on seeing a colour. */
 const PAYMENT_STATUS: Record<SupportPayment["status"], { label: string; Icon: LucideIcon; tone: string }> = {
@@ -25,7 +25,7 @@ const PAYMENT_STATUS: Record<SupportPayment["status"], { label: string; Icon: Lu
 function StatusChip({ status }: { status: SupportPayment["status"] }) {
   const { label, Icon, tone } = PAYMENT_STATUS[status];
   return (
-    <span className={cn("inline-flex min-h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12.5px] font-medium", tone)}>
+    <span className={cn("inline-flex min-h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] font-medium", tone)}>
       <Icon size={14} aria-hidden />
       {label}
     </span>
@@ -93,7 +93,7 @@ export function ActionCardView({ card }: { card: SupportActionCard }) {
               <Link href={requestHref(r)} onClick={closeSupport} className={caseLink}>
                 {r.caseTitle}
               </Link>
-              <span className="text-[13.5px] text-ink">{isKnownStatus(r.status) ? clientRequestStatusLabel(r.status) : r.status}</span>
+              <span className="text-[14px] text-ink">{isKnownStatus(r.status) ? clientRequestStatusLabel(r.status) : r.status}</span>
               {r.lawyerName && <span className="text-[13px] text-ink-2">With {r.lawyerName}</span>}
               {r.expiresAt && <span className="text-[13px] text-ink-2">Open until {formatDateTime(r.expiresAt)}</span>}
             </li>
@@ -105,8 +105,8 @@ export function ActionCardView({ card }: { card: SupportActionCard }) {
         <ul aria-label="Open lawyer requests" className="flex w-full flex-col gap-2">
           {card.requests.map((r) => (
             <li key={r.id} className={cn(row, "border-error-line")}>
-              <span className="break-words text-[14.5px] font-semibold text-ink">{r.caseTitle}</span>
-              <span className="text-[13.5px] text-ink-2">{isKnownStatus(r.status) ? clientRequestStatusLabel(r.status) : r.status}</span>
+              <span className="break-words text-[15px] font-semibold text-ink">{r.caseTitle}</span>
+              <span className="text-[14px] text-ink-2">{isKnownStatus(r.status) ? clientRequestStatusLabel(r.status) : r.status}</span>
               <Link
                 href={requestHref(r)}
                 onClick={closeSupport}
