@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { executeAction } from "./actions";
+import { executeAction, isInteractiveAction } from "./actions";
 import { initialState, reduce, type ChatAction, type ChatMessage, type ChatState, type Prompt } from "./engine";
 import { postOutcomes } from "./api";
 import { createOutcomeReporter } from "./outcomes";
@@ -79,7 +79,7 @@ export function useSupportChat({
 
   const asked = useRef(-1);
   useEffect(() => {
-    if (!settled || state.prompt.kind !== "ACTION" || asked.current === state.messages.length) return;
+    if (!settled || state.prompt.kind !== "ACTION" || isInteractiveAction(state.prompt.actionKey) || asked.current === state.messages.length) return;
     asked.current = state.messages.length;
     let live = true;
     void executeAction(state.prompt.actionKey).then((result) => live && act({ type: "ACTION_RESULT", ...result }));

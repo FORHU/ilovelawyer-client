@@ -79,3 +79,60 @@ export interface SupportOutcomeEvent {
   contentVersion?: number;
   text?: string;
 }
+
+// What a Support Action answers (ilovelawyer-api POST /api/client/support/actions/:key and
+// GET /api/client/support/actions/deletion-check).
+
+export interface SupportMoney {
+  amountMinor: number;
+  currency: string;
+}
+
+export interface SupportPayment {
+  paymentId: string;
+  kind: "CASE" | "TOP_UP";
+  status: "PENDING" | "SUCCEEDED" | "FAILED";
+  amount: SupportMoney;
+  credits: number;
+  caseId: string | null;
+  caseTitle: string | null;
+  createdAt: string;
+  failureReason: string | null;
+}
+
+export interface SupportCaseCredits {
+  caseId: string;
+  title: string;
+  credits: number;
+}
+
+export interface SupportLawyerRequest {
+  id: string;
+  caseId: string;
+  caseTitle: string;
+  status: string;
+  expiresAt: string | null;
+  lawyerName: string | null;
+}
+
+/** An open lawyer request that stops the account being deleted, and what to do about it. */
+export interface SupportBlockingRequest {
+  id: string;
+  caseId: string;
+  caseTitle: string;
+  status: string;
+  action: "WITHDRAW" | "END" | "REVIEW";
+}
+
+export interface SupportDeletionCheck {
+  blocking: SupportBlockingRequest[];
+  hasPassword: boolean;
+  creditsRemaining: number;
+}
+
+/** A result shown in the conversation under the assistant's message. */
+export type SupportActionCard =
+  | { kind: "PAYMENTS"; payments: SupportPayment[] }
+  | { kind: "CREDITS"; cases: SupportCaseCredits[] }
+  | { kind: "REQUESTS"; requests: SupportLawyerRequest[] }
+  | { kind: "BLOCKING"; requests: SupportBlockingRequest[] };

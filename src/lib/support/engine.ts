@@ -1,5 +1,5 @@
 import { matchFlows } from "./match";
-import type { PublishedSupportContent, SupportActionKey, SupportChoiceOption, SupportOutcomeEvent, SupportTarget } from "./types";
+import type { PublishedSupportContent, SupportActionCard, SupportActionKey, SupportChoiceOption, SupportOutcomeEvent, SupportTarget } from "./types";
 
 // The Support Chat's conversation, as a pure state machine: `reduce(content, state, action)` gives
 // the next state and the outcomes to report. Nothing here waits, fetches or renders. The screen
@@ -12,6 +12,8 @@ export interface ChatMessage {
   text: string;
   /** A page in the app the message points to (always a path, the API checks it). */
   link?: { href: string; label: string };
+  /** What an action found, shown under the message. */
+  card?: SupportActionCard;
 }
 
 /** What the client can do next. */
@@ -47,7 +49,7 @@ export type ChatAction =
   | { type: "PICK_SUGGESTION"; flowId: string }
   | { type: "TALK" }
   | { type: "SHOW_MENU" }
-  | { type: "ACTION_RESULT"; ok: boolean; text?: string };
+  | { type: "ACTION_RESULT"; ok: boolean; text?: string; card?: SupportActionCard };
 
 export const COPY = {
   didItHelp: "Did that help?",
@@ -84,9 +86,9 @@ export function fillGreeting(greeting: string, firstName: string | null): string
 
 type Work = ChatState & { events: SupportOutcomeEvent[]; version: number };
 
-function say(w: Work, text: string, link?: ChatMessage["link"]) {
+function say(w: Work, text: string, extra: Pick<ChatMessage, "link" | "card"> = {}) {
   w.seq += 1;
-  w.messages.push({ id: w.seq, from: "bot", text, ...(link ? { link } : {}) });
+  w.messages.push({ id: w.seq, from: "bot", text, ...extra });
 }
 
 function said(w: Work, text: string) {
@@ -147,7 +149,7 @@ function follow(w: Work, content: PublishedSupportContent, target: SupportTarget
     case "FLOW":
       return startFlow(w, content, target.flowId, hops);
     case "LINK":
-      say(w, target.label ?? COPY.openLink, { href: target.href, label: target.label ?? COPY.openLink });
+      say(w, target.label ?? COPY.openLink, { link: { href: target.href, label: target.label ?? COPY.openLink } });
       return endFlow(w);
     case "TALK_TO_PERSON":
       w.prompt = { kind: "TALK" };
@@ -255,7 +257,7 @@ export function reduce(content: PublishedSupportContent, state: ChatState, actio
     }
     case "ACTION_RESULT": {
       if (prompt.kind !== "ACTION") return unchanged;
-      if (action.text) say(w, action.text);
+      if (action.text || action.card) say(w, action.text ?? "", action.card ? { card: action.card } : {});
       follow(w, content, action.ok ? prompt.onSuccess : prompt.onFailure, 0);
       break;
     }
