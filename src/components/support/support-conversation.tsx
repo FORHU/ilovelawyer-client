@@ -3,10 +3,14 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ArrowUp } from "lucide-react";
 import { ComposerButton, ComposerPill, QuickReplies, ReplyChip } from "@/components/mobile/chat";
+import { INTERACTIVE_ACTIONS, type ActionResult } from "@/lib/support/actions";
+import { FALLBACK_SAFETY_COPY } from "@/lib/support/deletion-flow";
 import { COPY, type ChatAction, type Prompt } from "@/lib/support/engine";
 import type { PublishedSupportContent, SupportAudience } from "@/lib/support/types";
 import { useSupportChat } from "@/lib/support/use-support-chat";
 import { ChoiceList, type Choice } from "./choice-list";
+import { DeleteAccountFlow } from "./delete-account-flow";
+import { ExportFlow } from "./export-flow";
 import { MenuCards } from "./menu-cards";
 import { MessageBubble, TypingBubble } from "./message-bubble";
 
@@ -42,6 +46,13 @@ function PromptView({ prompt, content, act }: { prompt: Prompt; content: Publish
           onPick={(choice) => act(choice.key === MENU.key ? { type: "SHOW_MENU" } : { type: "TALK" })}
         />
       );
+    case "ACTION": {
+      if (!INTERACTIVE_ACTIONS.includes(prompt.actionKey)) return null;
+      const done = (result: ActionResult) => act({ type: "ACTION_RESULT", ...result });
+      if (prompt.actionKey === "EXPORT_MY_DATA") return <ExportFlow onDone={done} />;
+      const safetyCopy = content.actions.find((a) => a.key === "DELETE_MY_ACCOUNT")?.safetyCopy;
+      return <DeleteAccountFlow safetyCopy={safetyCopy?.length ? safetyCopy : FALLBACK_SAFETY_COPY} onDone={done} />;
+    }
     case "TALK":
       return (
         <div className="flex flex-col gap-2">
@@ -74,6 +85,8 @@ export function SupportConversation({
   const [text, setText] = useState("");
 
   const promptKind = prompt?.kind;
+  // A step that asks for something (a password, a yes) is answered there, not by typing.
+  const composerOff = promptKind === "ACTION" || promptKind === "TALK";
   useEffect(() => {
     const el = scroller.current;
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: reducedMotion() ? "auto" : "smooth" });
@@ -128,12 +141,13 @@ export function SupportConversation({
               value={text}
               onChange={(e) => setText(e.target.value)}
               maxLength={300}
+              disabled={composerOff}
               autoComplete="off"
               enterKeyHint="send"
               placeholder="Type your question…"
               className="min-h-11 min-w-0 flex-1 bg-transparent px-3 text-[16px] text-ink outline-none placeholder:text-muted"
             />
-            <ComposerButton type="submit" tone="send" aria-label="Send" disabled={text.trim() === ""}>
+            <ComposerButton type="submit" tone="send" aria-label="Send" disabled={composerOff || text.trim() === ""}>
               <ArrowUp size={20} aria-hidden />
             </ComposerButton>
           </ComposerPill>

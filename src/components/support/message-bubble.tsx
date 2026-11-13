@@ -6,17 +6,21 @@ import { TypingDots } from "@/components/ui/typing-dots";
 import { cn } from "@/lib/cn";
 import type { ChatMessage } from "@/lib/support/engine";
 import { useSupport } from "@/lib/support/store";
+import { ActionCardView } from "./action-cards";
 
 /** One message: the assistant's on the left, the client's on the right. A screen reader hears who
  * said it. */
 export function MessageBubble({ message, assistant }: { message: ChatMessage; assistant: string }) {
   const mine = message.from === "user";
   return (
-    <li className={cn("flex max-w-[86%] flex-col gap-2", mine ? "items-end self-end" : "items-start self-start")}>
-      <p className={cn("whitespace-pre-wrap break-words rounded-card px-3.5 py-2.5 text-[15px] leading-[1.5]", mine ? "bg-gold text-white" : "bg-chip text-ink")}>
-        <span className="sr-only">{mine ? "You: " : `${assistant}: `}</span>
-        {message.text}
-      </p>
+    <li className={cn("flex flex-col gap-2", message.card ? "w-full max-w-full" : "max-w-[86%]", mine ? "items-end self-end" : "items-start self-start")}>
+      {message.text && (
+        <p className={cn("max-w-[86%] whitespace-pre-wrap break-words rounded-card px-3.5 py-2.5 text-[15px] leading-[1.5]", mine ? "bg-gold text-white" : "bg-chip text-ink")}>
+          <span className="sr-only">{mine ? "You: " : `${assistant}: `}</span>
+          {message.text}
+        </p>
+      )}
+      {message.card && <ActionCardView card={message.card} />}
       {message.link && (
         <Link
           href={message.link.href}
