@@ -84,12 +84,12 @@ export function DeleteAccountFlow({ safetyCopy, onDone }: { safetyCopy: string[]
 
   if (check.isError && !check.data) {
     return (
-      <div className="flex flex-col gap-3 rounded-2xl border border-line bg-white p-4">
+      <div className="flex flex-col gap-3 rounded-card border border-line bg-white p-4">
         <ErrorBox message="I couldn't check your account just now." />
         <Button variant="soft" size="lg" onClick={() => void check.refetch()}>
           Try again
         </Button>
-        <Button variant="quiet" size="lg" onClick={() => onDone({ ok: false, text: "No problem. Your account hasn't been changed." })}>
+        <Button variant="quiet" size="lg" className="underline decoration-line-input underline-offset-4" onClick={() => onDone({ ok: false, text: "No problem. Your account hasn't been changed." })}>
           Never mind
         </Button>
       </div>
@@ -104,7 +104,7 @@ export function DeleteAccountFlow({ safetyCopy, onDone }: { safetyCopy: string[]
         else confirm();
       }}
       aria-labelledby="support-delete-title"
-      className="flex flex-col gap-3 rounded-2xl border border-error-line bg-white p-4"
+      className="flex flex-col gap-3 rounded-card border border-error-line bg-white p-4"
     >
       <h3 id="support-delete-title" ref={heading} tabIndex={-1} className="text-[15px] font-semibold text-ink outline-none">
         {HEADINGS[step]}
@@ -118,7 +118,7 @@ export function DeleteAccountFlow({ safetyCopy, onDone }: { safetyCopy: string[]
             ))}
           </ul>
           {downloaded && (
-            <p role="status" className="rounded-card border border-success-line bg-success-bg px-3.5 py-2.5 text-[13.5px] leading-[1.5] text-success-ink">
+            <p role="status" className="rounded-card border border-success-line bg-success-bg px-3.5 py-2.5 text-[14px] leading-[1.5] text-success-ink">
               Your download has started.
             </p>
           )}
@@ -131,7 +131,7 @@ export function DeleteAccountFlow({ safetyCopy, onDone }: { safetyCopy: string[]
             <Button variant="dark" size="lg" disabled={check.isPending || busy} onClick={() => void cont()}>
               {busy ? "Checking…" : "Continue"}
             </Button>
-            <Button variant="quiet" size="lg" disabled={busy} onClick={() => onDone({ ok: false, text: "No problem. Your account hasn't been changed." })}>
+            <Button variant="quiet" size="lg" className="underline decoration-line-input underline-offset-4" disabled={busy} onClick={() => onDone({ ok: false, text: "No problem. Your account hasn't been changed." })}>
               Never mind
             </Button>
           </div>

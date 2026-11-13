@@ -67,6 +67,15 @@ export const COPY = {
   openLink: "Open this page",
 } as const;
 
+/** How long the typing dots show before a message: longer for more to read, never so long it feels
+ * stuck. The client's own messages, which they just wrote, are shown at once. */
+export function typingDelay(message: ChatMessage): number {
+  if (message.from === "user") return 0;
+  if (message.text.trim() === "") return 300;
+  const words = message.text.trim().split(/\s+/).length;
+  return Math.min(900, 250 + words * 30);
+}
+
 /** A flow that points back at itself through steps with nothing to wait for would never stop. */
 const MAX_HOPS = 40;
 const SUGGESTION_LIMIT = 3;

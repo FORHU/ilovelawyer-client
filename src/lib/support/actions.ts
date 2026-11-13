@@ -8,9 +8,10 @@ export interface ActionResult {
   card?: SupportActionCard;
 }
 
-/** Exporting data and deleting the account need the client's say-so (a password, a confirmation),
- * so the chat shows their own step for them instead of running them. */
-export const INTERACTIVE_ACTIONS: readonly SupportActionKey[] = ["EXPORT_MY_DATA", "DELETE_MY_ACCOUNT"];
+/** Exporting data, deleting the account and writing to the team need the client's say-so (a
+ * password, a confirmation, the words), so the chat shows their own step for them instead of
+ * running them. */
+export const INTERACTIVE_ACTIONS: readonly SupportActionKey[] = ["EXPORT_MY_DATA", "DELETE_MY_ACCOUNT", "OPEN_TICKET"];
 
 export const isInteractiveAction = (key: SupportActionKey) => INTERACTIVE_ACTIONS.includes(key);
 

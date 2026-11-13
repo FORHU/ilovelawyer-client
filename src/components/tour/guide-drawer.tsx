@@ -3,8 +3,9 @@
 import { useRef } from "react";
 import { ArrowRight, MessageCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/cn";
-import { SUPPORT_CHAT_ENABLED, useSupport } from "@/lib/support/store";
+import { SupportDot } from "@/components/support/support-dot";
+import { useSupport } from "@/lib/support/store";
+import { useSupportUnread } from "@/lib/support/ticket-queries";
 import { selectedCaseTab } from "@/lib/tour/dom";
 import { useTour } from "@/lib/tour/store";
 import { guideContext, guideQuestions, tourForContext } from "@/lib/tour/tours";
@@ -14,6 +15,7 @@ import { useDialog } from "./use-dialog";
  * a sheet from the bottom on a phone. It is mounted when opened, so it reads the page it opened on. */
 export function GuideDrawer({ pathname, credits, onTourPage }: { pathname: string; credits: number | null; onTourPage: () => void }) {
   const panel = useRef<HTMLDivElement>(null);
+  const unread = useSupportUnread();
   const close = () => useTour.getState().setGuideOpen(false);
   useDialog(panel, close);
 
@@ -67,25 +69,25 @@ export function GuideDrawer({ pathname, credits, onTourPage }: { pathname: strin
           </>
         )}
 
-        {SUPPORT_CHAT_ENABLED && (
-          <button
-            type="button"
-            onClick={() => {
-              close();
-              useSupport.getState().openSupport({ audience: "SIGNED_IN" });
-            }}
-            data-no-tap
-            className="mt-auto flex min-h-12 items-center justify-between gap-3 rounded-xl border border-line bg-white px-3.5 text-left text-[14.5px] font-medium hover:border-line-hover"
-          >
-            <span className="flex items-center gap-2.5">
-              <MessageCircle size={16} className="text-gold" aria-hidden />
-              Contact support
-            </span>
-            <ArrowRight size={15} className="shrink-0 text-gold" aria-hidden />
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => {
+            close();
+            useSupport.getState().openSupport({ audience: "SIGNED_IN" });
+          }}
+          data-no-tap
+          className="relative mt-auto flex min-h-12 items-center justify-between gap-3 rounded-xl border border-line bg-white px-3.5 text-left text-[14.5px] font-medium hover:border-line-hover"
+        >
+          <span className="flex items-center gap-2.5">
+            <MessageCircle size={16} className="text-gold" aria-hidden />
+            Contact support
+            {unread > 0 && <span className="sr-only">, new reply</span>}
+          </span>
+          {unread > 0 && <SupportDot className="right-10 top-1/2 -translate-y-1/2" />}
+          <ArrowRight size={15} className="shrink-0 text-gold" aria-hidden />
+        </button>
 
-        <div className={cn("flex flex-col gap-2 border-t border-line pt-3.5", !SUPPORT_CHAT_ENABLED && "mt-auto")}>
+        <div className="flex flex-col gap-2 border-t border-line pt-3.5">
           <p className="text-[13px] leading-[1.5] text-ink-2">Legal questions go to your case&apos;s Interview, not the guide.</p>
           <p className="text-[12.5px] leading-[1.5] text-muted">
             ilovelawyer isn&apos;t a law firm. The AI organises your case. Advice comes from the solicitor you choose.

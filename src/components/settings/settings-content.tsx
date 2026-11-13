@@ -8,7 +8,7 @@ import { useLogoutMutation } from "@/lib/auth/mutations";
 import { useSession } from "@/lib/auth/session";
 import { useDisconnectGmailMutation } from "@/lib/gmail/queries";
 import { DELETE_ACCOUNT_FLOW_ID } from "@/lib/support/deletion-flow";
-import { SUPPORT_CHAT_ENABLED, useSupport } from "@/lib/support/store";
+import { useSupport } from "@/lib/support/store";
 
 // The Settings layout from the client UI/UX revisions. Account and Connected accounts have content
 // so far: signing out on this device, Gmail for email import, and closing the account, which is done
@@ -52,8 +52,6 @@ function AccountTab() {
         <Button
           variant="danger"
           size="md"
-          disabled={!SUPPORT_CHAT_ENABLED}
-          title={SUPPORT_CHAT_ENABLED ? undefined : "Not available yet"}
           onClick={() => useSupport.getState().openSupport({ audience: "SIGNED_IN", startFlowId: DELETE_ACCOUNT_FLOW_ID })}
         >
           Close account…

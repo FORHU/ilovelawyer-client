@@ -2,13 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { executeAction, isInteractiveAction } from "./actions";
-import { initialState, reduce, type ChatAction, type ChatMessage, type ChatState, type Prompt } from "./engine";
+import { initialState, reduce, typingDelay, type ChatAction, type ChatMessage, type ChatState, type Prompt } from "./engine";
 import { postOutcomes } from "./api";
 import { createOutcomeReporter } from "./outcomes";
-import type { PublishedSupportContent, SupportAudience } from "./types";
-
-/** How long the typing dots show before each assistant message. */
-const TYPING_MS = 600;
+import type { PublishedSupportContent, SupportAudience, SupportOutcomeEvent } from "./types";
 
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -22,6 +19,8 @@ export interface SupportChat {
   /** Every flow walked so far. */
   flowPath: string[];
   act: (action: ChatAction) => void;
+  /** Reports something the engine can't see for itself (a ticket being opened). */
+  report: (event: SupportOutcomeEvent) => void;
 }
 
 /** Runs one conversation: the engine's state, the assistant's pacing, the statistics it reports
@@ -70,8 +69,8 @@ export function useSupportChat({
 
   useEffect(() => {
     if (shown >= state.messages.length) return;
-    const instant = state.messages[shown].from === "user" || reducedMotion();
-    const id = setTimeout(() => setShown((n) => n + 1), instant ? 0 : TYPING_MS);
+    const delay = reducedMotion() ? 0 : typingDelay(state.messages[shown]);
+    const id = setTimeout(() => setShown((n) => n + 1), delay);
     return () => clearTimeout(id);
   }, [shown, state.messages]);
 
@@ -95,5 +94,6 @@ export function useSupportChat({
     prompt: settled ? state.prompt : null,
     flowPath: state.flowPath,
     act,
+    report: (event) => reporter.push({ ...event, contentVersion: latest.current.version }),
   };
 }

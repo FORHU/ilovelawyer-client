@@ -1,7 +1,9 @@
 "use client";
 
 import { CircleHelp } from "lucide-react";
+import { SupportDot } from "@/components/support/support-dot";
 import { cn } from "@/lib/cn";
+import { useSupportUnread } from "@/lib/support/ticket-queries";
 import { useTour } from "@/lib/tour/store";
 
 const variants = {
@@ -15,21 +17,32 @@ const variants = {
   pill: "flex min-h-8 items-center gap-1.5 rounded-full border border-line-input bg-white px-3 text-[12px] font-medium text-ink-2 hover:border-line-hover hover:text-ink",
 } as const;
 
+/** Where the red dot sits on each: the corner of a round button, the end of a row. */
+const dots = {
+  nav: "right-2.5 top-1/2 -translate-y-1/2",
+  rail: "-right-0.5 -top-0.5",
+  bar: "right-2 top-2",
+  pill: "-right-0.5 -top-0.5",
+} as const;
+
 /** Opens the guide. Rendered in the sidebar and the phone top bar; only the visible one is the
- * tour's "Guide" stop. */
+ * tour's "Guide" stop. A red dot says the support team has replied: the guide is where Contact
+ * support lives. */
 export function GuideButton({ variant }: { variant: keyof typeof variants }) {
+  const unread = useSupportUnread();
   return (
     <button
       type="button"
       onClick={() => useTour.getState().setGuideOpen(true)}
-      aria-label="Guide"
+      aria-label={unread > 0 ? "Guide (new support reply)" : "Guide"}
       title="Guide"
       data-tour="guide"
       data-no-tap
-      className={cn(variants[variant])}
+      className={cn("relative", variants[variant])}
     >
       <CircleHelp size={variant === "rail" ? 15 : variant === "bar" ? 17 : variant === "pill" ? 14 : 16} aria-hidden />
       {(variant === "nav" || variant === "pill") && "Guide"}
+      {unread > 0 && <SupportDot className={dots[variant]} />}
     </button>
   );
 }

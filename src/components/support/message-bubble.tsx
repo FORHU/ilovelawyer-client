@@ -15,7 +15,15 @@ export function MessageBubble({ message, assistant }: { message: ChatMessage; as
   return (
     <li className={cn("flex flex-col gap-2", message.card ? "w-full max-w-full" : "max-w-[86%]", mine ? "items-end self-end" : "items-start self-start")}>
       {message.text && (
-        <p className={cn("max-w-[86%] whitespace-pre-wrap break-words rounded-card px-3.5 py-2.5 text-[15px] leading-[1.5]", mine ? "bg-gold text-white" : "bg-chip text-ink")}>
+        <p
+          className={cn(
+            "whitespace-pre-wrap break-words rounded-card px-3.5 py-2.5 text-[15px] leading-[1.5]",
+            // A message with a card under it spans the sheet, so its words are held to 86% here; one
+            // without already sits in an 86% box, and a second 86% inside it would wrap short lines.
+            message.card && "max-w-[86%]",
+            mine ? "bg-gold text-white" : "bg-chip text-ink",
+          )}
+        >
           <span className="sr-only">{mine ? "You: " : `${assistant}: `}</span>
           {message.text}
         </p>
@@ -35,10 +43,11 @@ export function MessageBubble({ message, assistant }: { message: ChatMessage; as
   );
 }
 
-/** The assistant is writing. */
-export function TypingBubble({ assistant }: { assistant: string }) {
+/** The assistant is writing. Silent to a screen reader: announcing every pause would be noise, and
+ * the message itself is read out when it arrives. */
+export function TypingBubble() {
   return (
-    <div role="status" aria-label={`${assistant} is typing`} className="flex w-fit items-center gap-1 self-start rounded-card bg-chip px-4 py-3.5">
+    <div aria-hidden className="flex w-fit items-center gap-1 self-start rounded-card bg-chip px-4 py-3.5">
       <TypingDots />
     </div>
   );
