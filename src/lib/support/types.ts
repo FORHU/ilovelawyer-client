@@ -136,3 +136,32 @@ export type SupportActionCard =
   | { kind: "CREDITS"; cases: SupportCaseCredits[] }
   | { kind: "REQUESTS"; requests: SupportLawyerRequest[] }
   | { kind: "BLOCKING"; requests: SupportBlockingRequest[] };
+
+// A Support Ticket: the client's one conversation with the team (ilovelawyer-api
+// /api/client/support/ticket). A visitor who isn't signed in has no thread; replies reach them by email.
+
+export type SupportTicketStatus = "OPEN" | "ANSWERED" | "RESOLVED";
+
+export interface SupportThreadMessage {
+  id: string;
+  /** SYSTEM is the app speaking, e.g. closing a conversation nobody replied to for a week. */
+  author: "CLIENT" | "ADMIN" | "SYSTEM";
+  body: string;
+  createdAt: string;
+}
+
+export interface SupportThread {
+  id: string;
+  status: SupportTicketStatus;
+  messages: SupportThreadMessage[];
+  /** Replies from the team the client hasn't opened yet: the red dot on the Guide. */
+  unreadCount: number;
+}
+
+/** Where the client was and what it tried. The API checks the ids and adds the rest; none of it
+ * reaches the team except ids, a status and a page path. */
+export interface SupportTicketContext {
+  flowPath?: string[];
+  page?: string;
+  caseId?: string;
+}

@@ -46,13 +46,14 @@ describe("executeAction", () => {
   });
 
   it("can't do what isn't built into the chat", async () => {
-    const result = await executeAction("OPEN_TICKET");
+    const result = await executeAction("RESEND_CODE");
     expect(result.ok).toBe(false);
   });
 
   it("leaves exporting and deleting to their own steps", () => {
     expect(isInteractiveAction("EXPORT_MY_DATA")).toBe(true);
     expect(isInteractiveAction("DELETE_MY_ACCOUNT")).toBe(true);
+    expect(isInteractiveAction("OPEN_TICKET")).toBe(true);
     expect(isInteractiveAction("CHECK_PAYMENT")).toBe(false);
   });
 });
