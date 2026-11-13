@@ -18,6 +18,3 @@ export const useSupport = create<SupportState>()((set) => ({
   openSupport: (options = {}) => set({ open: true, audience: options.audience ?? "SIGNED_IN", startFlowId: options.startFlowId ?? null }),
   close: () => set({ open: false, startFlowId: null }),
 }));
-
-/** The Support Chat is built but off until the whole of it (tickets, actions) has shipped. */
-export const SUPPORT_CHAT_ENABLED = process.env.NEXT_PUBLIC_SUPPORT_CHAT_ENABLED === "true";

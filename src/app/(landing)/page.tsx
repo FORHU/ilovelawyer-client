@@ -1,8 +1,10 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Closing, LandingFooter } from "@/components/landing/closing";
 import { LandingHeader } from "@/components/landing/header";
 import { ScrollRestorer } from "@/components/landing/scroll-restorer";
 import { Story } from "@/components/landing/story";
+import { SupportLinkRedirect } from "@/components/support/support-deep-link";
 
 const TITLE = "ilovelawyer: legal trouble, made clear";
 const DESCRIPTION =
@@ -25,6 +27,9 @@ export default function LandingPage() {
       </main>
       <LandingFooter />
       <ScrollRestorer />
+      <Suspense fallback={null}>
+        <SupportLinkRedirect />
+      </Suspense>
     </>
   );
 }

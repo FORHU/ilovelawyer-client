@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { Suspense, useEffect, useRef, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { PaymentModal } from "@/components/payment/payment-modal";
 import { LawyerRequestModal } from "@/components/case/lawyer-request-modal";
 import { LandingWatcher } from "@/components/shell/landing-watcher";
+import { SupportDeepLink } from "@/components/support/support-deep-link";
 import { TourLayer } from "@/components/tour/tour-layer";
 import { SuccessBanner } from "@/components/ui/banner";
 import { Toaster } from "@/components/ui/toaster";
@@ -13,6 +14,7 @@ import { useRestoreSessionQuery } from "@/lib/auth/mutations";
 import { useSession } from "@/lib/auth/session";
 import { useChatSocket } from "@/lib/cases/chat-socket";
 import { useLawyerRequestSocket } from "@/lib/lawyer-requests/socket";
+import { useSupportSocket } from "@/lib/support/socket";
 import { useAppSocket } from "@/lib/socket";
 import { useApp } from "@/lib/store";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -44,6 +46,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   // own lawyer requests, and AI chat replies (the chat never polls for them).
   useAppSocket();
   useLawyerRequestSocket();
+  useSupportSocket();
   useChatSocket();
 
   // Never signed in on this page load: a plain navigation. Signed out mid-session (the session
@@ -68,6 +71,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       <PaymentModal />
       <LawyerRequestModal />
       <TourLayer />
+      <Suspense fallback={null}>
+        <SupportDeepLink />
+      </Suspense>
       <Toaster />
     </>
   );
