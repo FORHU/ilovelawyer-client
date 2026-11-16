@@ -112,9 +112,10 @@ function filenameFrom(disposition: string | null): string | null {
 }
 
 /** A file from the API (a download route), with the same auth refresh as apiFetch. Errors come
- * back as ApiError, read from the JSON error body. */
-export async function apiFetchBlob(path: string): Promise<{ blob: Blob; filename: string | null }> {
-  let res = await send(path, {});
+ * back as ApiError, read from the JSON error body. `options` makes it a POST when the request
+ * carries a body (an export that takes the password). */
+export async function apiFetchBlob(path: string, options: FetchOptions = {}): Promise<{ blob: Blob; filename: string | null }> {
+  let res = await send(path, options);
   if (res.status === 401) {
     try {
       await refreshAccessToken();
@@ -122,7 +123,7 @@ export async function apiFetchBlob(path: string): Promise<{ blob: Blob; filename
       useSession.getState().clear();
       throw err;
     }
-    res = await send(path, {});
+    res = await send(path, options);
   }
   await throwIfNotOk(res);
   return { blob: await res.blob(), filename: filenameFrom(res.headers.get("Content-Disposition")) };

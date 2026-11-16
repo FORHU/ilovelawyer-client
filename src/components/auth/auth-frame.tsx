@@ -1,4 +1,5 @@
 import { BrandLogo } from "@/components/auth/brand-logo";
+import { NeedHelp } from "@/components/support/need-help";
 
 /** The auth screens' layout: the fixed dark brand panel on the left (wide screens only) and the
  * form column on the right, with its heading and the © footer. Shared by /login and /reset-password. */
@@ -48,16 +49,14 @@ export function AuthFrame({
             <span className="text-xs font-semibold tracking-[1.2px] text-muted">
               © {new Date().getFullYear()} ILOVELAWYER
             </span>
-            <div className="flex gap-4">
-              {["Support", "Privacy"].map((label) => (
-                <button
-                  key={label}
-                  type="button"
-                  className="cursor-pointer border-0 bg-transparent text-xs font-semibold uppercase tracking-[1.2px] text-muted underline decoration-line transition-colors hover:text-ink"
-                >
-                  {label}
-                </button>
-              ))}
+            <div className="flex items-center gap-4">
+              <NeedHelp />
+              <button
+                type="button"
+                className="cursor-pointer border-0 bg-transparent text-xs font-semibold uppercase tracking-[1.2px] text-muted underline decoration-line transition-colors hover:text-ink"
+              >
+                Privacy
+              </button>
             </div>
           </div>
         </div>
