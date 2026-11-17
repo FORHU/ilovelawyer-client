@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AuthFrame } from "@/components/auth/auth-frame";
 import { FormError, PasswordInput, labelClass, primaryButtonClass } from "@/components/auth/form-parts";
 import { PasswordRequirements } from "@/components/auth/password-requirements";
-import { authErrorMessage, isApiError, isLawyerAccountError } from "@/lib/auth/errors";
+import { authErrorMessage, isApiError, isLawyerAccountError, wrongTenantSite } from "@/lib/auth/errors";
+import type { TenantCode } from "@/lib/tenant/client-tenant";
 import { useResetPasswordMutation, useValidateResetTokenQuery } from "@/lib/auth/mutations";
 import { isPasswordValid } from "@/lib/auth/password-policy";
 
@@ -22,6 +23,7 @@ export function ResetPasswordForm() {
   const [spent, setSpent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lawyerLink, setLawyerLink] = useState(false);
+  const [siteLink, setSiteLink] = useState<TenantCode | null>(null);
 
   const linkInvalid =
     !token || spent || validateQuery.isError || (validateQuery.isSuccess && !validateQuery.data);
@@ -50,6 +52,7 @@ export function ResetPasswordForm() {
           if (isApiError(err) && err.status === 400) setSpent(true);
           setError(authErrorMessage(err, "reset"));
           setLawyerLink(isLawyerAccountError(err));
+          setSiteLink(wrongTenantSite(err));
         },
       },
     );
@@ -104,7 +107,7 @@ export function ResetPasswordForm() {
             {confirm && password !== confirm && <p className="text-xs text-error">Passwords do not match.</p>}
           </div>
 
-          <FormError message={error} lawyerLink={lawyerLink} />
+          <FormError message={error} lawyerLink={lawyerLink} siteLink={siteLink} />
 
           <button
             type="submit"

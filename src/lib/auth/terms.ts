@@ -23,7 +23,9 @@ export interface ClientTerms {
 
 const EFFECTIVE = "Effective Date: October 20, 2026.";
 
-const GOVERNING_LAW: Record<TenantCode, { label: string; paragraphs: string[] }> = {
+// No KR entry yet: a Korean client sees the generic governing-law paragraph until the Korean Terms
+// are written (and CLIENT_TERMS_VERSION in the API is bumped with them).
+const GOVERNING_LAW: Partial<Record<TenantCode, { label: string; paragraphs: string[] }>> = {
   PH: {
     label: "Republic of the Philippines",
     paragraphs: [
@@ -128,7 +130,7 @@ const BASE_SECTIONS: TermsSection[] = [
 /** The Terms for the client app on `tenant`'s site. Governing law follows the Tenant; with none
  * (an unmapped host), the section names the law of the site the account was opened on. */
 export function getClientTerms(tenant: TenantCode | null): ClientTerms {
-  const law = tenant ? GOVERNING_LAW[tenant] : null;
+  const law = (tenant && GOVERNING_LAW[tenant]) || null;
   return {
     title: "Terms of Service",
     effectiveDate: law ? `${EFFECTIVE} Governing law: ${law.label}.` : EFFECTIVE,

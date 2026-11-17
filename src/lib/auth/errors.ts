@@ -1,8 +1,10 @@
 import { ApiError } from "@/lib/api/fetch";
+import type { TenantCode } from "@/lib/tenant/client-tenant";
 
 /** The API's machine-readable refusal codes the auth screens act on. */
 export const WRONG_APP = "WRONG_APP";
 export const EMAIL_REGISTERED_AS_LAWYER = "EMAIL_REGISTERED_AS_LAWYER";
+export const WRONG_TENANT = "WRONG_TENANT";
 
 export function isApiError(err: unknown): err is ApiError {
   return err instanceof ApiError;
@@ -11,6 +13,14 @@ export function isApiError(err: unknown): err is ApiError {
 /** True when the account belongs to the lawyer app, so the screen should point there. */
 export function isLawyerAccountError(err: unknown): boolean {
   return isApiError(err) && (err.code === WRONG_APP || err.code === EMAIL_REGISTERED_AS_LAWYER);
+}
+
+/** The site an account belongs to when it tried to sign in on another region's site (WRONG_TENANT,
+ * which carries it as `site`), so the screen can link there. Null for any other error. */
+export function wrongTenantSite(err: unknown): TenantCode | null {
+  if (!isApiError(err) || err.code !== WRONG_TENANT) return null;
+  const site = err.body?.site;
+  return site === "UK" || site === "KR" || site === "PH" ? site : null;
 }
 
 type AuthStep = "signin" | "signup" | "otp" | "recover" | "reset";

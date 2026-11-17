@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
   // Hosts other than localhost that open the dev server (ilovelawyer.local, or the https
   // client-local.ilovelawyer.com that Google sign-in accepts, both from the hosts
   // file). Without this Next blocks their /_next/hmr connection. Dev only; ignored in production.
-  allowedDevOrigins: ["ilovelawyer.local", "client-local.ilovelawyer.com"],
+  allowedDevOrigins: ["ilovelawyer.local", "client-local.ilovelawyer.com", "kr.ilovelawyer.local", "kr-client-local.ilovelawyer.com"],
   cacheComponents: true,
   partialPrefetching: true,
   experimental: {

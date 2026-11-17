@@ -19,7 +19,8 @@ import { GoogleButton, GoogleDivider } from "@/components/auth/google-button";
 import { PasswordRequirements } from "@/components/auth/password-requirements";
 import { TermsReviewDialog } from "@/components/auth/terms-review-dialog";
 import { normalizeEmail } from "@/lib/auth/api";
-import { EMAIL_REGISTERED_AS_LAWYER, authErrorMessage, isApiError, isLawyerAccountError } from "@/lib/auth/errors";
+import type { TenantCode } from "@/lib/tenant/client-tenant";
+import { EMAIL_REGISTERED_AS_LAWYER, authErrorMessage, isApiError, isLawyerAccountError, wrongTenantSite } from "@/lib/auth/errors";
 import {
   signedInPath,
   useCancelSignupMutation,
@@ -72,6 +73,7 @@ export function UnifiedAuth() {
   const [error, setError] = useState<string | null>(null);
   // The error is about a lawyer account: show a link to the lawyer site with it.
   const [lawyerLink, setLawyerLink] = useState(false);
+  const [siteLink, setSiteLink] = useState<TenantCode | null>(null);
   // Arrived from deleting the account in the Support Chat: say what happens next.
   const [notice, setNotice] = useState<string | null>(() => (searchParams.get("deleted") === "1" ? DELETED_NOTICE : null));
 
@@ -125,12 +127,14 @@ export function UnifiedAuth() {
   function clearMessages() {
     setError(null);
     setLawyerLink(false);
+    setSiteLink(null);
     setNotice(null);
   }
 
   function fail(err: unknown, step: Parameters<typeof authErrorMessage>[1]) {
     setError(authErrorMessage(err, step));
     setLawyerLink(isLawyerAccountError(err));
+    setSiteLink(wrongTenantSite(err));
   }
 
   function selectTab(next: Tab) {
@@ -423,7 +427,7 @@ export function UnifiedAuth() {
           </div>
 
           <FormNotice message={notice} />
-          <FormError message={error} lawyerLink={lawyerLink} />
+          <FormError message={error} lawyerLink={lawyerLink} siteLink={siteLink} />
 
           <button
             type="button"
@@ -460,7 +464,7 @@ export function UnifiedAuth() {
             />
           </Field>
 
-          <FormError message={error} lawyerLink={lawyerLink} />
+          <FormError message={error} lawyerLink={lawyerLink} siteLink={siteLink} />
 
           <button type="submit" disabled={googleLinkMutation.isPending} className={primaryButtonClass}>
             {googleLinkMutation.isPending ? "Connecting…" : "Connect Google"}
@@ -542,7 +546,7 @@ export function UnifiedAuth() {
                 </button>
               </div>
 
-              <FormError message={error} lawyerLink={lawyerLink} />
+              <FormError message={error} lawyerLink={lawyerLink} siteLink={siteLink} />
 
               <button type="submit" disabled={loginMutation.isPending} className={primaryButtonClass}>
                 {loginMutation.isPending ? "Signing In…" : "Sign In"}
@@ -647,7 +651,7 @@ export function UnifiedAuth() {
                 }}
               />
 
-              <FormError message={error} lawyerLink={lawyerLink} />
+              <FormError message={error} lawyerLink={lawyerLink} siteLink={siteLink} />
 
               <button
                 type="submit"
@@ -682,7 +686,7 @@ export function UnifiedAuth() {
                   />
                 </Field>
 
-                <FormError message={error} lawyerLink={lawyerLink} />
+                <FormError message={error} lawyerLink={lawyerLink} siteLink={siteLink} />
 
                 <button type="submit" disabled={forgotPasswordMutation.isPending} className={primaryButtonClass}>
                   {forgotPasswordMutation.isPending ? "Sending…" : "Send Reset Link"}

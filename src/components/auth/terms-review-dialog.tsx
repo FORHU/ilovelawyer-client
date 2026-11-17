@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Ban, ChevronDown } from "lucide-react";
 import { getClientTerms } from "@/lib/auth/terms";
-import { CLIENT_TENANT_CODE } from "@/lib/tenant/client-tenant";
+import { useTenantCode } from "@/lib/tenant/use-tenant-code";
 
 // A couple of pixels of slack: some browsers report fractional scroll heights
 // that never quite reach 0 even when the content is fully visible.
@@ -22,8 +22,9 @@ export function TermsReviewDialog({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [reachedEnd, setReachedEnd] = useState(false);
-  // Every client account is in CLIENT_TENANT_CODE, so that is the governing law shown.
-  const terms = getClientTerms(CLIENT_TENANT_CODE);
+  // A client account is created in the region of the site it signs up on, so that is the
+  // governing law shown.
+  const terms = getClientTerms(useTenantCode());
 
   // Native <dialog> gives the focus trap, Escape and an inert background.
   useEffect(() => {

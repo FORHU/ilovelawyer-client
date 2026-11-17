@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { LAWYER_APP_URL } from "@/lib/tenant/client-tenant";
+import { LAWYER_APP_URL, TENANT_DISPLAY_NAME, hostForClientTenant, type TenantCode } from "@/lib/tenant/client-tenant";
 
 // Building blocks shared by the auth screens (unified-auth.tsx, reset-password-form.tsx).
 
@@ -71,13 +71,39 @@ export function PasswordInput({
   );
 }
 
+/** The URL of `site`'s client site on the host the person is on now (same scheme and port), or
+ * null when there is none to point at. */
+function siteUrl(site: TenantCode): string | null {
+  const host = hostForClientTenant(site, window.location.host);
+  return host ? `${window.location.protocol}//${host}` : null;
+}
+
 /** An error under a form. With `lawyerLink`, it also points a lawyer account at the lawyer site
- * (WRONG_APP, EMAIL_REGISTERED_AS_LAWYER). */
-export function FormError({ message, lawyerLink = false }: { message: string | null; lawyerLink?: boolean }) {
+ * (WRONG_APP, EMAIL_REGISTERED_AS_LAWYER). With `siteLink`, it points an account from another
+ * region at its own client site (WRONG_TENANT). */
+export function FormError({
+  message,
+  lawyerLink = false,
+  siteLink = null,
+}: {
+  message: string | null;
+  lawyerLink?: boolean;
+  siteLink?: TenantCode | null;
+}) {
   if (!message) return null;
+  // Only after a failed submit, so `window` is always there.
+  const siteHref = siteLink ? siteUrl(siteLink) : null;
   return (
     <p role="alert" className="text-sm text-error">
       {message}
+      {siteLink && siteHref && (
+        <>
+          {" "}
+          <a href={siteHref} className="font-semibold">
+            Go to the {TENANT_DISPLAY_NAME[siteLink]} site
+          </a>
+        </>
+      )}
       {lawyerLink && (
         <>
           {" "}

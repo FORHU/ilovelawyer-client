@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { LegalPage } from "@/components/landing/legal-page";
 import { getClientTerms } from "@/lib/auth/terms";
 import { termsToLegalSections } from "@/lib/marketing/copy";
-import { CLIENT_TENANT_CODE } from "@/lib/tenant/client-tenant";
+import { getTenantCode } from "@/lib/tenant/get-tenant-code";
 
 export const metadata: Metadata = {
   title: "Terms | ilovelawyer",
@@ -10,7 +10,8 @@ export const metadata: Metadata = {
 };
 
 // The same source as the sign-up dialog, so the two can't drift apart.
-export default function TermsPage() {
-  const terms = getClientTerms(CLIENT_TENANT_CODE);
+export default async function TermsPage() {
+  // Read inside the landing layout's Suspense, which already reads the User-Agent there.
+  const terms = getClientTerms(await getTenantCode());
   return <LegalPage title="Terms" updated={terms.effectiveDate} sections={termsToLegalSections(terms.sections)} />;
 }
