@@ -25,10 +25,15 @@ export function offeredExtensions(limits?: UploadLimits) {
   return limits ? offered.filter((e) => limits.upload.extensions.includes(e)) : offered;
 }
 
+/** "PDF, DOC or PNG" */
+function listTypes(types: string[]) {
+  const upper = types.map((e) => e.toUpperCase());
+  return upper.length > 1 ? `${upper.slice(0, -1).join(", ")} or ${upper.at(-1)}` : upper.join("");
+}
+
 /** "PDF, DOC, DOCX, XLSX, TXT, JPG, JPEG or PNG, up to 1 GB at a time" */
 export function describeLimits(limits?: UploadLimits) {
-  const types = offeredExtensions(limits).map((e) => e.toUpperCase());
-  const list = types.length > 1 ? `${types.slice(0, -1).join(", ")} or ${types.at(-1)}` : types.join("");
+  const list = listTypes(offeredExtensions(limits));
   if (!limits) return list;
   const gb = limits.upload.maxBytes / 1024 ** 3;
   return `${list}, up to ${gb >= 1 ? `${Math.round(gb)} GB` : `${Math.round(limits.upload.maxBytes / 1024 ** 2)} MB`} at a time`;
@@ -43,7 +48,7 @@ export function checkFiles(files: File[], limits?: UploadLimits) {
   let total = 0;
   for (const file of files) {
     if (!types.includes(extensionOf(file.name))) {
-      rejected.push(`${file.name} isn't a type we can read.`);
+      rejected.push(`${file.name} isn't a type we can read. We accept ${listTypes(types)}.`);
     } else if (limits && total + file.size > limits.upload.maxBytes) {
       rejected.push(`${file.name} would go over the upload size limit.`);
     } else {
