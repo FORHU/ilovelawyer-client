@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { API_URL } from "@/lib/api/config";
-import { buildFileResponseInit, resolveErrorStatus, UPSTREAM_FETCH_TIMEOUT_MS } from "./response";
+import { buildFileResponseInit, resolveEndpoint, resolveErrorStatus, UPSTREAM_FETCH_TIMEOUT_MS } from "./response";
 
 const RESOLVE_TIMEOUT_MS = 5_000;
 
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
 
   let presignedUrl: string;
   try {
-    const resolveRes = await fetch(`${API_URL}/api/files/resolve?token=${encodeURIComponent(token)}`, {
+    const resolveRes = await fetch(`${resolveEndpoint(API_URL, req.nextUrl.origin)}?token=${encodeURIComponent(token)}`, {
       signal: AbortSignal.timeout(RESOLVE_TIMEOUT_MS),
       headers: viewerHeaders(req),
     });
