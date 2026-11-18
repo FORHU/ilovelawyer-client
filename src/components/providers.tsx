@@ -4,6 +4,8 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ApiError } from "@/lib/api/fetch";
+import { SiteProvider } from "@/components/site/site-provider";
+import { LanguageProvider } from "@/components/site/language-provider";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -42,7 +44,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <QueryClientProvider client={getQueryClient()}>
-        {children}
+        <SiteProvider>
+          <LanguageProvider>{children}</LanguageProvider>
+        </SiteProvider>
         <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>
     </GoogleOAuthProvider>

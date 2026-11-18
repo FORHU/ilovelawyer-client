@@ -1,8 +1,10 @@
+import { useSite } from "@/components/site/site-provider";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api/fetch";
 import { useSession } from "@/lib/auth/session";
 import type { CaseArea } from "@/lib/types";
 import { caseKeys } from "./queries";
+import { tr } from "@/lib/i18n/translate";
 
 /** Whether the case has what a lawyer needs (GET /api/client/cases/:id/lawyer-readiness). The API
  * asks Jev after each AI answer and keeps the result, so fetching it again is free. */
@@ -29,10 +31,13 @@ export function getLawyerReadiness(caseId: string) {
 /** Keyed by the latest AI answer, so a new answer means a fresh check and an old one is cached. */
 export function useLawyerReadinessQuery(caseId: string, latestAnswerId: string | undefined) {
   const userId = useSession((s) => s.user?.id);
+  // Readiness is the AI's, and it's for a lawyer: only where both are open.
+  const site = useSite();
+  const open = site.intakeChat === "open" && site.clientRequests === "open";
   return useQuery({
     queryKey: [...caseKeys.lawyerReadiness(userId, caseId), latestAnswerId ?? "none"],
     queryFn: () => getLawyerReadiness(caseId),
-    enabled: !!userId && !!latestAnswerId,
+    enabled: !!userId && !!latestAnswerId && open,
     staleTime: Infinity,
     // A refusal (e.g. AI consent withdrawn) just means no suggestion; don't retry it.
     retry: false,
@@ -43,7 +48,7 @@ export function useLawyerReadinessQuery(caseId: string, latestAnswerId: string |
  * lawyer". The names are admins' (case areas), so they're used as written. */
 export function lawyerKind(r: Pick<LawyerReadiness, "caseAreas" | "ukJurisdiction">) {
   const names = (r.caseAreas ?? []).filter((a) => a.code !== "OTHER").map((a) => a.name);
-  const list = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0];
-  const who = list ? `a lawyer for ${list}` : "a lawyer";
+  const list = names.length > 1 ? tr("{list} and {last}", { list: names.slice(0, -1).join(", "), last: names.at(-1)! }) : names[0];
+  const who = list ? tr("a lawyer for {areas}", { areas: list }) : tr("a lawyer");
   return r.ukJurisdiction ? `${who} in ${r.ukJurisdiction}` : who;
 }

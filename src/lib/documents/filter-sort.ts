@@ -1,20 +1,21 @@
 import type { CaseDocument } from "@/lib/types";
+import { msg } from "@/lib/i18n/msg";
 
 export type FilterKey = "all" | "attention" | "used" | "unused";
 export type SortKey = "newest" | "oldest" | "name" | "cited";
 
 export const FILTERS: { key: FilterKey; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "attention", label: "Needs attention" },
-  { key: "used", label: "Used in overview" },
-  { key: "unused", label: "Not used yet" },
+  { key: "all", label: msg("All") },
+  { key: "attention", label: msg("Needs attention") },
+  { key: "used", label: msg("Used in overview") },
+  { key: "unused", label: msg("Not used yet") },
 ];
 
 export const SORTS: { key: SortKey; label: string }[] = [
-  { key: "newest", label: "Newest first" },
-  { key: "oldest", label: "Oldest first" },
-  { key: "name", label: "Name" },
-  { key: "cited", label: "Most cited" },
+  { key: "newest", label: msg("Newest first") },
+  { key: "oldest", label: msg("Oldest first") },
+  { key: "name", label: msg("Name") },
+  { key: "cited", label: msg("Most cited") },
 ];
 
 /** Whether a document belongs under each filter. `usedCount` is how many overview items cite it. */

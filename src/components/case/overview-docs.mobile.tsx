@@ -15,6 +15,8 @@ import { DocumentCardMobile } from "./document-card.mobile";
 import { UploadingRow } from "./document-row";
 import type { DocumentsProps } from "./overview-docs";
 import { useDocuments } from "./use-documents";
+import { useT } from "@/components/site/language-provider";
+import { useSite } from "@/components/site/site-provider";
 
 /** The phone's Documents: cards instead of a table, a sheet for each file's details and actions,
  * and Upload in a bar at the bottom where the thumb is. There is no drag-and-drop zone on a phone. */
@@ -25,6 +27,8 @@ export function DocumentsMobile({ c, focusDocumentId, onFocused, onOpenOverview 
   } = useDocuments(c, focusDocumentId, onFocused);
   const [sorting, setSorting] = useState(false);
   const [gmailOpen, setGmailOpen] = useState(false);
+  const t = useT();
+  const aiOpen = useSite().intakeChat === "open";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -32,22 +36,24 @@ export function DocumentsMobile({ c, focusDocumentId, onFocused, onOpenOverview 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div className="flex flex-col gap-3.5 px-4 pb-6 pt-4">
           <div className="flex flex-col gap-0.5">
-            <h2 className="font-display text-[24px] font-normal tracking-[-0.02em]">Documents</h2>
+            <h2 className="font-display text-[24px] font-normal tracking-[-0.02em]">{t("Documents")}</h2>
             <span className="text-[13px] leading-[1.45] text-ink-2">
-              {c.documents.length} {c.documents.length === 1 ? "file" : "files"}
-              {totalBytes > 0 && ` · ${formatBytes(totalBytes)}`} · the AI reads each one and cites it in your overview
+              {c.documents.length === 1 ? t("{n} file", { n: 1 }) : t("{n} files", { n: c.documents.length })}
+              {totalBytes > 0 && ` · ${formatBytes(totalBytes)}`}
+              {aiOpen && ` · ${t("the AI reads each one and cites it in your overview")}`}
             </span>
           </div>
 
           {leftOver.length > 0 && (
             <div className="flex flex-col gap-3 rounded-card border border-error-line bg-error-bg px-4 py-3">
               <div className="text-[13.5px] leading-[1.5] text-error-ink">
-                {leftOver.length === 1 ? "1 file didn't" : `${leftOver.length} files didn't`} upload when your case was created:{" "}
-                {leftOver.map((f) => f.name).join(", ")}.
+                {leftOver.length === 1
+                  ? t("1 file didn't upload when your case was created: {names}.", { names: leftOver.map((f) => f.name).join(", ") })
+                  : t("{n} files didn't upload when your case was created: {names}.", { n: leftOver.length, names: leftOver.map((f) => f.name).join(", ") })}
               </div>
               <Button variant="soft" size="lg" className="w-full" onClick={retry} disabled={upload.isPending}>
                 <RotateCw size={14} aria-hidden />
-                Try again
+                {t("Try again")}
               </Button>
             </div>
           )}
@@ -59,7 +65,7 @@ export function DocumentsMobile({ c, focusDocumentId, onFocused, onOpenOverview 
 
           {!hasAny && (
             <div className="rounded-card border border-dashed border-line-input px-4 py-8 text-center text-[15px] leading-[1.5] text-ink-2">
-              No documents yet. Add contracts, messages or notices so the AI can use them.
+              {aiOpen ? t("No documents yet. Add contracts, messages or notices so the AI can use them.") : t("No documents yet. Add contracts, messages or notices to keep them with your case.")}
             </div>
           )}
 
@@ -70,8 +76,8 @@ export function DocumentsMobile({ c, focusDocumentId, onFocused, onOpenOverview 
                   <Search size={16} aria-hidden className="pointer-events-none absolute left-3.5 text-ink-2" />
                   <input
                     type="search"
-                    aria-label="Search documents"
-                    placeholder="Search documents"
+                    aria-label={t("Search documents")}
+                    placeholder={t("Search documents")}
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     className="h-11 w-full rounded-full border border-line-input bg-white pl-10 pr-3.5 outline-none focus-visible:border-gold"
@@ -80,7 +86,7 @@ export function DocumentsMobile({ c, focusDocumentId, onFocused, onOpenOverview 
                 <button
                   type="button"
                   onClick={() => setSorting(true)}
-                  aria-label={`Sort: ${SORTS.find((s) => s.key === sort)?.label}`}
+                  aria-label={t("Sort: {sort}", { sort: t(SORTS.find((s) => s.key === sort)?.label ?? "") })}
                   data-no-tap
                   className="flex size-11 shrink-0 items-center justify-center rounded-full border border-line-input bg-white text-ink-2 active:bg-chip"
                 >
@@ -88,7 +94,7 @@ export function DocumentsMobile({ c, focusDocumentId, onFocused, onOpenOverview 
                 </button>
               </div>
 
-              <div role="group" aria-label="Filter documents" className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4">
+              <div role="group" aria-label={t("Filter documents")} className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4">
                 {FILTERS.map((f) => {
                   const on = filter === f.key;
                   return (
@@ -103,7 +109,7 @@ export function DocumentsMobile({ c, focusDocumentId, onFocused, onOpenOverview 
                         on ? "border-ink bg-ink text-white" : "border-line-input bg-white text-ink active:bg-chip",
                       )}
                     >
-                      {f.label} <span className="opacity-70">{c.documents.filter(tests[f.key]).length}</span>
+                      {t(f.label)} <span className="opacity-70">{c.documents.filter(tests[f.key]).length}</span>
                     </button>
                   );
                 })}
@@ -133,7 +139,7 @@ export function DocumentsMobile({ c, focusDocumentId, onFocused, onOpenOverview 
                   </div>
                 )}
                 {visible.length === 0 && (filter !== "all" || needle || uploading.length === 0) && (
-                  <div className="py-8 text-center text-[14px] text-ink-2">No documents match.</div>
+                  <div className="py-8 text-center text-[14px] text-ink-2">{t("No documents match.")}</div>
                 )}
               </div>
             </>
@@ -143,15 +149,15 @@ export function DocumentsMobile({ c, focusDocumentId, onFocused, onOpenOverview 
 
       <ChatBar>
         <div className="flex gap-2">
-          <Button variant="soft" size="lg" className="shrink-0" onClick={() => setGmailOpen(true)} aria-label="Find emails in Gmail">
+          <Button variant="soft" size="lg" className="shrink-0" onClick={() => setGmailOpen(true)} aria-label={t("Find emails in Gmail")}>
             <Mail size={16} aria-hidden />
-            Gmail
+            {t("Gmail")}
           </Button>
           <FilePicker onPick={add}>
             {(open) => (
               <Button variant="dark" size="lg" className="min-w-0 flex-1" onClick={open} disabled={upload.isPending}>
                 <Upload size={16} aria-hidden />
-                {upload.isPending ? "Uploading…" : "Upload documents"}
+                {upload.isPending ? t("Uploading…") : t("Upload documents")}
               </Button>
             )}
           </FilePicker>
@@ -161,7 +167,7 @@ export function DocumentsMobile({ c, focusDocumentId, onFocused, onOpenOverview 
 
       <GmailImportModal caseId={c.id} open={gmailOpen} onClose={() => setGmailOpen(false)} />
 
-      <BottomSheet open={sorting} onClose={() => setSorting(false)} title="Sort documents">
+      <BottomSheet open={sorting} onClose={() => setSorting(false)} title={t("Sort documents")}>
         {SORTS.map((s) => (
           <SheetRow
             key={s.key}
@@ -171,7 +177,7 @@ export function DocumentsMobile({ c, focusDocumentId, onFocused, onOpenOverview 
               setSorting(false);
             }}
           >
-            {s.label}
+            {t(s.label)}
           </SheetRow>
         ))}
       </BottomSheet>

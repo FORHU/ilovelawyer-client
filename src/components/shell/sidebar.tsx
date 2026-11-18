@@ -12,14 +12,17 @@ import { cn } from "@/lib/cn";
 import { clientRequestStatusLabel, useOpenLawyerRequestsQuery } from "@/lib/lawyer-requests/api";
 import { useApp } from "@/lib/store";
 import { areasLabel } from "@/lib/types";
+import { useSite } from "@/components/site/site-provider";
+import { useT } from "@/components/site/language-provider";
+import { msg } from "@/lib/i18n/msg";
 
 const railBtn =
   "flex size-[34px] shrink-0 items-center justify-center rounded-full border bg-white text-ink";
 
 const NAV: { href: string; label: string; icon: LucideIcon; match: RegExp }[] = [
-  { href: "/cases", label: "Cases", icon: Folder, match: /^\/cases(?!\/new)/ },
-  { href: "/lawyers", label: "Find a lawyer", icon: Scale, match: /^\/lawyers/ },
-  { href: "/settings", label: "Settings", icon: SlidersHorizontal, match: /^\/settings/ },
+  { href: "/cases", label: msg("Cases"), icon: Folder, match: /^\/cases(?!\/new)/ },
+  { href: "/lawyers", label: msg("Find a lawyer"), icon: Scale, match: /^\/lawyers/ },
+  { href: "/settings", label: msg("Settings"), icon: SlidersHorizontal, match: /^\/settings/ },
 ];
 
 export function Sidebar() {
@@ -32,9 +35,12 @@ export function Sidebar() {
   // A fresh draft each time: a refresh of New case keeps what's typed, a new visit doesn't. One left
   // unfinished on New case is saved under Drafts first.
   const { startNew: onNewCase } = useDraftNav();
+  const lawyersOpen = useSite().clientRequests === "open";
+  const t = useT();
+  const nav = NAV.filter((n) => lawyersOpen || n.href !== "/lawyers").map((n) => ({ ...n, label: t(n.label) }));
 
   const activeId = /^\/cases\/([^/]+)/.exec(pathname)?.[1];
-  const label = collapsed ? "Expand sidebar" : "Collapse sidebar";
+  const label = collapsed ? t("Expand sidebar") : t("Collapse sidebar");
 
   return (
     <aside
@@ -71,10 +77,10 @@ export function Sidebar() {
             className="flex h-10 items-center gap-2.5 rounded-full border border-line bg-white px-3.5 text-[13px] font-medium text-ink no-underline hover:border-line-hover hover:text-ink"
           >
             <Plus size={15} />
-            New case
+            {t("New case")}
           </Link>
-          <nav aria-label="Main" className="flex flex-col gap-0.5">
-            {NAV.map(({ href, label: text, icon: Icon, match }) => (
+          <nav aria-label={t("Main")} className="flex flex-col gap-0.5">
+            {nav.map(({ href, label: text, icon: Icon, match }) => (
               <Link
                 key={href}
                 href={href}
@@ -93,7 +99,7 @@ export function Sidebar() {
           <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
             <SidebarDrafts collapsed={false} />
             {cases.length > 0 && (
-              <div className="px-2.5 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[1px] text-muted">Your cases</div>
+              <div className="px-2.5 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[1px] text-muted">{t("Your cases")}</div>
             )}
             {cases.map((c) => {
               const openRequest = openRequests?.get(c.id);
@@ -117,7 +123,7 @@ export function Sidebar() {
           </div>
           <Link
             href="/settings"
-            aria-label="Account settings"
+            aria-label={t("Account settings")}
             className="flex items-center gap-2.5 border-t border-line px-2.5 pb-0.5 pt-3 text-ink no-underline hover:text-ink"
           >
             <Avatar initials={initials} size={28} className="border-0 bg-ink text-white" />
@@ -128,10 +134,10 @@ export function Sidebar() {
       ) : (
         <>
           <div className="flex min-h-0 flex-1 flex-col items-center gap-2 overflow-y-auto">
-            <Link href="/cases/new" onClick={onNewCase} aria-label="New case" title="New case" data-no-tap className={cn(railBtn, "border-line text-ink no-underline hover:text-ink")}>
+            <Link href="/cases/new" onClick={onNewCase} aria-label={t("New case")} title={t("New case")} data-no-tap className={cn(railBtn, "border-line text-ink no-underline hover:text-ink")}>
               <Plus size={15} />
             </Link>
-            {NAV.map(({ href, label: text, icon: Icon, match }) => (
+            {nav.map(({ href, label: text, icon: Icon, match }) => (
               <Link
                 key={href}
                 href={href}
@@ -170,7 +176,7 @@ export function Sidebar() {
             })}
           </div>
           <div className="flex flex-col items-center border-t border-line pt-3">
-            <Link href="/settings" aria-label="Account settings" title="Account settings">
+            <Link href="/settings" aria-label={t("Account settings")} title={t("Account settings")}>
               <Avatar initials={initials} size={28} className="border-0 bg-ink text-white" />
             </Link>
           </div>

@@ -83,4 +83,8 @@ describe("describeCasePayload", () => {
   it("sets the part of the UK the first message names (#973)", () => {
     expect(describeCasePayload("I lost my job and I am from Manchester.")).toMatchObject({ ukJurisdiction: "England and Wales", outsideUk: false });
   });
+
+  it("never sets a part of the UK on a site that doesn't ask for one (KR, PH)", () => {
+    expect(describeCasePayload("I worked in London before moving to Seoul.", [], false)).toMatchObject({ ukJurisdiction: null, outsideUk: false });
+  });
 });

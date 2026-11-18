@@ -2,7 +2,9 @@ import { Suspense } from "react";
 import { headers } from "next/headers";
 import localFont from "next/font/local";
 import { DeviceProvider } from "@/components/device/device-provider";
+import { ServerSite } from "@/components/site/server-site";
 import { deviceFromUserAgent } from "@/lib/device";
+import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 import "./landing.css";
 
 // Only the landing page uses these, so they load here and not in the root layout.
@@ -16,13 +18,16 @@ const caslonItalic = localFont({
   adjustFontFallback: "Times New Roman",
 });
 
-/** The server's guess at the device paints first (ADR 0001), so phones don't flash the desktop tree. */
+/** The server's guess at the device paints first (ADR 0001), so phones don't flash the desktop tree.
+ * The site comes from the host the same way, so a KR visitor never sees the UK page first. */
 async function ServerDevice({ children }: { children: React.ReactNode }) {
   const h = await headers();
   return (
-    <DeviceProvider initial={deviceFromUserAgent(h.get("user-agent"), h.get("sec-ch-ua-mobile"))}>
-      {children}
-    </DeviceProvider>
+    <ServerSite>
+      <DeviceProvider initial={deviceFromUserAgent(h.get("user-agent"), h.get("sec-ch-ua-mobile"))}>
+        {children}
+      </DeviceProvider>
+    </ServerSite>
   );
 }
 

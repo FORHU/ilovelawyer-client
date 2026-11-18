@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Ban, ChevronDown } from "lucide-react";
 import { getClientTerms } from "@/lib/auth/terms";
-import { CLIENT_TENANT_CODE } from "@/lib/tenant/client-tenant";
+import { useSite } from "@/components/site/site-provider";
+import { useLanguage, useT } from "@/components/site/language-provider";
 
 // A couple of pixels of slack: some browsers report fractional scroll heights
 // that never quite reach 0 even when the content is fully visible.
@@ -22,8 +23,11 @@ export function TermsReviewDialog({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [reachedEnd, setReachedEnd] = useState(false);
-  // Every client account is in CLIENT_TENANT_CODE, so that is the governing law shown.
-  const terms = getClientTerms(CLIENT_TENANT_CODE);
+  // A new account is opened in the site it signs up on, so that site's governing law is shown, in
+  // the page's language.
+  const t = useT();
+  const { lang } = useLanguage();
+  const terms = getClientTerms(useSite().code, lang);
 
   // Native <dialog> gives the focus trap, Escape and an inert background.
   useEffect(() => {
@@ -119,12 +123,12 @@ export function TermsReviewDialog({
             }}
             className="cursor-pointer rounded-md bg-navy-950 px-5 py-2.5 text-xs font-medium uppercase tracking-[1px] text-white transition-colors hover:bg-navy-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-950/40 focus-visible:ring-offset-2"
           >
-            I&apos;ve Read and Agree
+            {t("I've Read and Agree")}
           </button>
         ) : (
           <p className="flex items-center gap-1.5 text-xs text-muted">
             <ChevronDown className="size-3.5 animate-bounce" aria-hidden />
-            Scroll to the bottom to continue
+            {t("Scroll to the bottom to continue")}
           </p>
         )}
       </footer>

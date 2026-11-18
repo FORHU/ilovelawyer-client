@@ -177,7 +177,7 @@ export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, has
   const textStepSkip = !typing && (step === "where" || step === "others" || step === "want");
 
   const checking = !typing && step === "check";
-  const createDisabled = creating || c.titleMissing || draft.areas.length === 0 || !draft.region;
+  const createDisabled = creating || c.titleMissing || draft.areas.length === 0 || c.regionMissing;
 
   return (
     <ChatScreen>
@@ -256,7 +256,7 @@ export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, has
 
               <dl className="rounded-input border border-line bg-white px-4">
                 <Row label="Type of issue">{c.areaNames || "Not set"}</Row>
-                <Row label="Part of the UK">{draft.region ? (draft.region === "OUTSIDE_UK" ? "Outside the UK" : draft.region) : "Not set"}</Row>
+                {c.regionQuestion && <Row label="Part of the UK">{draft.region ? (draft.region === "OUTSIDE_UK" ? "Outside the UK" : draft.region) : "Not set"}</Row>}
                 {draft.where && <Row label="Town or city">{draft.where}</Row>}
                 <Row label="Your side">{draft.side ? sideLabel(draft.side) : "Not set"}</Row>
                 <Row label="What happened">{draft.happened || "Not set"}</Row>
@@ -265,8 +265,10 @@ export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, has
                 {files.length > 0 && <Row label="Attached files">{files.map((f) => f.name).join(", ")}</Row>}
               </dl>
 
-              {(draft.areas.length === 0 || !draft.region) && (
-                <div className="text-[13px] text-error">A type of issue and a part of the UK are needed. Use Edit details to add them.</div>
+              {(draft.areas.length === 0 || c.regionMissing) && (
+                <div className="text-[13px] text-error">
+                  {c.regionQuestion ? "A type of issue and a part of the UK are needed. Use Edit details to add them." : "A type of issue is needed. Use Edit details to add it."}
+                </div>
               )}
             </section>
           )}

@@ -4,12 +4,14 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { CircleCheck, X } from "lucide-react";
 import { useToasts, type Toast } from "@/lib/toast";
+import { useT } from "@/components/site/language-provider";
 
 /** How long a toast stays up. Long enough to read two lines and follow its link. */
 const TOAST_MS = 7000;
 
 function ToastCard({ toast }: { toast: Toast }) {
   const dismiss = useToasts((s) => s.dismiss);
+  const t = useT();
   useEffect(() => {
     const id = setTimeout(() => dismiss(toast.id), TOAST_MS);
     return () => clearTimeout(id);
@@ -31,7 +33,7 @@ function ToastCard({ toast }: { toast: Toast }) {
           </Link>
         )}
       </div>
-      <button type="button" aria-label="Dismiss" onClick={() => dismiss(toast.id)} className="-mr-1 -mt-1 flex size-8 shrink-0 items-center justify-center text-ink-2">
+      <button type="button" aria-label={t("Dismiss")} onClick={() => dismiss(toast.id)} className="-mr-1 -mt-1 flex size-8 shrink-0 items-center justify-center text-ink-2">
         <X size={16} />
       </button>
     </div>
@@ -45,8 +47,8 @@ export function Toaster() {
   if (toasts.length === 0) return null;
   return (
     <div aria-live="polite" className="pointer-events-none fixed inset-x-3 bottom-[84px] z-[60] flex flex-col items-center gap-2 md:inset-x-auto md:bottom-6 md:right-6 md:items-end">
-      {toasts.map((t) => (
-        <ToastCard key={t.id} toast={t} />
+      {toasts.map((item) => (
+        <ToastCard key={item.id} toast={item} />
       ))}
     </div>
   );

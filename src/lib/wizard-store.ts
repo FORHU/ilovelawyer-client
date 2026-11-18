@@ -57,7 +57,8 @@ interface WizardState {
   addFiles: (files: File[]) => void;
   removeFile: (index: number) => void;
   /** Validates the current step, then advances. Returns true when the last step is done. */
-  next: () => boolean;
+  /** `requireRegion`: whether step 1 needs which part of the UK (the UK site only). */
+  next: (requireRegion?: boolean) => boolean;
   back: () => boolean;
   goTo: (n: number) => void;
   reset: () => void;
@@ -112,10 +113,11 @@ export const useWizard = create<WizardState>()(
   removeOther: (id) => set((s) => ({ others: s.others.filter((o) => o.id !== id) })),
   addFiles: (files) => set((s) => ({ files: [...s.files, ...files] })),
   removeFile: (index) => set((s) => ({ files: s.files.filter((_, i) => i !== index) })),
-  next: () => {
+  next: (requireRegion = true) => {
     const { step, title, region, areas, budget, maxStep } = get();
-    if (step === 1 && (!title.trim() || !region || areas.length === 0)) {
-      set({ titleErr: !title.trim(), regionErr: !region, areasErr: areas.length === 0 });
+    const regionMissing = requireRegion && !region;
+    if (step === 1 && (!title.trim() || regionMissing || areas.length === 0)) {
+      set({ titleErr: !title.trim(), regionErr: regionMissing, areasErr: areas.length === 0 });
       return false;
     }
     if (step === BUDGET_STEP && ownAmountError(budget)) {

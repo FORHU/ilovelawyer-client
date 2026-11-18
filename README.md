@@ -10,7 +10,9 @@ Sign up, sign in, cases, documents and the AI consultation are real, against ilo
 2. Create `.env.local` (git-ignored):
    ```
    NEXT_PUBLIC_API_URL=http://localhost:3001
-   NEXT_PUBLIC_LAWYER_APP_URL=http://uk.ilovelawyer.local:3002
+   NEXT_PUBLIC_LAWYER_APP_URL_UK=http://uk.ilovelawyer.local:3002
+   NEXT_PUBLIC_LAWYER_APP_URL_PH=http://ph.ilovelawyer.local:3002
+   NEXT_PUBLIC_LAWYER_APP_URL_KR=http://kr.ilovelawyer.local:3002
    ```
 3. Run:
    ```bash

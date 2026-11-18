@@ -141,7 +141,7 @@ function addOthers(d: IntakeDraft, names: string[]): IntakeDraft {
  * Reads one message for anything the form asks, filling only what is still empty (never
  * overwriting an answer already given). Returns the new draft and a note of what it picked up.
  */
-function absorb(text: string, d: IntakeDraft, areas: CaseArea[]): { draft: IntakeDraft; got: string[] } {
+function absorb(text: string, d: IntakeDraft, areas: CaseArea[], regionQuestion: boolean): { draft: IntakeDraft; got: string[] } {
   const got: string[] = [];
   let next = d;
 
@@ -153,7 +153,8 @@ function absorb(text: string, d: IntakeDraft, areas: CaseArea[]): { draft: Intak
       got.push(guess.map((a) => a.name).join(" and "));
     }
   }
-  if (!next.region) {
+  // A site that doesn't ask for a part of the UK (KR, PH) never reads one out of the text either.
+  if (regionQuestion && !next.region) {
     const region = guessRegion(text);
     if (region) {
       next = { ...next, region };
@@ -188,11 +189,12 @@ function absorb(text: string, d: IntakeDraft, areas: CaseArea[]): { draft: Intak
 // ---- Deciding what to ask ----------------------------------------------------------------------
 
 /**
- * The next thing still missing. Required first (part of the UK; the type of issue is guessed, never
- * asked), then each optional question once, skipping any the client has already answered along the way.
+ * The next thing still missing. Required first (part of the UK, on a site that asks it; the type of
+ * issue is guessed, never asked), then each optional question once, skipping any the client has already
+ * answered along the way.
  */
-function nextStep(d: IntakeDraft, asked: ReadonlySet<IntakeStep>, hasFiles: boolean): IntakeStep {
-  if (!d.region) return "region";
+function nextStep(d: IntakeDraft, asked: ReadonlySet<IntakeStep>, hasFiles: boolean, regionQuestion: boolean): IntakeStep {
+  if (regionQuestion && !d.region) return "region";
   if (!d.where && !asked.has("where")) return "where";
   if (!d.side && !asked.has("side")) return "side";
   if (!d.others.length && !asked.has("others")) return "others";
@@ -232,7 +234,18 @@ export interface IntakeSnapshot {
   asked: IntakeStep[];
 }
 
-export function useIntakeChat({ areas, initial, initialFiles }: { areas: CaseArea[]; initial?: IntakeSnapshot | null; initialFiles?: File[] }) {
+export function useIntakeChat({
+  areas,
+  initial,
+  initialFiles,
+  regionQuestion = true,
+}: {
+  areas: CaseArea[];
+  initial?: IntakeSnapshot | null;
+  initialFiles?: File[];
+  /** The site asks which part of the UK a case is in (SiteConfig.regionQuestion). */
+  regionQuestion?: boolean;
+}) {
   const [messages, setMessages] = useState<IntakeMessage[]>(() => initial?.messages ?? []);
   const [step, setStep] = useState<IntakeStep>(() => initial?.step ?? "start");
   const [typing, setTyping] = useState(false);
@@ -264,7 +277,7 @@ export function useIntakeChat({ areas, initial, initialFiles }: { areas: CaseAre
 
   /** Moves on to the next missing question, with `lead` in front of it. */
   const ahead = (d: IntakeDraft, lead: string, fileCount = files.length) => {
-    const next = nextStep(d, asked.current, fileCount > 0);
+    const next = nextStep(d, asked.current, fileCount > 0, regionQuestion);
     say(lead + question(next), next);
   };
 
@@ -280,7 +293,7 @@ export function useIntakeChat({ areas, initial, initialFiles }: { areas: CaseAre
     push("user", text);
 
     // Anything the message says about any field is picked up, whatever question was open.
-    const { draft: read, got } = absorb(text, draft, areas);
+    const { draft: read, got } = absorb(text, draft, areas, regionQuestion);
 
     switch (step) {
       case "start": {

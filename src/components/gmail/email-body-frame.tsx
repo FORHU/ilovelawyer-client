@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ImageOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/components/site/language-provider";
 
 /** Locks the email down inside its frame: no scripts, no remote images (tracking pixels), no
  * fonts or styles fetched from elsewhere. Inline styles and embedded data: images still show; the
@@ -37,11 +38,12 @@ function documentFor(html: string, csp: string): string {
  */
 export function EmailBodyFrame({ html, text }: { html: string | null; text: string | null }) {
   const [showRemoteImages, setShowRemoteImages] = useState(false);
+  const t = useT();
 
   if (!html) {
     return (
       <pre className="whitespace-pre-wrap break-words rounded-input border border-line bg-white px-4 py-3.5 font-sans text-[14px] leading-[1.6] text-ink">
-        {text?.trim() || "This email has no text."}
+        {text?.trim() || t("This email has no text.")}
       </pre>
     );
   }
@@ -54,17 +56,17 @@ export function EmailBodyFrame({ html, text }: { html: string | null; text: stri
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-input border border-line bg-subtle px-4 py-2.5">
           <ImageOff size={14} aria-hidden className="shrink-0 text-ink-2" />
           <p className="min-w-0 flex-1 text-[12.5px] leading-[1.5] text-ink-2">
-            Images from the web are hidden to protect your privacy. Showing them lets the sender know you opened this email.
+            {t("Images from the web are hidden to protect your privacy. Showing them lets the sender know you opened this email.")}
           </p>
           <Button variant="soft" size="sm" onClick={() => setShowRemoteImages(true)} className="!h-[32px] !px-3.5">
-            Show images
+            {t("Show images")}
           </Button>
         </div>
       )}
       <iframe
         // A new key makes the browser load a fresh frame with the new CSP instead of patching it.
         key={showRemoteImages ? "with-images" : "locked"}
-        title="Email body"
+        title={t("Email body")}
         sandbox="allow-popups allow-popups-to-escape-sandbox"
         srcDoc={documentFor(html, showRemoteImages ? CSP_WITH_REMOTE_IMAGES : CSP)}
         referrerPolicy="no-referrer"

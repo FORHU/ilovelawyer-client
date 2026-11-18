@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
 import { ErrorBox } from "@/components/ui/banner";
+import { tr } from "@/lib/i18n/translate";
 
 const stripes = new Map<string, Promise<Stripe | null>>();
 
@@ -67,7 +68,7 @@ export function StripeCheckout({ clientSecret, publishableKey, onComplete }: { c
   return (
     <div className="flex flex-col gap-2">
       {state === "loading" && <div className="py-6 text-center text-[13px] text-muted">Loading the secure payment form…</div>}
-      {state === "failed" && <ErrorBox message="The payment form couldn't load. Check your connection and try again." />}
+      {state === "failed" && <ErrorBox message={tr("The payment form couldn't load. Check your connection and try again.")} />}
       <div ref={container} />
     </div>
   );

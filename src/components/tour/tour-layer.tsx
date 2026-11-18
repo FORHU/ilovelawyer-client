@@ -10,7 +10,7 @@ import { usePricingQuery } from "@/lib/pricing";
 import { firstVisible, selectedCaseTab } from "@/lib/tour/dom";
 import { fetchSeen } from "@/lib/tour/api";
 import { useTour } from "@/lib/tour/store";
-import { guideContext, tourForContext } from "@/lib/tour/tours";
+import { guideContext, tourForContext, type TourContext } from "@/lib/tour/tours";
 import { useTourHydrated } from "@/lib/tour/use-tour-hydrated";
 import { SupportUnreadAnnouncer } from "@/components/support/support-dot";
 import { SupportSheet } from "@/components/support/support-sheet";
@@ -18,6 +18,8 @@ import { GuideDrawer } from "./guide-drawer";
 import { barBottom, TourRunner, useStickyHeight } from "./tour-runner";
 import { useViewport } from "./use-viewport";
 import { WelcomeCard } from "./welcome-card";
+import { tr } from "@/lib/i18n/translate";
+import { useSite } from "@/components/site/site-provider";
 
 const TOAST_MS = 3500;
 /** How often a case page is checked for a tour it hasn't shown yet. */
@@ -38,7 +40,7 @@ function TourToast() {
         className="inline-flex min-h-12 items-center gap-2.5 rounded-full border border-success-line bg-success-bg px-5 text-[13px] text-success-ink shadow-[0_10px_30px_rgb(0_0_0/0.12)]"
       >
         <Check size={15} aria-hidden />
-        That&apos;s the tour. Open the guide whenever you need it.
+        {tr("That's the tour. Open the guide whenever you need it.")}
       </div>
     </div>
   );
@@ -60,6 +62,8 @@ export function TourLayer() {
   const cases = useCasesQuery();
   const { data: pricing } = usePricingQuery();
   const credits = pricing?.case.credits ?? null;
+  const site = useSite();
+  const tourContext: TourContext = { credits, ai: site.intakeChat === "open", lawyers: site.clientRequests === "open" };
 
   useEffect(() => {
     if (ready && user) useTour.getState().claimFor(user.id);
@@ -137,10 +141,10 @@ export function TourLayer() {
       store.unsee("T2");
       return;
     }
-    const id = tourForContext(context);
+    const id = tourForContext(context, tourContext);
     if (!id) return;
-    // The first stop of the case tour is the Interview's composer.
-    if (id === "T3" && selectedCaseTab() !== "tab-chat") firstVisible("tab-chat")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    // The first stop of the case tour is the Interview's composer (where there's an interview).
+    if (id === "T3" && tourContext.ai && selectedCaseTab() !== "tab-chat") firstVisible("tab-chat")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     store.start(id);
   };
 
@@ -153,13 +157,14 @@ export function TourLayer() {
           name={firstName(user?.name)}
           onShow={() => {
             useTour.getState().markSeen(["T0"], "COMPLETED");
-            useTour.getState().start(pathname === "/cases" ? "T1" : "T5");
+            if (pathname === "/cases") useTour.getState().start("T1");
+            else if (tourContext.ai) useTour.getState().start("T5");
           }}
           onSkip={() => useTour.getState().markSeen(["T0", "T1", "T5"], "DISMISSED")}
         />
       )}
-      {guideOpen && <GuideDrawer pathname={pathname} credits={credits} onTourPage={tourThisPage} />}
-      {tour && <TourRunner key={tour.id === "G" ? `G:${tour.question}` : tour.id} tour={tour} credits={credits} />}
+      {guideOpen && <GuideDrawer pathname={pathname} context={tourContext} onTourPage={tourThisPage} />}
+      {tour && <TourRunner key={tour.id === "G" ? `G:${tour.question}` : tour.id} tour={tour} context={tourContext} />}
       {toast && <TourToast />}
       <SupportSheet />
       <SupportUnreadAnnouncer />

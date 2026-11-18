@@ -1,6 +1,7 @@
 import { firstName, formatDateTime } from "@/lib/format";
 import { money } from "@/lib/pricing";
 import type { LawyerRequest, Quotation } from "./api";
+import { currentLang, currentLocale, tr } from "@/lib/i18n/translate";
 
 /** Where a request sits on the five-step line. "sent" is its own step (the brief is being written
  * before any lawyer sees it), and "finalising" is CONFIRMED: the client has accepted a quote and pays
@@ -32,18 +33,22 @@ export function phaseOf(request: LawyerRequest): Phase {
 /** How many steps are behind the request. */
 export const POSITION: Record<Phase, number> = { sent: 0, finding: 1, reviewing: 2, quote: 3, finalising: 4, engaged: 4, closed: 5, expired: 1 };
 
-export const day = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+// Dates in the page's language (lib/i18n/translate.ts): "6 Nov" or "11월 6일".
+const shortMonth = () => (currentLang() === "ko" ? "long" : "short");
 
-/** "Friday 6 November" */
+export const day = (iso: string) => new Date(iso).toLocaleDateString(currentLocale(), { day: "numeric", month: shortMonth() });
+
+/** "Friday 6 November", "11월 6일 금요일". */
 export function pickByDay(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+  return new Date(iso).toLocaleDateString(currentLocale(), { weekday: "long", day: "numeric", month: "long" });
 }
 
-/** "9:00 am on Friday 6 November": the request closes at that moment, not at the end of the day. */
+/** "9:00 am on Friday 6 November" ("11월 6일 금요일 오전 9:00"): the request closes at that moment,
+ * not at the end of the day. */
 export function pickByTime(iso: string) {
   const at = new Date(iso);
-  const time = at.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true });
-  return `${time} on ${at.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}`;
+  const time = at.toLocaleTimeString(currentLocale(), { hour: "numeric", minute: "2-digit", hour12: true });
+  return tr("{time} on {date}", { time, date: at.toLocaleDateString(currentLocale(), { weekday: "long", day: "numeric", month: "long" }) });
 }
 
 export interface Step {
@@ -59,30 +64,34 @@ export function stepsFor(request: LawyerRequest, phase: Phase): Step[] {
   const on = request.lawyers.length;
   const quoted = request.lawyers.filter((l) => l.quote).length;
   return [
-    { label: "Request sent", sub: "Anonymised summary of your overview", time: formatDateTime(request.createdAt), expect: "Takes about a minute" },
+    { label: tr("Request sent"), sub: tr("Anonymised summary of your overview"), time: formatDateTime(request.createdAt), expect: tr("Takes about a minute") },
     {
-      label: phase === "expired" ? "No lawyer picked it up" : "Finding a lawyer",
-      sub: "Sent to matching lawyers",
-      expect: phase === "expired" ? "Ended after 48 hours, or 7 days without a choice" : "Most are picked up within a day",
+      label: phase === "expired" ? tr("No lawyer picked it up") : tr("Finding a lawyer"),
+      sub: tr("Sent to matching lawyers"),
+      expect: phase === "expired" ? tr("Ended after 48 hours, or 7 days without a choice") : tr("Most are picked up within a day"),
     },
-    { label: on > 1 ? `${on} lawyers are reviewing` : "A lawyer is reviewing", sub: "Conflict check, then a quote" },
-    { label: quoted > 1 ? "Compare the quotes" : "Review the quote", sub: "Accept one and pay through ilovelawyer, or decline" },
+    { label: on > 1 ? tr("{n} lawyers are reviewing", { n: on }) : tr("A lawyer is reviewing"), sub: tr("Conflict check, then a quote") },
+    { label: quoted > 1 ? tr("Compare the quotes") : tr("Review the quote"), sub: tr("Accept one and pay through ilovelawyer, or decline") },
     {
       label:
         phase === "finalising"
           ? request.awaitingPayment
-            ? `Pay${first ? ` ${first}'s` : " the"} quote`
-            : `Finalising${first ? ` with ${first}` : ""}`
-          : "Working with your lawyer",
-      sub: "Messages, and read-only access to your case",
+            ? first
+              ? tr("Pay {name}'s quote", { name: first })
+              : tr("Pay the quote")
+            : first
+              ? tr("Finalising with {name}", { name: first })
+              : tr("Finalising")
+          : tr("Working with your lawyer"),
+      sub: tr("Messages, and read-only access to your case"),
       time: request.engagedAt ? (request.closedAt ? `${day(request.engagedAt)} – ${day(request.closedAt)}` : formatDateTime(request.engagedAt)) : undefined,
       expect:
         phase === "finalising"
           ? request.awaitingPayment && request.quotation
-            ? `Pay by ${pickByDay(request.quotation.expiresAt)}`
-            : "Usually takes a few minutes"
+            ? tr("Pay by {date}", { date: pickByDay(request.quotation.expiresAt) })
+            : tr("Usually takes a few minutes")
           : request.engagedAt
-            ? `Started ${day(request.engagedAt)}`
+            ? tr("Started {date}", { date: day(request.engagedAt) })
             : undefined,
     },
   ];
@@ -108,25 +117,28 @@ export function quoteExpired(quotation: Quotation): boolean {
 /** What has happened, oldest first, from the times the API gives: each lawyer taking it up and
  * quoting (several lawyers), then the engagement. */
 export function activityOf(request: LawyerRequest): { at: string; text: string }[] {
-  const lawyer = request.lawyer?.name ?? "A lawyer";
-  const events: { at: string; text: string }[] = [{ at: request.createdAt, text: "You sent your request" }];
+  const lawyer = request.lawyer?.name ?? tr("A lawyer");
+  const events: { at: string; text: string }[] = [{ at: request.createdAt, text: tr("You sent your request") }];
   for (const offer of request.lawyers) {
-    if (offer.joinedAt) events.push({ at: offer.joinedAt, text: `${offer.lawyer.name} took up your request` });
-    if (offer.quote) events.push({ at: offer.quote.sentAt, text: `${offer.lawyer.name} sent a ${money(offer.quotation?.total ?? offer.quote.amount)} quote` });
+    if (offer.joinedAt) events.push({ at: offer.joinedAt, text: tr("{name} took up your request", { name: offer.lawyer.name }) });
+    if (offer.quote) events.push({ at: offer.quote.sentAt, text: tr("{name} sent a {amount} quote", { name: offer.lawyer.name, amount: money(offer.quotation?.total ?? offer.quote.amount) }) });
   }
-  if (request.quotation?.acceptedAt) events.push({ at: request.quotation.acceptedAt, text: `You accepted ${lawyer}'s quote` });
+  if (request.quotation?.acceptedAt) events.push({ at: request.quotation.acceptedAt, text: tr("You accepted {name}'s quote", { name: lawyer }) });
   if (request.engagedAt) {
-    events.push({ at: request.engagedAt, text: paidThroughUs(request.quotation) ? `You paid ${lawyer}, who can now see your case` : `You started working with ${lawyer}, who can now see your case` });
+    events.push({
+      at: request.engagedAt,
+      text: paidThroughUs(request.quotation) ? tr("You paid {name}, who can now see your case", { name: lawyer }) : tr("You started working with {name}, who can now see your case", { name: lawyer }),
+    });
   }
-  if (request.closedAt) events.push({ at: request.closedAt, text: request.closedBy === "LAWYER" ? "Your lawyer ended the engagement" : "You ended the engagement" });
+  if (request.closedAt) events.push({ at: request.closedAt, text: request.closedBy === "LAWYER" ? tr("Your lawyer ended the engagement") : tr("You ended the engagement") });
   return events.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
 }
 
 /** What the lawyer can see, and from when. */
 export const VISIBILITY = (engaged: boolean, since?: string | null) => [
-  { text: "Anonymised summary of your overview", when: "From the start", yes: true },
-  { text: "Names, only for a conflict check", when: "From the start", yes: true },
-  { text: "Your case, documents and interview (read-only)", when: engaged ? (since ? `Since ${day(since)}` : "Now") : "Once you pay", yes: engaged },
+  { text: tr("Anonymised summary of your overview"), when: tr("From the start"), yes: true },
+  { text: tr("Names, only for a conflict check"), when: tr("From the start"), yes: true },
+  { text: tr("Your case, documents and interview (read-only)"), when: engaged ? (since ? tr("Since {date}", { date: day(since) }) : tr("Now")) : tr("Once you pay"), yes: engaged },
 ];
 
 /** Whether the client can still withdraw, and whether the "what the lawyer can see" card applies. */

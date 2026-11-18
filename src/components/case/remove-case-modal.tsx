@@ -12,6 +12,7 @@ import { useArchiveCaseMutation, useDeleteCaseMutation } from "@/lib/cases/queri
 import { invalidateLawyerRequests } from "@/lib/lawyer-requests/api";
 import { useApp } from "@/lib/store";
 import type { Case } from "@/lib/types";
+import { useT } from "@/components/site/language-provider";
 
 export type RemoveMode = "archive" | "delete";
 
@@ -26,6 +27,7 @@ export function RemoveCaseModal({ c, mode, onClose }: { c: Case; mode: RemoveMod
   const [blockedByLawyer, setBlockedByLawyer] = useState(false);
   const mutation = mode === "archive" ? archive : remove;
   const deleting = mode === "delete";
+  const t = useT();
 
   const confirm = () => {
     setError("");
@@ -34,41 +36,42 @@ export function RemoveCaseModal({ c, mode, onClose }: { c: Case; mode: RemoveMod
       onSuccess: () => {
         // The API just withdrew any open lawyer request on this case as a side effect.
         invalidateLawyerRequests(queryClient, userId, c.id);
-        useApp.getState().setBanner(deleting ? "Case deleted." : "Case archived. You can restore it from your cases list.");
+        useApp.getState().setBanner(deleting ? t("Case deleted.") : t("Case archived. You can restore it from your cases list."));
         onClose();
         router.push("/cases");
       },
       onError: (err) => {
         setBlockedByLawyer(err instanceof ApiError && err.code === "CASE_HAS_ACTIVE_ENGAGEMENT");
-        setError(err instanceof Error ? err.message : "That didn't work. Try again.");
+        setError(err instanceof Error ? err.message : t("That didn't work. Try again."));
       },
     });
   };
 
   return (
-    <Modal open onClose={onClose} locked={mutation.isPending} title={deleting ? "Delete this case?" : "Archive this case?"} subtitle={c.title}>
+    <Modal open onClose={onClose} locked={mutation.isPending} title={deleting ? t("Delete this case?") : t("Archive this case?")} subtitle={c.title}>
       {deleting ? (
         <ul className="flex list-disc flex-col gap-1.5 pl-5 text-[13.5px] leading-[1.5] text-ink-2">
           <li>
-            The AI chat and {c.documents.length === 1 ? "the 1 document" : `all ${c.documents.length} documents`} are deleted for good.
+            {c.documents.length === 1
+              ? t("The AI chat and the 1 document are deleted for good.")
+              : t("The AI chat and all {n} documents are deleted for good.", { n: c.documents.length })}
           </li>
-          <li>Any open lawyer request on this case is withdrawn.</li>
-          <li>Your {c.credits} remaining chat credits are lost. They aren&apos;t refunded.</li>
+          <li>{t("Any open lawyer request on this case is withdrawn.")}</li>
+          <li>{t("Your {n} remaining chat credits are lost. They aren't refunded.", { n: c.credits })}</li>
         </ul>
       ) : (
         <p className="text-[13.5px] leading-[1.5] text-ink-2">
-          The case moves out of your list and stays safe, with its chat, documents and credits. An open lawyer request is withdrawn. You can
-          restore it any time.
+          {t("The case moves out of your list and stays safe, with its chat, documents and credits. An open lawyer request is withdrawn. You can restore it any time.")}
         </p>
       )}
       {error && <ErrorBox message={error} />}
-      {blockedByLawyer && <div className="text-[13px] text-ink-2">Open the Lawyer tab to end the engagement, then come back.</div>}
+      {blockedByLawyer && <div className="text-[13px] text-ink-2">{t("Open the Lawyer tab to end the engagement, then come back.")}</div>}
       <div className="flex justify-end gap-2.5">
         <Button variant="outline" onClick={onClose} disabled={mutation.isPending}>
-          Cancel
+          {t("Cancel")}
         </Button>
         <Button variant={deleting ? "danger" : "primary"} onClick={confirm} disabled={mutation.isPending}>
-          {mutation.isPending ? "Working…" : deleting ? "Delete case" : "Archive case"}
+          {mutation.isPending ? t("Working…") : deleting ? t("Delete case") : t("Archive case")}
         </Button>
       </div>
     </Modal>

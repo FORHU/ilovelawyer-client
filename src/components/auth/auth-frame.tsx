@@ -1,4 +1,8 @@
+"use client";
+
 import { BrandLogo } from "@/components/auth/brand-logo";
+import { useT } from "@/components/site/language-provider";
+import { LanguageSwitch } from "@/components/site/language-switch";
 import { NeedHelp } from "@/components/support/need-help";
 
 /** The auth screens' layout: the fixed dark brand panel on the left (wide screens only) and the
@@ -12,6 +16,7 @@ export function AuthFrame({
   subheading?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const t = useT();
   return (
     <div className="flex h-dvh w-full overflow-hidden bg-surface">
       {/* LEFT: fixed dark brand panel */}
@@ -29,9 +34,9 @@ export function AuthFrame({
         <div className="absolute inset-0 z-10 flex flex-col items-start justify-center pl-16 pr-12">
           <div className="mb-8 h-0.5 w-12 bg-gold" />
           <blockquote className="mb-5 max-w-100 font-display text-[24px] italic leading-9.5 text-white">
-            &ldquo;The law is reason, free from passion.&rdquo;
+            &ldquo;{t("The law is reason, free from passion.")}&rdquo;
           </blockquote>
-          <p className="text-[11px] uppercase tracking-[2.5px] text-[rgba(224,227,229,0.45)]">— Aristotle</p>
+          <p className="text-[11px] uppercase tracking-[2.5px] text-[rgba(224,227,229,0.45)]">— {t("Aristotle")}</p>
         </div>
       </div>
 
@@ -50,12 +55,13 @@ export function AuthFrame({
               © {new Date().getFullYear()} ILOVELAWYER
             </span>
             <div className="flex items-center gap-4">
+              <LanguageSwitch className="cursor-pointer border-0 bg-transparent text-xs font-semibold tracking-[1.2px] text-muted underline decoration-line transition-colors hover:text-ink" />
               <NeedHelp />
               <button
                 type="button"
                 className="cursor-pointer border-0 bg-transparent text-xs font-semibold uppercase tracking-[1.2px] text-muted underline decoration-line transition-colors hover:text-ink"
               >
-                Privacy
+                {t("Privacy")}
               </button>
             </div>
           </div>

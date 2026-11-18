@@ -6,6 +6,8 @@ import { cn } from "@/lib/cn";
 import { timeAgo } from "@/lib/format";
 import { caseBasics } from "@/lib/cases/basics";
 import type { Case, CaseIntake } from "@/lib/types";
+import { useSite } from "@/components/site/site-provider";
+import { useT } from "@/components/site/language-provider";
 
 /** Where the case stands at the top of the Overview: how many of the things a lawyer needs are in,
  * whether the overview is current, and the one next step. The "things a lawyer needs" are the API's
@@ -25,24 +27,28 @@ export function ReadinessBanner({
   onContinue: () => void;
 }) {
   // An empty list from the API is as good as none: there is nothing to count.
+  const site = useSite();
   const fromApi = !!intake.completeness && intake.completeness.criteria.length > 0;
-  const criteria = fromApi ? intake.completeness!.criteria : caseBasics(c, intake);
+  const criteria = fromApi ? intake.completeness!.criteria : caseBasics(c, intake, site.regionQuestion);
+  // Updating the overview is the AI's job, so a site whose AI isn't open has no Update.
+  const aiOpen = site.intakeChat === "open";
   const met = criteria.filter((cr) => cr.met).length;
   const left = criteria.length - met;
-  const canUpdate = intake.updates.allowed && intake.updates.leftToday > 0;
+  const canUpdate = aiOpen && intake.updates.allowed && intake.updates.leftToday > 0;
+  const t = useT();
 
   return (
     <section
-      aria-label="Where your case stands"
+      aria-label={t("Where your case stands")}
       className="flex flex-wrap items-center gap-x-6 gap-y-5 rounded-modal border border-line bg-subtle px-5 py-[22px] md:px-6"
     >
       <div className="flex min-w-0 flex-[999_1_420px] flex-col gap-3">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <span className="text-[10px] font-semibold uppercase tracking-[1px] text-ink-2">
-            {!fromApi ? "Your case so far" : left === 0 ? "Ready for a lawyer" : "Lawyer readiness"}
+            {!fromApi ? t("Your case so far") : left === 0 ? "Ready for a lawyer" : "Lawyer readiness"}
           </span>
           <span className="font-display text-[22px] tracking-[-0.02em]">
-            {met} of {criteria.length} {fromApi ? "things a lawyer needs" : "basics covered"}
+            {fromApi ? `${met} of ${criteria.length} things a lawyer needs` : t("{met} of {total} basics covered", { met, total: criteria.length })}
           </span>
         </div>
         <div
@@ -74,9 +80,9 @@ export function ReadinessBanner({
               )}
             >
               {cr.met && <Check size={12} strokeWidth={2.5} aria-hidden />}
-              {cr.label}
+              {fromApi ? cr.label : t(cr.label)}
               <span className="sr-only">
-                {cr.met ? " — done" : " — still needed"}
+                {cr.met ? t(" — done") : t(" — still needed")}
               </span>
             </li>
           ))}
@@ -90,18 +96,24 @@ export function ReadinessBanner({
           updatePending={updatePending}
           onUpdate={onUpdate}
         />
-        <Button variant="dark" size="md" onClick={onContinue}>
-          Continue the interview
-          <ArrowRight size={14} aria-hidden />
-        </Button>
+        {aiOpen && (
+          <Button variant="dark" size="md" onClick={onContinue}>
+            Continue the interview
+            <ArrowRight size={14} aria-hidden />
+          </Button>
+        )}
         <span className="text-xs text-ink-2">
-          {left === 0
-            ? fromApi
-              ? "You have what a lawyer needs to get started."
-              : "The basics are covered. Keep going in the interview to add the detail."
-            : fromApi
-              ? `${left} ${left === 1 ? "thing" : "things"} left before we can suggest the right lawyer.`
-              : `${left} of the basics still to cover — the interview will ask about ${left === 1 ? "it" : "them"}.`}
+          {!aiOpen
+            ? left === 0
+              ? t("The basics are covered.")
+              : t("{left} of the basics still to cover. Add them in the case details.", { left })
+            : left === 0
+              ? fromApi
+                ? "You have what a lawyer needs to get started."
+                : "The basics are covered. Keep going in the interview to add the detail."
+              : fromApi
+                ? `${left} ${left === 1 ? "thing" : "things"} left before we can suggest the right lawyer.`
+                : `${left} of the basics still to cover — the interview will ask about ${left === 1 ? "it" : "them"}.`}
         </span>
       </div>
     </section>

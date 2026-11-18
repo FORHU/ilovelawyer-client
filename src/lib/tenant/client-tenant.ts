@@ -1,13 +1,33 @@
-export type TenantCode = "PH" | "UK";
+/** Every site the client app serves. Keep in sync with ilovelawyer-api's src/types/tenant-code.ts. */
+export const TENANT_CODES = ["PH", "UK", "KR"] as const;
+
+export type TenantCode = (typeof TENANT_CODES)[number];
+
+/** Narrows an untrusted string (a header) to a known site. */
+export function isTenantCode(value: unknown): value is TenantCode {
+  return TENANT_CODES.includes(value as TenantCode);
+}
 
 /**
- * The Tenant every client account belongs to. The client app is served from one domain for every
- * region (ilovelawyer.com; app.ilovelawyer.com for staging), so the host can't say PH or UK the way
- * the lawyer app's ph./uk. subdomains do. Must match CLIENT_TENANT_CODE in
- * ilovelawyer-api/src/constants/auth.constants.ts, which is what actually puts new accounts there;
- * this copy only picks what the UI shows (the Terms' governing law).
+ * The site a host that isn't a site's own shows: localhost:3004, client-local.ilovelawyer.com and
+ * the domains the client app was deployed on before it had one host per site (ilovelawyer.com,
+ * app.ilovelawyer.com). Every client account was opened in the UK until then, so those hosts stay
+ * the UK site. The API makes the same choice (DEFAULT_CLIENT_TENANT_CODE in its auth.constants.ts).
  */
-export const CLIENT_TENANT_CODE: TenantCode = "UK";
+export const DEFAULT_SITE: TenantCode = "UK";
 
-/** The lawyer app (ilovelawyer-app), for a lawyer account that tried to use the client app. */
-export const LAWYER_APP_URL = process.env.NEXT_PUBLIC_LAWYER_APP_URL ?? "http://uk.ilovelawyer.local:3002";
+/**
+ * The lawyer app (ilovelawyer-app) for each site, for a lawyer account that tried to use the client
+ * app: NEXT_PUBLIC_LAWYER_APP_URL_UK/_PH/_KR. NEXT_PUBLIC_LAWYER_APP_URL, the name from before there
+ * were three, still counts as the UK one (deploy-uk.yml passes it). Each variable
+ * is named in full so Next inlines it in the browser bundle.
+ */
+const LAWYER_APP_URLS: Record<TenantCode, string> = {
+  UK: process.env.NEXT_PUBLIC_LAWYER_APP_URL_UK ?? process.env.NEXT_PUBLIC_LAWYER_APP_URL ?? "http://uk.ilovelawyer.local:3002",
+  PH: process.env.NEXT_PUBLIC_LAWYER_APP_URL_PH ?? "http://ph.ilovelawyer.local:3002",
+  KR: process.env.NEXT_PUBLIC_LAWYER_APP_URL_KR ?? "http://kr.ilovelawyer.local:3002",
+};
+
+export function lawyerAppUrl(site: TenantCode): string {
+  return LAWYER_APP_URLS[site];
+}

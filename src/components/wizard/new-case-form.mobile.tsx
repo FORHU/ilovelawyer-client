@@ -11,8 +11,10 @@ import { cn } from "@/lib/cn";
 import { WIZARD_STEPS, useWizard } from "@/lib/wizard-store";
 import type { NewCaseFormProps } from "./new-case-form";
 import { StepBudgetMobile, StepDetailsMobile, StepDocumentsMobile, StepPeopleMobile } from "./steps.mobile";
+import { useT } from "@/components/site/language-provider";
+import { msg } from "@/lib/i18n/msg";
 
-const STEP_TITLES = ["Case details", "People involved", "Budget", "Documents"];
+const STEP_TITLES = [msg("Case details"), msg("People involved"), msg("Budget"), msg("Documents")];
 
 /** After a Continue that was turned back, takes the person to the first thing to fix. */
 function focusFirstProblem() {
@@ -31,6 +33,7 @@ function focusFirstProblem() {
  * the keyboard is up, so what's being typed keeps the room. */
 export function NewCaseFormMobile({ included, creating, error, onBack, onNext, onChat }: NewCaseFormProps) {
   const step = useWizard((s) => s.step);
+  const t = useT();
   const scroller = useRef<HTMLDivElement>(null);
 
   // Each step starts at its top.
@@ -51,7 +54,7 @@ export function NewCaseFormMobile({ included, creating, error, onBack, onNext, o
           <button
             type="button"
             onClick={onBack}
-            aria-label={step === 1 ? "Back to cases" : "Back to the previous step"}
+            aria-label={step === 1 ? t("Back to cases") : t("Back to the previous step")}
             data-no-tap
             className="flex size-11 shrink-0 items-center justify-center rounded-full active:bg-chip"
           >
@@ -59,13 +62,13 @@ export function NewCaseFormMobile({ included, creating, error, onBack, onNext, o
           </button>
           <div className="min-w-0 flex-1">
             <div className="text-[12px] text-muted">
-              Step {step} of {WIZARD_STEPS}
+              {t("Step {n} of {total}", { n: step, total: WIZARD_STEPS })}
             </div>
-            <div className="truncate text-[15px] font-medium leading-tight">{STEP_TITLES[step - 1]}</div>
+            <div className="truncate text-[15px] font-medium leading-tight">{t(STEP_TITLES[step - 1])}</div>
           </div>
           <GuideButton variant="bar" />
         </div>
-        <div role="progressbar" aria-label="Progress" aria-valuemin={1} aria-valuemax={WIZARD_STEPS} aria-valuenow={step} className="flex gap-1 px-4 pb-2.5">
+        <div role="progressbar" aria-label={t("Progress")} aria-valuemin={1} aria-valuemax={WIZARD_STEPS} aria-valuenow={step} className="flex gap-1 px-4 pb-2.5">
           {Array.from({ length: WIZARD_STEPS }, (_, i) => (
             <span key={i} className={cn("h-1 flex-1 rounded-full", i < step ? "bg-gold" : "bg-line")} />
           ))}
@@ -80,9 +83,9 @@ export function NewCaseFormMobile({ included, creating, error, onBack, onNext, o
           {step === 3 && <StepBudgetMobile />}
           {step === 4 && <StepDocumentsMobile />}
           {error && <ErrorBox message={error} />}
-          {step === 1 && (
+          {step === 1 && onChat && (
             <button type="button" onClick={onChat} data-no-tap className="min-h-11 self-center text-[14px] font-medium text-ink-2 underline underline-offset-4">
-              Chat with us instead
+              {t("Chat with us instead")}
             </button>
           )}
         </div>
@@ -92,14 +95,14 @@ export function NewCaseFormMobile({ included, creating, error, onBack, onNext, o
         <div className="flex gap-2">
           {step > 1 && (
             <Button variant="outline" size="xl" className="flex-1" onClick={onBack} disabled={creating}>
-              Back
+              {t("Back")}
             </Button>
           )}
           <Button size="xl" className="flex-[1.6] disabled:!opacity-60" onClick={next} disabled={creating}>
-            {!last ? "Continue" : creating ? "Creating…" : "Create case"}
+            {!last ? t("Continue") : creating ? t("Creating…") : t("Create case")}
           </Button>
         </div>
-        <p className="mt-2 text-center text-[11.5px] text-muted">Free · includes {included} chat credits</p>
+        <p className="mt-2 text-center text-[11.5px] text-muted">{t("Free · includes {included} chat credits", { included })}</p>
       </ChatBar>
     </ChatScreen>
   );

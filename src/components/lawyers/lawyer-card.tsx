@@ -8,6 +8,7 @@ import { firstConsultationLabel, toneFor, type ClientLawyer } from "@/lib/lawyer
 import { AreaChip, LawyerAvatar, Rating, VerifiedBadge } from "./lawyer-parts";
 import { RequestLawyerModal } from "./request-lawyer-modal";
 
+import { useT } from "@/components/site/language-provider";
 /** Practice-area chips shown before "+N": one row, so every card is the same height. */
 const MAX_CHIPS = 3;
 
@@ -15,9 +16,10 @@ const MAX_CHIPS = 3;
  * panel in a modal (RequestLawyerModal), without leaving the list.
  * Every slot is always there and one line tall, whatever the lawyer filled in, so cards line up. */
 export function LawyerCard({ lawyer }: { lawyer: ClientLawyer }) {
+  const t = useT();
   const profile = `/lawyers/${lawyer.id}`;
   const [requesting, setRequesting] = useState(false);
-  const place = [lawyer.firmName ?? "Independent solicitor", lawyer.town].filter(Boolean).join(" · ");
+  const place = [lawyer.firmName ?? t("Independent lawyer"), lawyer.town].filter(Boolean).join(" · ");
   const chips = lawyer.practiceAreas.slice(0, MAX_CHIPS);
   const more = lawyer.practiceAreas.length - chips.length;
   return (
@@ -40,7 +42,7 @@ export function LawyerCard({ lawyer }: { lawyer: ClientLawyer }) {
       </div>
       <div className="flex h-[30px] flex-nowrap items-center gap-2 overflow-hidden" title={lawyer.practiceAreas.join(", ")}>
         {chips.length === 0 ? (
-          <span className="text-[13px] text-ink-2">No practice areas listed</span>
+          <span className="text-[13px] text-ink-2">{t("No practice areas listed")}</span>
         ) : (
           <>
             {chips.map((a) => (
@@ -51,15 +53,15 @@ export function LawyerCard({ lawyer }: { lawyer: ClientLawyer }) {
         )}
       </div>
       <div className="flex flex-col gap-0.5 rounded-input border border-line bg-subtle px-4 py-3">
-        <span className="text-xs text-ink-2">First consultation</span>
+        <span className="text-xs text-ink-2">{t("First consultation")}</span>
         <span className="text-[15px] font-semibold">{firstConsultationLabel(lawyer)}</span>
       </div>
       <div className="mt-auto flex items-center justify-end gap-2">
         <Link href={profile} className={cn(buttonClass("soft", "sm"), "no-underline hover:text-ink")}>
-          View profile
+          {t("View profile")}
         </Link>
         <Button variant="dark" size="sm" onClick={() => setRequesting(true)}>
-          Request
+          {t("Request")}
         </Button>
       </div>
       <RequestLawyerModal lawyer={lawyer} open={requesting} onClose={() => setRequesting(false)} />

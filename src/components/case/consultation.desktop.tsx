@@ -5,11 +5,10 @@ import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { FilePicker } from "@/components/ui/file-picker";
 import { AiMark } from "@/components/ui/misc";
-import { LawyerSuggestion } from "@/components/case/lawyer-suggestion";
-import { RegionPrompt } from "@/components/case/region-prompt";
+import { AfterAnswer } from "@/components/case/after-answer";
 import { DeleteConfirm, MessageMenu } from "@/components/case/message-actions";
 import { usePayment } from "@/lib/payment-store";
-import { caseRegion, type Case } from "@/lib/types";
+import type { Case } from "@/lib/types";
 import { PROMPTS, type Consultation } from "./use-consultation";
 
 export function ConsultationDesktop({ c, consultation }: { c: Case; consultation: Consultation }) {
@@ -95,8 +94,7 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
               </div>
             )}
             {latestAnswer && !thinking && !openRequest && (
-              // Until the case knows where it is, asking that comes before any lawyer (#973).
-              caseRegion(c) === "" ? <RegionPrompt caseId={c.id} /> : <LawyerSuggestion caseId={c.id} latestAnswerId={latestAnswer.id} />
+              <AfterAnswer c={c} latestAnswerId={latestAnswer.id} />
             )}
             {thinking && (
               <div className="flex gap-3" role="status" aria-label="The assistant is typing">

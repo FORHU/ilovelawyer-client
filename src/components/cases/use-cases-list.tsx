@@ -12,6 +12,9 @@ import { usePricingQuery } from "@/lib/pricing";
 import { useApp } from "@/lib/store";
 import { areasLabel, type Case } from "@/lib/types";
 import { startNewCase } from "@/lib/wizard-store";
+import { useT } from "@/components/site/language-provider";
+import { msg } from "@/lib/i18n/msg";
+import { formatDayLocal } from "@/lib/format";
 
 // The cases list follows the lawyer app's case portfolio: one entry per case with sortable dates,
 // search, an Active / Archived switch, a notes line, a menu and pages of ten. The API returns all of
@@ -22,13 +25,14 @@ export const PAGE_SIZE = 10;
 
 export type SortField = "created" | "updated";
 export type SortOrder = "asc" | "desc";
-export const SORT_LABELS: Record<SortField, string> = { created: "Created", updated: "Updated" };
+export const SORT_LABELS: Record<SortField, string> = { created: msg("Created"), updated: msg("Updated") };
 export const SORT_FIELDS = Object.keys(SORT_LABELS) as SortField[];
 const SORT_KEY: Record<SortField, "createdAt" | "updatedAt"> = { created: "createdAt", updated: "updatedAt" };
 
 export type CaseMenuItem = { label: string; icon: ReactNode; onSelect: () => void; danger?: boolean };
 
-export const formatDate = (iso: string) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(iso));
+/** "12 Nov 2026", or "2026년 11월 12일" in Korean (lib/format.ts). */
+export const formatDate = (iso: string) => formatDayLocal(iso);
 
 /** One line of what the client wrote about the case, under the parties. */
 export function notesLine(notes: string) {
@@ -38,6 +42,7 @@ export function notesLine(notes: string) {
 
 export function useCasesList() {
   const router = useRouter();
+  const t = useT();
   // A fresh draft each time: a refresh of New case keeps what's typed, a new visit doesn't.
   const newCase = () => {
     startNewCase();
@@ -68,7 +73,7 @@ export function useCasesList() {
 
   const included = pricing?.case.credits ?? "…";
   const total = active.data?.length ?? 0;
-  const count = active.isPending ? "Loading your cases…" : `${total} ${total === 1 ? "case" : "cases"}`;
+  const count = active.isPending ? t("Loading your cases…") : total === 1 ? t("{n} case", { n: total }) : t("{n} cases", { n: total });
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -109,17 +114,17 @@ export function useCasesList() {
   const menuFor = (c: Case): CaseMenuItem[] =>
     status === "ACTIVE"
       ? [
-          { label: "Edit details", icon: <Pencil size={14} />, onSelect: () => setEditing(c) },
-          { label: "Archive case", icon: <Archive size={14} />, onSelect: () => setRemoving({ c, mode: "archive" }) },
-          { label: "Delete case", icon: <Trash2 size={14} />, onSelect: () => setRemoving({ c, mode: "delete" }), danger: true },
+          { label: t("Edit details"), icon: <Pencil size={14} />, onSelect: () => setEditing(c) },
+          { label: t("Archive case"), icon: <Archive size={14} />, onSelect: () => setRemoving({ c, mode: "archive" }) },
+          { label: t("Delete case"), icon: <Trash2 size={14} />, onSelect: () => setRemoving({ c, mode: "delete" }), danger: true },
         ]
       : [
           {
-            label: "Restore case",
+            label: t("Restore case"),
             icon: <RotateCcw size={14} />,
-            onSelect: () => restore.mutate(c.id, { onSuccess: () => useApp.getState().setBanner("Case restored.") }),
+            onSelect: () => restore.mutate(c.id, { onSuccess: () => useApp.getState().setBanner(t("Case restored.")) }),
           },
-          { label: "Delete case", icon: <Trash2 size={14} />, onSelect: () => setRemoving({ c, mode: "delete" }), danger: true },
+          { label: t("Delete case"), icon: <Trash2 size={14} />, onSelect: () => setRemoving({ c, mode: "delete" }), danger: true },
         ];
 
   const searching = search.trim() !== "";

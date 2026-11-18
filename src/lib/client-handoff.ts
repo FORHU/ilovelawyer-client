@@ -1,3 +1,5 @@
+import { tr } from "@/lib/i18n/translate";
+import { msg } from "@/lib/i18n/msg";
 /**
  * The UK client-to-lawyer hand-off contract (FORHU/ilovelawyer-app#862, ilovelawyer-api#503):
  * the values and socket events both apps rely on. The REST endpoints and shapes are in
@@ -49,13 +51,13 @@ export const CLIENT_REQUEST_STAGE_BY_STATUS: Record<ClientRequestStatus, ClientR
 };
 
 export const CLIENT_REQUEST_STAGE_LABELS: Record<ClientRequestStage, string> = {
-  waiting: "Looking for a lawyer",
-  review: "A lawyer is reviewing your case",
-  accepted: "Quote received",
-  ongoing: "Lawyer confirmed",
-  done: "Closed",
-  expired: "No lawyer found",
-  withdrawn: "Withdrawn",
+  waiting: msg("Looking for a lawyer"),
+  review: msg("A lawyer is reviewing your case"),
+  accepted: msg("Quote received"),
+  ongoing: msg("Lawyer confirmed"),
+  done: msg("Closed"),
+  expired: msg("No lawyer found"),
+  withdrawn: msg("Withdrawn"),
 };
 
 export function clientRequestStage(status: ClientRequestStatus): ClientRequestStage {
@@ -64,8 +66,9 @@ export function clientRequestStage(status: ClientRequestStatus): ClientRequestSt
 
 /** The shared default label for a status — a short, generic string fit for a list row or badge.
  * A fuller screen (a status timeline, a quote review) writes its own copy for the stage instead. */
+/** In the page's language (the labels above are the English keys). */
 export function clientRequestStatusLabel(status: ClientRequestStatus): string {
-  return CLIENT_REQUEST_STAGE_LABELS[clientRequestStage(status)];
+  return tr(CLIENT_REQUEST_STAGE_LABELS[clientRequestStage(status)]);
 }
 
 /** How a lawyer's claim on a request ended. */

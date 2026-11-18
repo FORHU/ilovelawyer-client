@@ -8,6 +8,7 @@ import { ErrorBox } from "@/components/ui/banner";
 import { waitForPayment, type PaymentStatus } from "@/lib/billing/api";
 import { showTopUpDone } from "@/lib/billing/top-up";
 import { useSession } from "@/lib/auth/session";
+import { tr } from "@/lib/i18n/translate";
 
 type View = { state: "checking" } | { state: "pending" } | { state: "failed"; message: string; back: string };
 
@@ -37,7 +38,7 @@ function PaymentReturn() {
   );
 
   const check = useCallback(async () => {
-    if (!paymentId) return setView({ state: "failed", message: "This link is missing its payment.", back: "/cases" });
+    if (!paymentId) return setView({ state: "failed", message: tr("This link is missing its payment."), back: "/cases" });
     setView({ state: "checking" });
     try {
       const status = await waitForPayment(paymentId);
@@ -45,13 +46,13 @@ function PaymentReturn() {
       if (status.status === "FAILED") {
         return setView({
           state: "failed",
-          message: status.failureReason ?? "Your payment didn't go through. Nothing was charged.",
+          message: status.failureReason ?? tr("Your payment didn't go through. Nothing was charged."),
           back: status.caseId ? `/cases/${status.caseId}` : "/cases",
         });
       }
       setView({ state: "pending" });
     } catch (err) {
-      setView({ state: "failed", message: err instanceof Error ? err.message : "We couldn't check your payment.", back: "/cases" });
+      setView({ state: "failed", message: err instanceof Error ? err.message : tr("We couldn't check your payment."), back: "/cases" });
     }
   }, [finish, paymentId]);
 
@@ -66,24 +67,24 @@ function PaymentReturn() {
       <div className="flex max-w-[420px] flex-col items-center gap-3 text-center">
         {view.state === "checking" && (
           <>
-            <div className="font-display text-[22px] tracking-[-0.02em]">Confirming your payment…</div>
-            <div className="text-[13px] text-ink-2">This takes a few seconds.</div>
+            <div className="font-display text-[22px] tracking-[-0.02em]">{tr("Confirming your payment…")}</div>
+            <div className="text-[13px] text-ink-2">{tr("This takes a few seconds.")}</div>
           </>
         )}
         {view.state === "pending" && (
           <>
-            <div className="font-display text-[22px] tracking-[-0.02em]">Still confirming</div>
+            <div className="font-display text-[22px] tracking-[-0.02em]">{tr("Still confirming")}</div>
             <div className="text-[13px] leading-[1.6] text-ink-2">
-              Your bank hasn&apos;t confirmed the payment yet. You won&apos;t be charged twice. Check again in a moment.
+              {tr("Your bank hasn't confirmed the payment yet. You won't be charged twice. Check again in a moment.")}
             </div>
-            <Button onClick={() => void check()}>Check again</Button>
+            <Button onClick={() => void check()}>{tr("Check again")}</Button>
           </>
         )}
         {view.state === "failed" && (
           <>
             <ErrorBox message={view.message} />
             <Button variant="outline" onClick={() => router.replace(view.back)}>
-              Back
+              {tr("Back")}
             </Button>
           </>
         )}

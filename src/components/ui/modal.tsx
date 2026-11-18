@@ -3,6 +3,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import { useT } from "@/components/site/language-provider";
 
 const FOCUSABLE =
   'a[href],button:not([disabled]),input:not([disabled]),textarea,select,[tabindex]:not([tabindex="-1"])';
@@ -32,6 +33,7 @@ export function Modal({ open, onClose, locked, title, subtitle, size = "md", chi
   const panel = useRef<HTMLDivElement>(null);
   const lockedRef = useRef(locked);
   const closeRef = useRef(onClose);
+  const t = useT();
   useEffect(() => {
     lockedRef.current = locked;
     closeRef.current = onClose;
@@ -101,7 +103,7 @@ export function Modal({ open, onClose, locked, title, subtitle, size = "md", chi
           </div>
           <button
             type="button"
-            aria-label="Close"
+            aria-label={t("Close")}
             onClick={onClose}
             disabled={locked}
             className="-mr-2 -mt-2 flex size-10 shrink-0 items-center justify-center text-ink-2"

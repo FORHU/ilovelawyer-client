@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 import { useDialog } from "@/components/tour/use-dialog";
 import { useBodyScrollLock } from "./use-body-scroll-lock";
 import { cn } from "@/lib/cn";
+import { useT } from "@/components/site/language-provider";
 
 /** Pulling the sheet down past this many px lets it go. */
 const DISMISS_DISTANCE = 90;
@@ -40,6 +41,7 @@ function Sheet({ onClose, title, children, className }: { onClose: () => void; t
   const start = useRef<number | null>(null);
   const [drag, setDrag] = useState(0);
   const [pulling, setPulling] = useState(false);
+  const t = useT();
   useDialog(panel, onClose);
   useBodyScrollLock();
 
@@ -83,7 +85,7 @@ function Sheet({ onClose, title, children, className }: { onClose: () => void; t
           <div aria-hidden="true" className="mx-auto mt-2.5 h-1 w-10 rounded-full bg-line-input" />
           <div className="flex items-center justify-between gap-3 pl-5 pr-2 pt-1">
             <h2 className="font-display text-[20px] tracking-[-0.01em]">{title}</h2>
-            <button type="button" aria-label="Close" onClick={onClose} data-no-tap className="flex size-11 items-center justify-center rounded-full text-ink-2 active:bg-chip">
+            <button type="button" aria-label={t("Close")} onClick={onClose} data-no-tap className="flex size-11 items-center justify-center rounded-full text-ink-2 active:bg-chip">
               <X size={20} aria-hidden="true" />
             </button>
           </div>

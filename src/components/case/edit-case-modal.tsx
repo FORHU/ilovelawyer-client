@@ -12,7 +12,9 @@ import { useUpdateCaseMutation } from "@/lib/cases/queries";
 import { useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
 import { useApp } from "@/lib/store";
 import { cn } from "@/lib/cn";
+import { useSite } from "@/components/site/site-provider";
 import { caseRegion, regionFields, type Case, type CaseRegion, type OtherParty, type Side } from "@/lib/types";
+import { useT } from "@/components/site/language-provider";
 
 /** Once a lawyer holds the request their conflict check and quote rest on these, so the API fixes
  * the type of issue, the part of the UK and the people (409 CASE_LOCKED_BY_REQUEST). */
@@ -33,6 +35,9 @@ export function EditCaseModal({ c, onClose }: { c: Case; onClose: () => void }) 
   // Starts unset when nobody has said where the case is: saving then leaves it unset, rather than
   // quietly writing "outside the UK" (#973).
   const [region, setRegion] = useState<CaseRegion | "">(caseRegion(c));
+  // Which part of the UK is asked on the UK site only.
+  const { regionQuestion, clientRequests } = useSite();
+  const t = useT();
   const [where, setWhere] = useState(c.where);
   const [side, setSide] = useState<Side>(c.side ?? "");
   const [others, setOthers] = useState<OtherParty[]>(c.others);
@@ -65,23 +70,23 @@ export function EditCaseModal({ c, onClose }: { c: Case; onClose: () => void }) 
       },
       {
         onSuccess: () => {
-          useApp.getState().setBanner("Case details saved.");
+          useApp.getState().setBanner(t("Case details saved."));
           onClose();
         },
-        onError: (err) => setError(err instanceof Error ? err.message : "Couldn't save your changes. Try again."),
+        onError: (err) => setError(err instanceof Error ? err.message : t("Couldn't save your changes. Try again.")),
       },
     );
   };
 
   return (
-    <Modal open onClose={onClose} locked={update.isPending} title="Edit case details" subtitle="Changes apply to what the AI and any lawyer see from now on.">
+    <Modal open onClose={onClose} locked={update.isPending} title={t("Edit case details")} subtitle={t("Changes apply to what the AI and any lawyer see from now on.")}>
       {locked && (
         <div className="rounded-input border border-line bg-subtle px-4 py-3 text-[13px] leading-[1.5] text-ink-2">
           A lawyer is working on your request, so the type of issue, the part of the UK and the people involved can&apos;t change now.
         </div>
       )}
       <div className="flex flex-col gap-2">
-        <WizardLabel htmlFor="edit-title">Case title *</WizardLabel>
+        <WizardLabel htmlFor="edit-title">{t("Case title *")}</WizardLabel>
         <input
           id="edit-title"
           value={title}
@@ -93,7 +98,7 @@ export function EditCaseModal({ c, onClose }: { c: Case; onClose: () => void }) 
           }}
           className={cn(inputClass, "font-display text-[17px]", titleErr && "border-error-field")}
         />
-        {titleErr && <div className="text-xs text-error">Please give your case a title.</div>}
+        {titleErr && <div className="text-xs text-error">{t("Please give your case a title.")}</div>}
       </div>
       <AreaField
         value={areas}
@@ -105,15 +110,17 @@ export function EditCaseModal({ c, onClose }: { c: Case; onClose: () => void }) 
         error={areasErr}
         disabled={locked}
       />
-      <RegionField
-        value={region}
-        onChange={setRegion}
-        disabled={locked}
-        hint="A case can't move outside the UK while a lawyer request is open."
-      />
+      {regionQuestion && (
+        <RegionField
+          value={region}
+          onChange={setRegion}
+          disabled={locked}
+          hint="A case can't move outside the UK while a lawyer request is open."
+        />
+      )}
       <div className="flex flex-col gap-2">
-        <WizardLabel htmlFor="edit-where">Town or city</WizardLabel>
-        <TextInput id="edit-where" value={where} placeholder="e.g. Leeds" onChange={(e) => setWhere(e.target.value)} />
+        <WizardLabel htmlFor="edit-where">{t("Town or city")}</WizardLabel>
+        <TextInput id="edit-where" value={where} placeholder={t("e.g. Leeds")} onChange={(e) => setWhere(e.target.value)} />
       </div>
       <SideField value={side} onChange={setSide} />
       <OthersField
@@ -131,22 +138,25 @@ export function EditCaseModal({ c, onClose }: { c: Case; onClose: () => void }) 
           if (p.wants !== undefined) setWants(p.wants);
         }}
       />
-      {/* Not fixed by a lawyer's hold: the client can change it until they hire. */}
-      <BudgetField
-        value={budget}
-        onChange={(p) => {
-          setBudget((b) => ({ ...b, ...p }));
-          setBudgetErr(false);
-        }}
-        error={budgetErr}
-      />
+      {/* Not fixed by a lawyer's hold: the client can change it until they hire. Only where lawyers
+          take requests: a budget is for them. */}
+      {clientRequests === "open" && (
+        <BudgetField
+          value={budget}
+          onChange={(p) => {
+            setBudget((b) => ({ ...b, ...p }));
+            setBudgetErr(false);
+          }}
+          error={budgetErr}
+        />
+      )}
       {error && <ErrorBox message={error} />}
       <div className="flex justify-end gap-2.5">
         <Button variant="outline" onClick={onClose} disabled={update.isPending}>
-          Cancel
+          {t("Cancel")}
         </Button>
         <Button onClick={save} disabled={update.isPending}>
-          {update.isPending ? "Saving…" : "Save changes"}
+          {update.isPending ? t("Saving…") : t("Save changes")}
         </Button>
       </div>
     </Modal>

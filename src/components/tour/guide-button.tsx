@@ -5,6 +5,7 @@ import { SupportDot } from "@/components/support/support-dot";
 import { cn } from "@/lib/cn";
 import { useSupportUnread } from "@/lib/support/ticket-queries";
 import { useTour } from "@/lib/tour/store";
+import { useT } from "@/components/site/language-provider";
 
 const variants = {
   /** The sidebar's list of pages. */
@@ -29,19 +30,20 @@ const dots = {
  * tour's "Guide" stop. A red dot says the support team has replied: the guide is where Contact
  * support lives. */
 export function GuideButton({ variant }: { variant: keyof typeof variants }) {
+  const t = useT();
   const unread = useSupportUnread();
   return (
     <button
       type="button"
       onClick={() => useTour.getState().setGuideOpen(true)}
-      aria-label={unread > 0 ? "Guide (new support reply)" : "Guide"}
-      title="Guide"
+      aria-label={unread > 0 ? t("Guide (new support reply)") : t("Guide")}
+      title={t("Guide")}
       data-tour="guide"
       data-no-tap
       className={cn("relative", variants[variant])}
     >
       <CircleHelp size={variant === "rail" ? 15 : variant === "bar" ? 17 : variant === "pill" ? 14 : 16} aria-hidden />
-      {(variant === "nav" || variant === "pill") && "Guide"}
+      {(variant === "nav" || variant === "pill") && t("Guide")}
       {unread > 0 && <SupportDot className={dots[variant]} />}
     </button>
   );

@@ -43,13 +43,14 @@ export function regionFromDescription(text: string): UkJurisdiction | null {
  * chat-wonder's create_case tool fills in for real once that text runs as the first message. Its
  * type of issue is what the message plainly points to among `areas` (the site's list, the same
  * guess the scripted intake makes), "Other" when nothing does or the list isn't loaded yet; its
- * part of the UK is "not known yet" unless the message plainly names one (#973). */
-export function describeCasePayload(text: string, areas: CaseArea[] = []): NewCase {
+ * part of the UK is "not known yet" unless the message plainly names one (#973). A site that doesn't
+ * ask for a part of the UK (`regionQuestion` false: KR, PH) never gets one, whatever the text names. */
+export function describeCasePayload(text: string, areas: CaseArea[] = [], regionQuestion = true): NewCase {
   const guessed = guessAreas(text, areas).map((a) => a.code);
   return {
     title: titleFromDescription(text),
     areas: guessed.length ? guessed : [PLACEHOLDER_CASE_AREA],
-    ukJurisdiction: regionFromDescription(text),
+    ukJurisdiction: regionQuestion ? regionFromDescription(text) : null,
     outsideUk: false,
     where: "",
     side: null,

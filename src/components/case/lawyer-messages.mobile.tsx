@@ -12,9 +12,11 @@ import { LawyerMessage } from "./lawyer-message";
 import type { LawyerMessagesProps } from "./lawyer-messages";
 import { MESSAGE_MAX_LENGTH, useLawyerMessages } from "./use-lawyer-messages";
 
+import { useT } from "@/components/site/language-provider";
 /** The phone's thread with a lawyer: a card on the page (who, the latest message, an unread count)
  * that opens the conversation as a full screen. Messages are marked read when that screen opens. */
 export function LawyerMessagesMobile(props: LawyerMessagesProps) {
+  const t = useT();
   const { requestId, claimId, lawyerName, closed } = props;
   const [open, setOpen] = useState(false);
   const { thread, messages, unread } = useLawyerMessages({ requestId, claimId, markReadWhen: open });
@@ -25,7 +27,7 @@ export function LawyerMessagesMobile(props: LawyerMessagesProps) {
     <section data-tour="lawyer-messages" className="flex flex-col gap-3 rounded-modal border border-line p-4">
       <div className="flex items-center gap-2 text-[14px] font-medium text-ink">
         <MessageCircleMore size={18} className="text-muted" aria-hidden="true" />
-        <span className="min-w-0 flex-1 truncate">Messages with {lawyerName}</span>
+        <span className="min-w-0 flex-1 truncate">{t("Messages with {name}", { name: lawyerName })}</span>
         {unread > 0 && (
           <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-error px-1.5 text-[11px] text-white" aria-label={`${unread} unread`}>
             {unread}
@@ -34,17 +36,17 @@ export function LawyerMessagesMobile(props: LawyerMessagesProps) {
       </div>
       <p className="line-clamp-2 text-[14px] leading-[1.5] text-ink-2">
         {thread.isLoading
-          ? "Loading messages…"
+          ? t("Loading messages…")
           : thread.isError
-            ? "Couldn't load your messages."
+            ? t("Couldn't load your messages.")
             : last
-              ? `${last.author.side === "CLIENT" ? "You: " : ""}${preview}`
+              ? `${last.author.side === "CLIENT" ? t("You: ") : ""}${preview}`
               : props.beforeHire
-                ? "Ask them anything before you hire."
-                : "No messages yet. Ask them anything."}
+                ? t("Ask them anything before you hire.")
+                : t("No messages yet. Ask them anything.")}
       </p>
       <Button variant="outline" size="lg" className="w-full" onClick={() => setOpen(true)}>
-        {closed ? "Read messages" : "Open messages"}
+        {closed ? t("Read messages") : t("Open messages")}
       </Button>
       {open && <MessagesScreen {...props} onClose={() => setOpen(false)} />}
     </section>
@@ -53,6 +55,7 @@ export function LawyerMessagesMobile(props: LawyerMessagesProps) {
 
 /** The conversation, over the whole screen. Opened from the card; the back button closes it. */
 function MessagesScreen({ c, requestId, claimId, lawyerName, closed, beforeHire = false, onClose }: LawyerMessagesProps & { onClose: () => void }) {
+  const t = useT();
   const { thread, messages, post, draft, setDraft, documentId, setDocumentId, error, send } = useLawyerMessages({ requestId, claimId, markReadWhen: false });
   const [picking, setPicking] = useState(false);
   const panel = useRef<HTMLDivElement>(null);
@@ -80,9 +83,9 @@ function MessagesScreen({ c, requestId, claimId, lawyerName, closed, beforeHire 
   const canShare = !beforeHire && c.documents.length > 0;
 
   return createPortal(
-    <div ref={panel} role="dialog" aria-modal="true" aria-label={`Messages with ${lawyerName}`} tabIndex={-1} className="fixed inset-0 z-50 flex flex-col bg-white outline-none">
+    <div ref={panel} role="dialog" aria-modal="true" aria-label={t("Messages with {name}", { name: lawyerName })} tabIndex={-1} className="fixed inset-0 z-50 flex flex-col bg-white outline-none">
       <header className="keyboard-hide flex shrink-0 items-center gap-1 border-b border-line px-2 pt-[env(safe-area-inset-top)]">
-        <button type="button" aria-label="Back" onClick={onClose} data-no-tap className="flex size-11 shrink-0 items-center justify-center rounded-full active:bg-chip">
+        <button type="button" aria-label={t("Back")} onClick={onClose} data-no-tap className="flex size-11 shrink-0 items-center justify-center rounded-full active:bg-chip">
           <ArrowLeft size={20} aria-hidden="true" />
         </button>
         <div className="min-w-0 flex-1 py-2">
@@ -92,14 +95,14 @@ function MessagesScreen({ c, requestId, claimId, lawyerName, closed, beforeHire 
       </header>
 
       <ChatScreen>
-        <div ref={log} role="log" aria-label={`Messages with ${lawyerName}`} aria-live="polite" className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div ref={log} role="log" aria-label={t("Messages with {name}", { name: lawyerName })} aria-live="polite" className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <div className="flex flex-col gap-4 px-4 py-4">
             {thread.isLoading ? (
-              <p className="text-[14px] text-muted">Loading messages…</p>
+              <p className="text-[14px] text-muted">{t("Loading messages…")}</p>
             ) : thread.isError ? (
-              <ErrorBox message="Couldn't load your messages." />
+              <ErrorBox message={t("Couldn't load your messages.")} />
             ) : messages.length === 0 ? (
-              <p className="text-[14px] text-muted">No messages yet.</p>
+              <p className="text-[14px] text-muted">{t("No messages yet.")}</p>
             ) : (
               <ul className="flex flex-col gap-4">
                 {messages.map((m) => (
@@ -112,10 +115,10 @@ function MessagesScreen({ c, requestId, claimId, lawyerName, closed, beforeHire 
 
         <ChatBar>
           {closed ? (
-            <p className="py-2 text-center text-[13px] text-muted">This engagement has ended. You can still read your messages, but not reply.</p>
+            <p className="py-2 text-center text-[13px] text-muted">{t("This engagement has ended. You can still read your messages, but not reply.")}</p>
           ) : (
             <>
-              {beforeHire && <p className="mb-2 px-1 text-[12.5px] leading-[1.4] text-muted">Don&apos;t share contact details. Keep the conversation here until you hire a lawyer.</p>}
+              {beforeHire && <p className="mb-2 px-1 text-[12.5px] leading-[1.4] text-muted">{t("Don't share contact details. Keep the conversation here until you hire a lawyer.")}</p>}
               {error && <ErrorBox message={error} />}
               {shared && (
                 <div className="mb-2 flex">
@@ -131,7 +134,7 @@ function MessagesScreen({ c, requestId, claimId, lawyerName, closed, beforeHire 
               <form onSubmit={send}>
                 <ComposerPill>
                   {canShare && (
-                    <ComposerButton aria-label="Share a document" onClick={() => setPicking(true)}>
+                    <ComposerButton aria-label={t("Share a document")} onClick={() => setPicking(true)}>
                       <Paperclip size={20} aria-hidden="true" />
                     </ComposerButton>
                   )}
@@ -142,13 +145,13 @@ function MessagesScreen({ c, requestId, claimId, lawyerName, closed, beforeHire 
                     value={draft}
                     maxLength={MESSAGE_MAX_LENGTH}
                     onChange={(e) => setDraft(e.target.value)}
-                    placeholder={`Write to ${lawyerName}…`}
-                    aria-label="Message to your lawyer"
+                    placeholder={t("Write to {name}…", { name: lawyerName })}
+                    aria-label={t("Message to your lawyer")}
                     enterKeyHint="enter"
                     // 24px of text + 10px above and below = 44px, the height of the round buttons beside it.
                     className="min-h-11 min-w-0 flex-1 resize-none bg-transparent px-1.5 py-2.5 text-base leading-6 text-ink outline-none placeholder:text-muted"
                   />
-                  <ComposerButton type="submit" tone="send" aria-label="Send" disabled={post.isPending || (!draft.trim() && !documentId)}>
+                  <ComposerButton type="submit" tone="send" aria-label={t("Send")} disabled={post.isPending || (!draft.trim() && !documentId)}>
                     <ArrowUp size={20} aria-hidden="true" />
                   </ComposerButton>
                 </ComposerPill>
@@ -158,7 +161,7 @@ function MessagesScreen({ c, requestId, claimId, lawyerName, closed, beforeHire 
         </ChatBar>
       </ChatScreen>
 
-      <BottomSheet open={picking} onClose={() => setPicking(false)} title="Share a document">
+      <BottomSheet open={picking} onClose={() => setPicking(false)} title={t("Share a document")}>
         <SheetRow
           selected={documentId === ""}
           onSelect={() => {
@@ -166,7 +169,7 @@ function MessagesScreen({ c, requestId, claimId, lawyerName, closed, beforeHire 
             setPicking(false);
           }}
         >
-          No document
+          {t("No document")}
         </SheetRow>
         {c.documents.map((d) => (
           <SheetRow

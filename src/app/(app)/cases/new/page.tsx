@@ -31,6 +31,7 @@ import { uploadAll, useCreateCaseMutation } from "@/lib/cases/queries";
 import { usePricingQuery } from "@/lib/pricing";
 import { useApp } from "@/lib/store";
 import { useWizard } from "@/lib/wizard-store";
+import { useSite } from "@/components/site/site-provider";
 
 type ChatState = { chat: DraftChat; files: File[] };
 
@@ -53,7 +54,10 @@ function NewCase() {
   const [ready, setReady] = useState(false);
   // The AI chat is the default way in; the 3-step form is the alternative.
   // From the URL, so a "New case" link always lands on the chat even when the form is showing.
-  const mode = useSearchParams().get("mode") === "form" ? "form" : "chat";
+  const site = useSite();
+  const chatOpen = site.intakeChat === "open";
+  const formAsked = useSearchParams().get("mode") === "form";
+  const mode = !chatOpen || formAsked ? "form" : "chat";
   const setMode = (m: "chat" | "form") => router.replace(m === "form" ? "/cases/new?mode=form" : "/cases/new");
   const [hasDraft, setHasDraft] = useState(false);
   // Where the phone's Check step portals its Edit and Create icons (see IntakeChatMobile).
@@ -163,7 +167,7 @@ function NewCase() {
   if (!ready) return null;
 
   const onNext = () => {
-    if (wiz.next()) void create();
+    if (wiz.next(site.regionQuestion)) void create();
   };
   const onBack = () => {
     if (wiz.back()) router.push("/cases");
@@ -202,7 +206,7 @@ function NewCase() {
     const id = draftId.current;
     let created;
     try {
-      created = await createCaseDirect.mutateAsync(describeCasePayload(text, caseAreas ?? []));
+      created = await createCaseDirect.mutateAsync(describeCasePayload(text, caseAreas ?? [], site.regionQuestion));
     } catch (err) {
       setChatCreating(false);
       setChatError(err instanceof Error && err.message ? err.message : "We couldn't create the case. Try again.");
@@ -277,11 +281,15 @@ function NewCase() {
       error={error}
       onBack={onBack}
       onNext={onNext}
-      onChat={() => {
-        // Back to the conversation where it was left, not a new one.
-        setChatStart(chatState.current);
-        setMode("chat");
-      }}
+      onChat={
+        chatOpen
+          ? () => {
+              // Back to the conversation where it was left, not a new one.
+              setChatStart(chatState.current);
+              setMode("chat");
+            }
+          : undefined
+      }
     />
   );
 }

@@ -7,6 +7,7 @@ import { useSession } from "@/lib/auth/session";
 import { money, usePricingQuery } from "@/lib/pricing";
 import { usePayment } from "@/lib/payment-store";
 import { useApp } from "@/lib/store";
+import { tr } from "@/lib/i18n/translate";
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -35,15 +36,15 @@ export function topUpSummary(pricing: Pricing | undefined, packId: string | null
 
 /** The pay button: confirming beats processing, and a top-up a promo made free isn't "Pay". */
 export function topUpButtonLabel(s: { processing: boolean; confirming: boolean; total: Money | undefined }) {
-  if (s.processing) return s.confirming ? "Confirming your payment…" : "Processing…";
-  if (s.confirming) return "Check payment";
-  if (s.total && s.total.amountMinor === 0) return "Add credits";
-  return `Pay ${s.total ? money(s.total) : ""}`;
+  if (s.processing) return s.confirming ? tr("Confirming your payment…") : tr("Processing…");
+  if (s.confirming) return tr("Check payment");
+  if (s.total && s.total.amountMinor === 0) return tr("Add credits");
+  return tr("Pay {amount}", { amount: s.total ? money(s.total) : "" });
 }
 
 /** Shows the credits once a top-up has gone through: the banner, and the cases read again. */
 export async function showTopUpDone(queryClient: QueryClient, userId: string | undefined, added: number) {
-  useApp.getState().setBanner(`${added} chat credits added to this case.`);
+  useApp.getState().setBanner(tr("{n} chat credits added to this case.", { n: added }));
   await queryClient.invalidateQueries({ queryKey: caseKeys.all(userId) });
 }
 
@@ -76,7 +77,7 @@ export function useTopUp() {
     try {
       pay.setQuote(await quoteTopUp(packId, code));
     } catch (err) {
-      pay.setError(messageOf(err, "Couldn't check that code."));
+      pay.setError(messageOf(err, tr("Couldn't check that code.")));
     }
   };
 
@@ -100,24 +101,24 @@ export function useTopUp() {
     try {
       status = await waitForPayment(paymentId);
     } catch (err) {
-      return fail(messageOf(err, "We couldn't check your payment. Press Check payment to try again."));
+      return fail(messageOf(err, tr("We couldn't check your payment. Press Check payment to try again.")));
     }
     if (status.status === "SUCCEEDED") return finish(status.credits);
     if (status.status === "FAILED") {
       pay.setOpenPayment(null);
-      return fail(status.failureReason ?? "Your payment didn't go through. Nothing was charged.");
+      return fail(status.failureReason ?? tr("Your payment didn't go through. Nothing was charged."));
     }
-    fail("Stripe hasn't confirmed your payment yet. You won't be charged again: press Check payment in a moment.");
+    fail(tr("Stripe hasn't confirmed your payment yet. You won't be charged again: press Check payment in a moment."));
   };
 
   const start = async () => {
     const { pack, quote } = summary;
-    if (!pay.caseId || !pack) return fail("Choose a pack first.");
+    if (!pay.caseId || !pack) return fail(tr("Choose a pack first."));
     let started;
     try {
       started = await topUp(pay.caseId, { packId: pack.id, promoCode: quote?.promo?.applied ? quote.promo.code : undefined, testOutcome: testOutcome() });
     } catch (err) {
-      return fail(messageOf(err, "Payment failed."));
+      return fail(messageOf(err, tr("Payment failed.")));
     }
     if (!started.checkout) return finish(started.added);
     pay.setOpenPayment({ paymentId: started.paymentId, checkout: started.checkout, submitted: false });

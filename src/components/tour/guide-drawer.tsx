@@ -8,20 +8,22 @@ import { useSupport } from "@/lib/support/store";
 import { useSupportUnread } from "@/lib/support/ticket-queries";
 import { selectedCaseTab } from "@/lib/tour/dom";
 import { useTour } from "@/lib/tour/store";
-import { guideContext, guideQuestions, tourForContext } from "@/lib/tour/tours";
+import { guideContext, guideQuestions, tourForContext, type TourContext } from "@/lib/tour/tours";
 import { useDialog } from "./use-dialog";
+import { useT } from "@/components/site/language-provider";
 
 /** The guide: replays this page's tour or points at one control. A right-hand panel on desktop,
  * a sheet from the bottom on a phone. It is mounted when opened, so it reads the page it opened on. */
-export function GuideDrawer({ pathname, credits, onTourPage }: { pathname: string; credits: number | null; onTourPage: () => void }) {
+export function GuideDrawer({ pathname, context: tourContext, onTourPage }: { pathname: string; context: TourContext; onTourPage: () => void }) {
   const panel = useRef<HTMLDivElement>(null);
+  const t = useT();
   const unread = useSupportUnread();
   const close = () => useTour.getState().setGuideOpen(false);
   useDialog(panel, close);
 
   const context = guideContext(pathname, selectedCaseTab());
-  const questions = guideQuestions(context, { credits });
-  const canTour = tourForContext(context) !== null;
+  const questions = guideQuestions(context, tourContext);
+  const canTour = tourForContext(context, tourContext) !== null;
 
   return (
     <>
@@ -36,22 +38,22 @@ export function GuideDrawer({ pathname, credits, onTourPage }: { pathname: strin
       >
         <div className="flex items-center justify-between">
           <h2 id="guide-title" className="font-display text-[26px] tracking-[-0.01em]">
-            Guide
+            {t("Guide")}
           </h2>
-          <button type="button" aria-label="Close guide" onClick={close} data-no-tap className="-mr-3 flex size-11 items-center justify-center text-ink-2">
+          <button type="button" aria-label={t("Close guide")} onClick={close} data-no-tap className="-mr-3 flex size-11 items-center justify-center text-ink-2">
             <X size={20} aria-hidden />
           </button>
         </div>
 
         {canTour && (
           <Button size="lg" onClick={onTourPage}>
-            Tour this page
+            {t("Tour this page")}
           </Button>
         )}
 
         {questions.length > 0 && (
           <>
-            <div className="pt-1.5 text-[11px] font-semibold uppercase tracking-[1.4px] text-ink-2">How do I…</div>
+            <div className="pt-1.5 text-[11px] font-semibold uppercase tracking-[1.4px] text-ink-2">{t("How do I…")}</div>
             <div className="flex flex-col gap-2">
               {questions.map(({ question, step }) => (
                 <button
@@ -80,18 +82,24 @@ export function GuideDrawer({ pathname, credits, onTourPage }: { pathname: strin
         >
           <span className="flex items-center gap-2.5">
             <MessageCircle size={16} className="text-gold" aria-hidden />
-            Contact support
-            {unread > 0 && <span className="sr-only">, new reply</span>}
+            {t("Contact support")}
+            {unread > 0 && <span className="sr-only">{t(", new reply")}</span>}
           </span>
           {unread > 0 && <SupportDot className="right-10 top-1/2 -translate-y-1/2" />}
           <ArrowRight size={15} className="shrink-0 text-gold" aria-hidden />
         </button>
 
         <div className="flex flex-col gap-2 border-t border-line pt-3.5">
-          <p className="text-[13px] leading-[1.5] text-ink-2">Legal questions go to your case&apos;s Interview, not the guide.</p>
-          <p className="text-[12.5px] leading-[1.5] text-muted">
-            ilovelawyer isn&apos;t a law firm. The AI organises your case. Advice comes from the solicitor you choose.
-          </p>
+          {tourContext.ai ? (
+            <>
+              <p className="text-[13px] leading-[1.5] text-ink-2">Legal questions go to your case&apos;s Interview, not the guide.</p>
+              <p className="text-[12.5px] leading-[1.5] text-muted">
+                ilovelawyer isn&apos;t a law firm. The AI organises your case. Advice comes from the solicitor you choose.
+              </p>
+            </>
+          ) : (
+            <p className="text-[12.5px] leading-[1.5] text-muted">{t("ilovelawyer isn't a law firm and doesn't give legal advice.")}</p>
+          )}
         </div>
       </div>
     </>

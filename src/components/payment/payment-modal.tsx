@@ -8,33 +8,37 @@ import { RadioCard } from "@/components/ui/radio-card";
 import { StripeCheckout } from "@/components/payment/stripe-checkout";
 import { useTopUp } from "@/lib/billing/top-up";
 import { money } from "@/lib/pricing";
+import { useT } from "@/components/site/language-provider";
 
 /**
  * The top-up modal: buying chat credits for a case, with an optional promo code (cases themselves
  * are free). What it does is useTopUp's; this only shows it. Card details only ever go to Stripe.
  */
 export function PaymentModal() {
-  const t = useTopUp();
-  const { pay, pack, quote, price, discount, total } = t;
+  const top = useTopUp();
+  const t = useT();
+  const { pay, pack, quote, price, discount, total } = top;
 
-  const subtitle = t.checkingOut
-    ? "Pay securely with Stripe. Your card details go to Stripe, never to ilovelawyer."
-    : `Adds ${pack?.credits ?? "more"} chat credits to this case.`;
+  const subtitle = top.checkingOut
+    ? t("Pay securely with Stripe. Your card details go to Stripe, never to ilovelawyer.")
+    : pack
+      ? t("Adds {n} chat credits to this case.", { n: pack.credits })
+      : t("Adds more chat credits to this case.");
 
   return (
-    <Modal open={pay.open} onClose={pay.close} locked={pay.processing} title="Top up chat credits" subtitle={subtitle}>
-      {t.pricingError && <ErrorBox message={t.pricingError.message} />}
+    <Modal open={pay.open} onClose={pay.close} locked={pay.processing} title={t("Top up chat credits")} subtitle={subtitle}>
+      {top.pricingError && <ErrorBox message={top.pricingError.message} />}
 
       {!pay.openPayment && (
-        <div className="flex flex-col gap-2" role="radiogroup" aria-label="Credit pack">
-          {t.pricing?.topUpPacks.map((p) => (
+        <div className="flex flex-col gap-2" role="radiogroup" aria-label={t("Credit pack")}>
+          {top.pricing?.topUpPacks.map((p) => (
             <RadioCard
               key={p.id}
               compact
               selected={pack?.id === p.id}
-              onSelect={() => t.choosePack(p.id)}
-              title={`${p.credits} chat credits`}
-              description={`${money({ ...p.price, amountMinor: Math.round(p.price.amountMinor / p.credits) })} per credit · added to this case`}
+              onSelect={() => top.choosePack(p.id)}
+              title={t("{n} chat credits", { n: p.credits })}
+              description={t("{price} per credit · added to this case", { price: money({ ...p.price, amountMinor: Math.round(p.price.amountMinor / p.credits) }) })}
               trailing={money(p.price)}
             />
           ))}
@@ -43,10 +47,10 @@ export function PaymentModal() {
 
       <div className="flex flex-col gap-2 rounded-input border border-line bg-subtle px-4 py-[14px]">
         <div className="flex justify-between text-sm">
-          <span>{`${pack?.name ?? ""} top-up`}</span>
+          <span>{t("{name} top-up", { name: pack?.name ?? "" })}</span>
           <span>{price ? money(price) : "…"}</span>
         </div>
-        <div className="text-xs text-ink-2">{`${pack?.credits ?? "…"} chat credits, one-time`}</div>
+        <div className="text-xs text-ink-2">{t("{n} chat credits, one-time", { n: pack?.credits ?? "…" })}</div>
         {discount && discount.amountMinor > 0 && (
           <div className="flex justify-between text-sm text-success">
             <span>{quote?.promo?.code}</span>
@@ -54,55 +58,55 @@ export function PaymentModal() {
           </div>
         )}
         <div className="flex justify-between border-t border-line pt-2.5 text-[17px] font-semibold">
-          <span>Due today</span>
+          <span>{t("Due today")}</span>
           <span>{total ? money(total) : "…"}</span>
         </div>
       </div>
 
       {pay.error && <ErrorBox message={pay.error} />}
 
-      {t.checkingOut && pay.openPayment && (
+      {top.checkingOut && pay.openPayment && (
         <StripeCheckout
           clientSecret={pay.openPayment.checkout.clientSecret}
           publishableKey={pay.openPayment.checkout.publishableKey}
-          onComplete={t.onStripeComplete}
+          onComplete={top.onStripeComplete}
         />
       )}
 
       {!pay.openPayment && (
         <div className="flex flex-col gap-1.5">
           <label htmlFor="promo" className="text-xs font-semibold text-ink-2">
-            Promo code
+            {t("Promo code")}
           </label>
           <div className="flex gap-2">
-            <TextInput id="promo" placeholder="Promo code" value={pay.promoInput} onChange={(e) => pay.setPromoInput(e.target.value)} />
-            <Button variant="outline" size="lg" className="shrink-0 !px-[18px]" onClick={() => void t.applyPromo()}>
-              Apply
+            <TextInput id="promo" placeholder={t("Promo code")} value={pay.promoInput} onChange={(e) => pay.setPromoInput(e.target.value)} />
+            <Button variant="outline" size="lg" className="shrink-0 !px-[18px]" onClick={() => void top.applyPromo()}>
+              {t("Apply")}
             </Button>
           </div>
           {quote?.promo && <div className={`text-xs ${quote.promo.applied ? "text-success" : "text-error"}`}>{quote.promo.message}</div>}
         </div>
       )}
 
-      {t.isDev && !pay.openPayment && (
+      {top.isDev && !pay.openPayment && (
         <label className="flex items-center gap-2 text-[12px] text-muted">
           <input type="checkbox" checked={pay.simulateDecline} onChange={(e) => pay.setSimulateDecline(e.target.checked)} />
           Dev only: simulate a declined payment (dummy provider; with Stripe, use card 4000 0000 0000 0002)
         </label>
       )}
 
-      {!t.checkingOut && (
+      {!top.checkingOut && (
         <div className="flex flex-col gap-1.5">
-          <Button size="xl" className="w-full disabled:!opacity-60" disabled={pay.processing || !t.pricing} onClick={t.submit}>
-            {t.buttonLabel}
+          <Button size="xl" className="w-full disabled:!opacity-60" disabled={pay.processing || !top.pricing} onClick={top.submit}>
+            {top.buttonLabel}
           </Button>
-          <div className="text-center text-xs leading-[1.5] text-muted">One-time payment. Credits are used only in this case.</div>
+          <div className="text-center text-xs leading-[1.5] text-muted">{t("One-time payment. Credits are used only in this case.")}</div>
         </div>
       )}
 
-      {t.checkingOut && (
+      {top.checkingOut && (
         <Button variant="ghost" size="md" className="self-center" onClick={() => pay.setOpenPayment(null)}>
-          Back
+          {t("Back")}
         </Button>
       )}
     </Modal>

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Download, ExternalLink, FileText, Loader2 } from "lucide-react";
 import { fixTransparentCellColors, previewKind } from "@/lib/documents/preview-kind";
+import { useT } from "@/components/site/language-provider";
 
 /** Rules that keep docx-preview's pages inside the frame (its own stylesheet sizes them from the
  * source paper size, which overflows a narrow panel with no scrollbar). */
@@ -14,24 +15,26 @@ const DOCX_FIT_CSS = `
 `;
 
 function Loading() {
+  const t = useT();
   return (
     <div role="status" className="flex h-full items-center justify-center gap-2 text-[13px] text-ink-2">
       <Loader2 size={16} className="animate-spin" aria-hidden />
-      Loading preview…
+      {t("Loading preview…")}
     </div>
   );
 }
 
 function Fallback({ name, url, failed }: { name: string; url: string; failed: boolean }) {
+  const t = useT();
   return (
     <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
       <FileText size={40} className="text-ink-2" aria-hidden />
       <p className="text-[13px] text-ink-2">
-        {failed ? "We couldn't load this file. Close it and open it again, or download it." : "This kind of file can't be shown here."}
+        {failed ? t("We couldn't load this file. Close it and open it again, or download it.") : t("This kind of file can't be shown here.")}
       </p>
       <a href={url} download={name} className="inline-flex items-center gap-1.5 text-[13px] font-medium">
         <Download size={14} aria-hidden />
-        Download
+        {t("Download")}
       </a>
     </div>
   );
@@ -53,6 +56,7 @@ export function DocumentPreview({ name, url }: { name: string; url: string }) {
   const [sheet, setSheet] = useState(0);
   const [text, setText] = useState("");
   const docx = useRef<HTMLDivElement>(null);
+  const t = useT();
 
   useEffect(() => {
     if (!needsFetch) return;
@@ -155,7 +159,7 @@ export function DocumentPreview({ name, url }: { name: string; url: string }) {
                 data-no-tap
                 className={`shrink-0 rounded-t-md px-3 py-1.5 text-xs font-medium ${i === sheet ? "bg-chip text-ink" : "text-ink-2 hover:bg-subtle"}`}
               >
-                Sheet {i + 1}
+                {t("Sheet {n}", { n: i + 1 })}
               </button>
             ))}
           </div>
@@ -174,13 +178,14 @@ export function DocumentPreview({ name, url }: { name: string; url: string }) {
 }
 
 export function OpenInNewTab({ url }: { url: string }) {
+  const t = useT();
   return (
     <a
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label="Open in a new tab"
-      title="Open in a new tab"
+      aria-label={t("Open in a new tab")}
+      title={t("Open in a new tab")}
       className="flex size-9 items-center justify-center rounded-full text-ink-2 hover:bg-chip hover:text-ink"
     >
       <ExternalLink size={16} aria-hidden />

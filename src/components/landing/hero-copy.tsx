@@ -1,21 +1,22 @@
 "use client";
 
-import { forwardRef, useRef, type CSSProperties } from "react";
+import { forwardRef, useMemo, useRef, type CSSProperties } from "react";
 import Link from "next/link";
-import { DEFAULT_HEADLINE, PROBLEMS, START_PROBLEM, twoLines } from "@/lib/marketing/problems";
+import { twoLines } from "@/lib/marketing/problems";
+import { useLandingContent } from "./landing-content";
 import { gsap, useGSAP } from "./use-gsap-setup";
 import type { HeroModel } from "./use-hero";
 
 const NO_HEADLINE = -1;
-const HEADLINES = [
-  { key: NO_HEADLINE, lines: ["Legal trouble,", "made clear."] },
-  ...PROBLEMS.map((p, i) => ({ key: i, lines: twoLines(p.h) })),
-];
-
 type Props = Pick<HeroModel, "headline" | "search" | "reduced"> & { style: CSSProperties };
 
 /** The hero's centre: the headline that swaps with the selected problem, the search box and the CTA. */
 export const HeroCopy = forwardRef<HTMLDivElement, Props>(function HeroCopy({ headline, search, reduced, style }, ref) {
+  const { hero, problems, startProblem } = useLandingContent();
+  const HEADLINES = useMemo(
+    () => [{ key: NO_HEADLINE, lines: hero.defaultHeadline as string[] }, ...problems.map((p, i) => ({ key: i, lines: twoLines(p.h) }))],
+    [hero.defaultHeadline, problems],
+  );
   const heading = useRef<HTMLHeadingElement>(null);
   const shown = useRef<number | null>(null);
 
@@ -46,10 +47,10 @@ export const HeroCopy = forwardRef<HTMLDivElement, Props>(function HeroCopy({ he
         shown.current = null;
       };
     },
-    { dependencies: [headline, reduced], revertOnUpdate: false },
+    { dependencies: [headline, reduced, HEADLINES], revertOnUpdate: false },
   );
 
-  const label = headline === NO_HEADLINE ? DEFAULT_HEADLINE : PROBLEMS[headline].h;
+  const label = headline === NO_HEADLINE ? hero.defaultHeadlineLabel : problems[headline].h;
 
   return (
     <div ref={ref} className="pointer-events-none absolute z-300 flex flex-col items-center gap-4 text-center" style={style}>
@@ -64,7 +65,7 @@ export const HeroCopy = forwardRef<HTMLDivElement, Props>(function HeroCopy({ he
             data-line={key}
             aria-hidden
             className="inset-x-0 bottom-[.12em] flex flex-col items-center"
-            style={{ position: key === headline ? "relative" : "absolute", opacity: key === START_PROBLEM ? 1 : 0 }}
+            style={{ position: key === headline ? "relative" : "absolute", opacity: key === startProblem ? 1 : 0 }}
           >
             {lines.map((line) => (
               <span key={line} className="whitespace-nowrap">
@@ -89,14 +90,14 @@ export const HeroCopy = forwardRef<HTMLDivElement, Props>(function HeroCopy({ he
             onFocus={search.onFocus}
             onBlur={search.onBlur}
             placeholder={search.initialPlaceholder}
-            aria-label="Describe your legal problem"
+            aria-label={hero.searchLabel}
             autoComplete="off"
             enterKeyHint="go"
             className="landing-search min-h-14 w-full rounded-full border border-white/50 bg-[rgb(5_4_3/0.5)] pl-12 pr-[60px] text-[16px] text-white shadow-[0_10px_30px_rgba(0,0,0,.25)] outline-none backdrop-blur-[14px]"
           />
           <button
             type="submit"
-            aria-label="Start your case with this"
+            aria-label={hero.submitLabel}
             className="absolute right-1.5 flex size-11 items-center justify-center rounded-full border-0 bg-white p-0 text-[#0c0c0e]"
           >
             <svg aria-hidden width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -106,13 +107,13 @@ export const HeroCopy = forwardRef<HTMLDivElement, Props>(function HeroCopy({ he
         </div>
         {search.noMatch && (
           <Link href="/signup" onClick={search.carryOver} className="pointer-events-auto text-[14px] text-white underline! underline-offset-3 [text-shadow:0_1px_8px_rgba(0,0,0,.6)]">
-            Not sure? Start your case and describe it
+            {hero.noMatch}
           </Link>
         )}
       </form>
 
       <p className="m-0 max-w-[420px] text-pretty text-[17px] leading-normal [text-shadow:0_1px_10px_rgba(0,0,0,.6)]">
-        Understand your legal problem, then get a verified UK solicitor.
+        {hero.tagline}
       </p>
       <Link
         href="/signup"
@@ -120,10 +121,10 @@ export const HeroCopy = forwardRef<HTMLDivElement, Props>(function HeroCopy({ he
         onClick={search.carryOver}
         className="pointer-events-auto inline-flex min-h-[50px] items-center rounded-full bg-white px-[26px] py-3.5 text-[16px] font-medium text-[#0c0c0e]! transition-opacity duration-160 hover:opacity-85"
       >
-        Start your case
+        {hero.cta}
       </Link>
       <p className="m-0 max-w-[340px] text-[12.5px] leading-[1.45] text-white/85 [text-shadow:0_1px_8px_rgba(0,0,0,.6)]">
-        AI guidance, not legal advice. Advice comes from the solicitor you choose.
+        {hero.disclaimer}
       </p>
     </div>
   );

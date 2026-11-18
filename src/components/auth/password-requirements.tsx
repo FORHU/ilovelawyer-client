@@ -1,15 +1,20 @@
+"use client";
+
 import { Check, X } from "lucide-react";
 import { PASSWORD_RULES, type PasswordRuleKey } from "@/lib/auth/password-policy";
+import { useT } from "@/components/site/language-provider";
+import { msg } from "@/lib/i18n/msg";
 
 const LABELS: Record<PasswordRuleKey, string> = {
-  length: "At least 10 characters",
-  uppercase: "One uppercase letter",
-  lowercase: "One lowercase letter",
-  number: "One number",
-  special: "One special character",
+  length: msg("At least 10 characters"),
+  uppercase: msg("One uppercase letter"),
+  lowercase: msg("One lowercase letter"),
+  number: msg("One number"),
+  special: msg("One special character"),
 };
 
 export function PasswordRequirements({ password }: { password: string }) {
+  const t = useT();
   return (
     <ul className="flex flex-col gap-1 pt-1">
       {PASSWORD_RULES.map((rule) => {
@@ -26,7 +31,7 @@ export function PasswordRequirements({ password }: { password: string }) {
             ) : (
               <X size={12} className="shrink-0 opacity-50" aria-hidden />
             )}
-            {LABELS[rule.key]}
+            {t(LABELS[rule.key])}
           </li>
         );
       })}

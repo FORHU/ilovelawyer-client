@@ -12,6 +12,7 @@ import { firstConsultationLabel, toneFor, type ClientLawyerProfile } from "@/lib
 import { AreaChip, LawyerAvatar, REGULATORS, Stars, VerifiedBadge, monthOf } from "./lawyer-parts";
 import { RequestPanel } from "./request-panel";
 
+import { useT } from "@/components/site/language-provider";
 /** A long bio folds to this many characters until "Read more". */
 const BIO_FOLD = 260;
 /** Reviews shown before "Show all". */
@@ -32,6 +33,7 @@ function Section({ title, aside, children }: { title: string; aside?: string; ch
 /** The phone's lawyer profile: who they are and what a first call costs up top, the detail in
  * sections below, and Request always in reach in a bar at the bottom. */
 export function LawyerProfileMobile({ lawyer }: { lawyer: ClientLawyerProfile }) {
+  const t = useT();
   // A link ending in #request wants the request open: here that is the sheet. This only mounts once
   // the lawyer has loaded in the browser, so the hash is there to read.
   const [requesting, setRequesting] = useState(() => typeof window !== "undefined" && window.location.hash === "#request");
@@ -40,14 +42,14 @@ export function LawyerProfileMobile({ lawyer }: { lawyer: ClientLawyerProfile })
 
   const name = firstName(lawyer.name) ?? lawyer.name;
   const max = Math.max(...lawyer.ratingBreakdown, 1);
-  const place = [lawyer.firmName ?? "Independent solicitor", lawyer.town].filter(Boolean).join(" · ");
+  const place = [lawyer.firmName ?? t("Independent lawyer"), lawyer.town].filter(Boolean).join(" · ");
   const bio = lawyer.bio.trim();
   const longBio = bio.length > BIO_FOLD;
   const reviews = allReviews ? lawyer.reviews : lawyer.reviews.slice(0, REVIEWS_FOLD);
   const credentials: [string, string][] = [
-    ["Regulator", lawyer.regulator ? REGULATORS[lawyer.regulator] : "—"],
-    ["Registration no.", lawyer.registrationNumber ?? "—"],
-    ["Verified by ilovelawyer", lawyer.verifiedAt ? formatDay(lawyer.verifiedAt) : "—"],
+    [t("Regulator"), lawyer.regulator ? t(REGULATORS[lawyer.regulator] ?? lawyer.regulator) : "—"],
+    [t("Registration no."), lawyer.registrationNumber ?? "—"],
+    [t("Verified by ilovelawyer"), lawyer.verifiedAt ? formatDay(lawyer.verifiedAt) : "—"],
   ];
 
   return (
@@ -72,10 +74,10 @@ export function LawyerProfileMobile({ lawyer }: { lawyer: ClientLawyerProfile })
           </div>
           <dl className="grid grid-cols-2 divide-x divide-line rounded-card border border-line bg-subtle">
             <div className="flex flex-col gap-0.5 px-4 py-3">
-              <dt className="text-[12px] text-ink-2">Rating</dt>
+              <dt className="text-[12px] text-ink-2">{t("Rating")}</dt>
               <dd className="flex items-center gap-1 text-[15px] font-semibold">
                 {lawyer.rating === null ? (
-                  <span className="text-[14px] font-normal text-ink-2">No reviews yet</span>
+                  <span className="text-[14px] font-normal text-ink-2">{t("No reviews yet")}</span>
                 ) : (
                   <>
                     <Star size={14} className="fill-gold text-gold" aria-hidden="true" />
@@ -86,16 +88,16 @@ export function LawyerProfileMobile({ lawyer }: { lawyer: ClientLawyerProfile })
               </dd>
             </div>
             <div className="flex flex-col gap-0.5 px-4 py-3">
-              <dt className="text-[12px] text-ink-2">First consultation</dt>
+              <dt className="text-[12px] text-ink-2">{t("First consultation")}</dt>
               <dd className="text-[15px] font-semibold">{firstConsultationLabel(lawyer)}</dd>
             </div>
           </dl>
-          {!lawyer.available && <p className="text-[13px] font-medium text-ink-2">Not taking new requests right now</p>}
+          {!lawyer.available && <p className="text-[13px] font-medium text-ink-2">{t("Not taking new requests right now")}</p>}
         </header>
 
-        <Section title="About">
+        <Section title={t("About")}>
           <p className={`whitespace-pre-line text-[15px] leading-[1.6] ${longBio && !bioOpen ? "line-clamp-5" : ""}`}>
-            {bio || `${name} hasn’t written about their practice yet.`}
+            {bio || t("{name} hasn’t written about their practice yet.", { name })}
           </p>
           {longBio && (
             <button
@@ -105,7 +107,7 @@ export function LawyerProfileMobile({ lawyer }: { lawyer: ClientLawyerProfile })
               data-no-tap
               className="flex min-h-11 items-center self-start text-[14px] font-medium text-gold"
             >
-              {bioOpen ? "Show less" : "Read more"}
+              {bioOpen ? t("Show less") : t("Read more")}
             </button>
           )}
           {lawyer.practiceAreas.length > 0 && (
@@ -117,13 +119,13 @@ export function LawyerProfileMobile({ lawyer }: { lawyer: ClientLawyerProfile })
           )}
         </Section>
 
-        <Section title="Fees">
+        <Section title={t("Fees")}>
           <p className="text-[14px] leading-[1.55] text-ink-2">Every other fee is in the quote {name} sends after reading your case, before you pay anything.</p>
         </Section>
 
-        <Section title="Reviews" aside="From clients whose engagement has ended">
+        <Section title={t("Reviews")} aside={t("From clients whose engagement has ended")}>
           {lawyer.rating === null ? (
-            <p className="rounded-card border border-dashed border-line-input p-4 text-[14px] text-ink-2">No reviews yet.</p>
+            <p className="rounded-card border border-dashed border-line-input p-4 text-[14px] text-ink-2">{t("No reviews yet.")}</p>
           ) : (
             <>
               <div className="flex items-center gap-5 rounded-card border border-line p-4">
@@ -147,21 +149,21 @@ export function LawyerProfileMobile({ lawyer }: { lawyer: ClientLawyerProfile })
               {reviews.map((r, i) => (
                 <div key={`${r.createdAt}-${i}`} className="flex flex-col gap-1 border-b border-line pb-4 last:border-b-0">
                   <div className="flex flex-wrap items-center gap-x-2 text-[12.5px] text-ink-2">
-                    <Stars n={r.rating} /> · Verified client{r.caseAreas.length > 0 && ` · ${r.caseAreas.join(", ")}`} · {monthOf(r.createdAt)}
+                    <Stars n={r.rating} /> · {t("Verified client")}{r.caseAreas.length > 0 && ` · ${r.caseAreas.join(", ")}`} · {monthOf(r.createdAt)}
                   </div>
                   <p className="whitespace-pre-line text-[14.5px] leading-[1.6]">{r.comment}</p>
                 </div>
               ))}
               {lawyer.reviews.length > REVIEWS_FOLD && (
                 <Button variant="soft" size="lg" className="w-full" onClick={() => setAllReviews((o) => !o)} aria-expanded={allReviews}>
-                  {allReviews ? "Show fewer reviews" : `Show all ${lawyer.reviews.length} reviews`}
+                  {allReviews ? t("Show fewer reviews") : `Show all ${lawyer.reviews.length} reviews`}
                 </Button>
               )}
             </>
           )}
         </Section>
 
-        <Section title="Credentials">
+        <Section title={t("Credentials")}>
           <dl className="overflow-hidden rounded-card border border-line">
             {credentials.map(([k, v]) => (
               <div key={k} className="flex items-baseline justify-between gap-4 border-b border-line px-4 py-3 last:border-b-0">
@@ -176,7 +178,7 @@ export function LawyerProfileMobile({ lawyer }: { lawyer: ClientLawyerProfile })
       {/* Always in reach: the screen above scrolls, this doesn't. */}
       <div className="flex shrink-0 items-center gap-3 border-t border-line bg-white px-4 py-3">
         <div className="flex min-w-0 flex-col">
-          <span className="text-[12px] text-ink-2">First consultation</span>
+          <span className="text-[12px] text-ink-2">{t("First consultation")}</span>
           <span className="truncate text-[16px] font-semibold">{firstConsultationLabel(lawyer)}</span>
         </div>
         <Button variant="dark" size="xl" className="ml-auto min-w-0 flex-1 !text-[14px]" onClick={() => setRequesting(true)} data-no-tap>

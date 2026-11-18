@@ -9,6 +9,7 @@ import { areasLabel, regionLabel, type Case } from "@/lib/types";
 import { usePayment } from "@/lib/payment-store";
 import { useCaseActions } from "./use-case-actions";
 import { useCaseCredits } from "./use-case-credits";
+import { useT } from "@/components/site/language-provider";
 
 const CREDITS_TONE = {
   normal: "border-line bg-subtle text-ink",
@@ -25,14 +26,15 @@ export function CaseHeaderMobile({ c }: { c: Case }) {
   const { items, modal } = useCaseActions(c);
   const { percent, status } = useCaseCredits(c);
   const low = status !== "normal";
-  const usage = low && percent !== null ? `, ${percent}% used` : "";
+  const t = useT();
+  const usage = low && percent !== null ? t(", {percent}% used", { percent }) : "";
 
   return (
     <div className="keyboard-hide shrink-0 border-b border-line px-3 py-2">
       <div className="flex items-center gap-2">
         <button
           type="button"
-          aria-label="Back to cases"
+          aria-label={t("Back to cases")}
           onClick={() => router.push("/cases")}
           data-no-tap
           className="flex size-11 shrink-0 items-center justify-center rounded-full active:bg-chip"
@@ -51,14 +53,14 @@ export function CaseHeaderMobile({ c }: { c: Case }) {
           onClick={() => usePayment.getState().openFor(c.id)}
           data-tour="case-credits"
           data-no-tap
-          aria-label={`${c.credits} credits left${usage}${low ? ", running low" : ""}. Top up`}
+          aria-label={t("{n} credits left{usage}{low}. Top up", { n: c.credits, usage, low: low ? t(", running low") : "" })}
           className={cn("flex min-h-11 shrink-0 items-center rounded-full border px-3 text-[13px] font-semibold tabular-nums", CREDITS_TONE[status])}
         >
           {low && <TriangleAlert size={13} aria-hidden="true" className="mr-1 shrink-0" />}
           {c.credits}
-          <span className="ml-1 font-medium">credits</span>
+          <span className="ml-1 font-medium">{t("credits")}</span>
         </button>
-        <ActionMenu label="More actions" tourId="case-menu" items={items} />
+        <ActionMenu label={t("More actions")} tourId="case-menu" items={items} />
       </div>
       <div className="flex empty:hidden [&:not(:empty)]:mt-2">
         <GetLawyerAction caseId={c.id} />

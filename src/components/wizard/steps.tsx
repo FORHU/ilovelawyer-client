@@ -10,7 +10,7 @@ import { RadioCard } from "@/components/ui/radio-card";
 import { Eyebrow } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { checkFiles, describeLimits, useLimitsQuery } from "@/lib/cases/limits";
-import { BUDGET_RANGES, FEE_PREFERENCES, budgetFromDraft, formatBudget, ownAmountError, type BudgetDraft } from "@/lib/cases/budget";
+import { budgetCurrency, budgetRanges, FEE_PREFERENCES, budgetFromDraft, formatBudget, ownAmountError, type BudgetDraft } from "@/lib/cases/budget";
 import { NOTES_FIELD_MAX } from "@/lib/cases/notes";
 import { useCaseAreasQuery } from "@/lib/cases/case-areas";
 import {
@@ -24,7 +24,10 @@ import {
   type Side,
 } from "@/lib/types";
 import { useWizard } from "@/lib/wizard-store";
+import { useSite } from "@/components/site/site-provider";
 import { useFileDrop } from "@/lib/use-file-drop";
+import { useT } from "@/components/site/language-provider";
+import { msg } from "@/lib/i18n/msg";
 
 function Section({
   numeral,
@@ -39,6 +42,7 @@ function Section({
   gap?: 20 | 24;
   children: ReactNode;
 }) {
+  const t = useT();
   return (
     <section
       className={cn(
@@ -48,8 +52,8 @@ function Section({
     >
       <div className="flex flex-col gap-1.5">
         <Eyebrow>{numeral}</Eyebrow>
-        <h2 className="font-display text-2xl font-normal tracking-[-0.02em]">{title}</h2>
-        <div className="text-[13px] text-ink-2">{sub}</div>
+        <h2 className="font-display text-2xl font-normal tracking-[-0.02em]">{t(title)}</h2>
+        <div className="text-[13px] text-ink-2">{t(sub)}</div>
       </div>
       {children}
     </section>
@@ -89,25 +93,26 @@ export function AreaField({
   // In the order picked, so a new pick lands at the end.
   const chosen = value.map((code) => byCode.get(code)).filter((a) => a !== undefined);
   const toggle = (code: string) => onChange(value.includes(code) ? value.filter((c) => c !== code) : [...value, code]);
+  const t = useT();
   return (
-    <div className="flex flex-col gap-2" role="group" aria-label="Type of issue">
-      <WizardLabel>Type of issue *</WizardLabel>
+    <div className="flex flex-col gap-2" role="group" aria-label={t("Type of issue")}>
+      <WizardLabel>{t("Type of issue *")}</WizardLabel>
       {chosen.length > 0 && (
-        <ul className="flex flex-wrap gap-1.5" aria-label="Picked types of issue">
+        <ul className="flex flex-wrap gap-1.5" aria-label={t("Picked types of issue")}>
           {chosen.map((a) => {
             const isRetired = !offered.some((o) => o.code === a.code);
             return (
               <li
                 key={a.code}
                 className={cn("inline-flex min-h-[34px] items-center gap-1 rounded-full bg-chip pl-3.5 pr-1 text-[13px] font-medium text-ink", isRetired && "opacity-60")}
-                title={isRetired ? "No longer offered. You can keep it or remove it, but not add it back." : undefined}
+                title={isRetired ? t("No longer offered. You can keep it or remove it, but not add it back.") : undefined}
               >
                 {a.name}
                 <button
                   type="button"
                   onClick={() => toggle(a.code)}
                   disabled={disabled}
-                  aria-label={`Remove ${a.name}`}
+                  aria-label={t("Remove {name}", { name: a.name })}
                   className="rounded-full p-1.5 text-ink-2 transition-colors hover:bg-ink/10 hover:text-ink disabled:opacity-40"
                 >
                   <X className="h-3.5 w-3.5" aria-hidden="true" />
@@ -120,10 +125,10 @@ export function AreaField({
       {/* Names are unique per site, so they double as cmdk's values (what the search matches). Enter
           toggles the highlighted type rather than submitting the form. */}
       <Command className={cn((error || areas.isError) && "border-error-field")}>
-        <CommandInput placeholder="Search types of issue" disabled={disabled || !areas.data} />
-        <CommandList className="max-h-60" aria-label="Types of issue">
-          {areas.isLoading && <div className="py-6 text-center text-[13px] text-muted">Loading…</div>}
-          {areas.data && <CommandEmpty>No type of issue matches that. Try another word, or pick Other.</CommandEmpty>}
+        <CommandInput placeholder={t("Search types of issue")} disabled={disabled || !areas.data} />
+        <CommandList className="max-h-60" aria-label={t("Types of issue")}>
+          {areas.isLoading && <div className="py-6 text-center text-[13px] text-muted">{t("Loading…")}</div>}
+          {areas.data && <CommandEmpty>{t("No type of issue matches that. Try another word, or pick Other.")}</CommandEmpty>}
           {offered.map((a) => {
             const picked = value.includes(a.code);
             return (
@@ -136,10 +141,10 @@ export function AreaField({
       </Command>
       <div className={cn("text-xs", error || areas.isError ? "text-error" : "text-muted")}>
         {areas.isError
-          ? "Couldn't load the types of issue. Refresh to try again."
+          ? t("Couldn't load the types of issue. Refresh to try again.")
           : error
-            ? "Please choose at least one type of issue."
-            : "Pick every one that fits. We'll use them to find the right lawyer."}
+            ? t("Please choose at least one type of issue.")
+            : t("Pick every one that fits. We'll use them to find the right lawyer.")}
       </div>
     </div>
   );
@@ -176,25 +181,26 @@ export function RegionField({
 }
 
 const SIDES: { value: Side; title: string; desc: string }[] = [
-  { value: "CLAIMANT", title: "I'm bringing the complaint", desc: "I'm raising an issue or making a claim." },
-  { value: "RESPONDENT", title: "I'm responding to one", desc: "Someone raised an issue or claim against me." },
-  { value: "", title: "Not sure yet", desc: "You can set this later." },
+  { value: "CLAIMANT", title: msg("I'm bringing the complaint"), desc: msg("I'm raising an issue or making a claim.") },
+  { value: "RESPONDENT", title: msg("I'm responding to one"), desc: msg("Someone raised an issue or claim against me.") },
+  { value: "", title: msg("Not sure yet"), desc: msg("You can set this later.") },
 ];
 
 export function SideField({ value, onChange }: { value: Side; onChange: (s: Side) => void }) {
+  const t = useT();
   return (
-    <div className="flex flex-col gap-2.5" role="radiogroup" aria-label="Which side are you on?">
-      <WizardLabel>Which side are you on?</WizardLabel>
+    <div className="flex flex-col gap-2.5" role="radiogroup" aria-label={t("Which side are you on?")}>
+      <WizardLabel>{t("Which side are you on?")}</WizardLabel>
       {SIDES.map((o) => (
         <RadioCard
           key={o.title}
           selected={value === o.value}
           onSelect={() => onChange(o.value)}
-          title={o.title}
-          description={o.desc}
+          title={t(o.title)}
+          description={t(o.desc)}
         />
       ))}
-      <div className="text-xs text-muted">Answers are written from your side. You can change this later.</div>
+      <div className="text-xs text-muted">{t("Answers are written from your side. You can change this later.")}</div>
     </div>
   );
 }
@@ -212,22 +218,23 @@ export function OthersField({
   onRemove: (id: string) => void;
   disabled?: boolean;
 }) {
+  const t = useT();
   return (
     <div className="flex flex-col gap-3">
-      <WizardLabel>Other people or companies</WizardLabel>
+      <WizardLabel>{t("Other people or companies")}</WizardLabel>
       {others.map((o, i) => (
         <div key={o.id} className="flex flex-col gap-2.5 rounded-input border border-line bg-subtle p-[14px]">
           <div className="flex gap-2">
             <TextInput
-              aria-label={`Other party ${i + 1} name`}
+              aria-label={t("Other party {n} name", { n: i + 1 })}
               value={o.name}
               disabled={disabled}
-              placeholder="Full name or company"
+              placeholder={t("Full name or company")}
               onChange={(e) => onUpdate(o.id, { name: e.target.value })}
             />
             <button
               type="button"
-              aria-label="Remove"
+              aria-label={t("Remove")}
               disabled={disabled}
               onClick={() => onRemove(o.id)}
               className="flex size-12 shrink-0 items-center justify-center rounded-input border border-line bg-white text-muted disabled:opacity-40"
@@ -238,7 +245,7 @@ export function OthersField({
           <div className="flex flex-wrap gap-1.5">
             {PARTY_ROLES.map((r: PartyRole) => (
               <Chip key={r} small selected={o.role === r} disabled={disabled} onClick={() => onUpdate(o.id, { role: r })}>
-                {r}
+                {t(r)}
               </Chip>
             ))}
           </div>
@@ -251,7 +258,7 @@ export function OthersField({
         className="flex min-h-10 items-center gap-2 self-start rounded-full border border-dashed border-line-input px-4 text-[11px] font-semibold uppercase tracking-[1px] text-ink-2 disabled:opacity-40"
       >
         <Plus size={14} />
-        Add person or company
+        {t("Add person or company")}
       </button>
     </div>
   );
@@ -267,31 +274,32 @@ export function IntakeNotesField({
   wants: string;
   onChange: (patch: { happened?: string; wants?: string }) => void;
 }) {
+  const t = useT();
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <WizardLabel htmlFor="case-happened">What happened, and roughly when? (optional)</WizardLabel>
+        <WizardLabel htmlFor="case-happened">{t("What happened, and roughly when? (optional)")}</WizardLabel>
         <TextArea
           id="case-happened"
           rows={4}
           maxLength={NOTES_FIELD_MAX}
           value={happened}
-          placeholder="e.g. My employer ended my contract by text on 3 October, with no notice."
+          placeholder={t("e.g. My employer ended my contract by text on 3 October, with no notice.")}
           onChange={(e) => onChange({ happened: e.target.value })}
         />
       </div>
       <div className="flex flex-col gap-2">
-        <WizardLabel htmlFor="case-wants">What do you want to come of it? (optional)</WizardLabel>
+        <WizardLabel htmlFor="case-wants">{t("What do you want to come of it? (optional)")}</WizardLabel>
         <TextArea
           id="case-wants"
           rows={3}
           maxLength={NOTES_FIELD_MAX}
           value={wants}
-          placeholder="e.g. My job back, or compensation for the notice I should have had."
+          placeholder={t("e.g. My job back, or compensation for the notice I should have had.")}
           onChange={(e) => onChange({ wants: e.target.value })}
         />
         <div className="text-xs text-muted">
-          The more you say here, the less the AI has to ask you. You can add to this later.
+          {t("The more you say here, the less the AI has to ask you. You can add to this later.")}
         </div>
       </div>
     </div>
@@ -305,35 +313,36 @@ export function IntakeNotesField({
  */
 export function BudgetField({ value, onChange, error }: { value: BudgetDraft; onChange: (patch: Partial<BudgetDraft>) => void; error?: boolean }) {
   const ownError = error ? ownAmountError(value) : null;
+  const t = useT();
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2" role="radiogroup" aria-label="What can you spend on a lawyer?">
-        <WizardLabel>What can you spend on a lawyer?</WizardLabel>
+      <div className="flex flex-col gap-2" role="radiogroup" aria-label={t("What can you spend on a lawyer?")}>
+        <WizardLabel>{t("What can you spend on a lawyer?")}</WizardLabel>
         <div className="flex flex-wrap gap-1.5">
-          {BUDGET_RANGES.map((r) => (
+          {budgetRanges().map((r) => (
             <Chip key={r.value} selected={value.choice === r.value} onClick={() => onChange({ choice: r.value })}>
               {r.label}
             </Chip>
           ))}
           <Chip selected={value.choice === "OWN"} onClick={() => onChange({ choice: "OWN" })}>
-            Set my own amount
+            {t("Set my own amount")}
           </Chip>
           <Chip selected={value.choice === ""} onClick={() => onChange({ choice: "", own: "" })}>
-            Not sure
+            {t("Not sure")}
           </Chip>
         </div>
         {value.choice === "OWN" && (
           <div className="flex flex-col gap-1.5 pt-1">
             <div className="relative max-w-[220px]">
               <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[15px] text-muted" aria-hidden="true">
-                £
+                {budgetCurrency() === "KRW" ? "₩" : "£"}
               </span>
               <TextInput
-                aria-label="Your budget in pounds"
+                aria-label={budgetCurrency() === "KRW" ? t("Your budget in won") : "Your budget in pounds"}
                 inputMode="decimal"
                 autoFocus
                 value={value.own}
-                placeholder="1,200"
+                placeholder={budgetCurrency() === "KRW" ? "1,500,000" : "1,200"}
                 aria-invalid={!!ownError}
                 aria-describedby={ownError ? "budget-own-err" : undefined}
                 onChange={(e) => onChange({ own: e.target.value })}
@@ -347,18 +356,18 @@ export function BudgetField({ value, onChange, error }: { value: BudgetDraft; on
             )}
           </div>
         )}
-        <div className="text-xs text-muted">Lawyers see this before they quote, so their quotes fit what you can spend. You can change it later.</div>
+        <div className="text-xs text-muted">{t("Lawyers see this before they quote, so their quotes fit what you can spend. You can change it later.")}</div>
       </div>
-      <div className="flex flex-col gap-2" role="radiogroup" aria-label="Which kind of fee would you prefer?">
-        <WizardLabel>Which kind of fee would you prefer?</WizardLabel>
+      <div className="flex flex-col gap-2" role="radiogroup" aria-label={t("Which kind of fee would you prefer?")}>
+        <WizardLabel>{t("Which kind of fee would you prefer?")}</WizardLabel>
         <div className="flex flex-wrap gap-1.5">
           {FEE_PREFERENCES.map((f) => (
             <Chip key={f.label} selected={value.fee === f.value} onClick={() => onChange({ fee: f.value })}>
-              {f.label}
+              {t(f.label)}
             </Chip>
           ))}
         </div>
-        <div className="text-xs text-muted">A fixed fee covers the whole piece of work. A first consultation is a paid first meeting to talk it through.</div>
+        <div className="text-xs text-muted">{t("A fixed fee covers the whole piece of work. A first consultation is a paid first meeting to talk it through.")}</div>
       </div>
     </div>
   );
@@ -366,19 +375,21 @@ export function BudgetField({ value, onChange, error }: { value: BudgetDraft; on
 
 export function StepDetails() {
   const { title, region, where, areas, happened, wants, titleErr, regionErr, areasErr, set } = useWizard();
+  const { regionQuestion } = useSite();
+  const t = useT();
   return (
     <Section
       numeral="I"
-      title="What's your case about?"
-      sub="Give it a short name you'll recognise later."
+      title={msg("What's your case about?")}
+      sub={msg("Give it a short name you'll recognise later.")}
     >
       <div className="flex flex-col gap-2">
-        <WizardLabel htmlFor="case-title">Case title *</WizardLabel>
+        <WizardLabel htmlFor="case-title">{t("Case title *")}</WizardLabel>
         <input
           id="case-title"
           value={title}
           maxLength={150}
-          placeholder="e.g. Fired without notice from my job"
+          placeholder={t("e.g. Fired without notice from my job")}
           aria-invalid={titleErr}
           aria-describedby={titleErr ? "case-title-err" : undefined}
           onChange={(e) => set({ title: e.target.value })}
@@ -390,19 +401,19 @@ export function StepDetails() {
         />
         <div className="flex justify-between text-xs text-muted">
           <span id="case-title-err" className="text-error">
-            {titleErr ? "Please give your case a title." : ""}
+            {titleErr ? t("Please give your case a title.") : ""}
           </span>
           <span>{title.length}/150</span>
         </div>
       </div>
       <AreaField value={areas} onChange={(codes) => set({ areas: codes })} error={areasErr} />
-      <RegionField value={region} onChange={(r) => set({ region: r })} error={regionErr} />
+      {regionQuestion && <RegionField value={region} onChange={(r) => set({ region: r })} error={regionErr} />}
       <div className="flex flex-col gap-2">
-        <WizardLabel htmlFor="case-where">Town or city</WizardLabel>
+        <WizardLabel htmlFor="case-where">{t("Town or city")}</WizardLabel>
         <TextInput
           id="case-where"
           value={where}
-          placeholder="e.g. Leeds"
+          placeholder={t("e.g. Leeds")}
           onChange={(e) => set({ where: e.target.value })}
         />
       </div>
@@ -418,8 +429,8 @@ export function StepPeople() {
   return (
     <Section
       numeral="II"
-      title="Who is involved?"
-      sub="Tell us your side, and who else is part of this."
+      title={msg("Who is involved?")}
+      sub={msg("Tell us your side, and who else is part of this.")}
     >
       <SideField value={side} onChange={(s) => set({ side: s })} />
       <div className="border-t border-line pt-5">
@@ -431,9 +442,15 @@ export function StepPeople() {
 
 export function StepBudget() {
   const { budget, budgetErr, setBudget } = useWizard();
+  const lawyersOpen = useSite().clientRequests === "open";
+  const t = useT();
   return (
-    <Section numeral="III" title="Your budget" sub="Optional. It helps lawyers decide whether to take your case and what to quote.">
-      <BudgetField value={budget} onChange={setBudget} error={budgetErr} />
+    <Section numeral="III" title={msg("Your budget")} sub={msg("Optional. It helps lawyers decide whether to take your case and what to quote.")}>
+      {lawyersOpen ? (
+        <BudgetField value={budget} onChange={setBudget} error={budgetErr} />
+      ) : (
+        <p className="text-[13px] leading-[1.6] text-ink-2">{t("Lawyers aren't available on this site yet. You can add a budget when they are.")}</p>
+      )}
     </Section>
   );
 }
@@ -458,31 +475,32 @@ export function StepDocuments() {
   const { files, removeFile, limits, rejected, add } = useWizardFiles();
   const named = others.map((o) => o.name.trim()).filter(Boolean);
   const { dragging, dragProps } = useFileDrop(add);
+  const t = useT();
 
   return (
     <Section
       numeral="IV"
-      title="Add your documents"
-      sub="Contracts, messages, notices, receipts. The AI reads them to answer your questions. Optional."
+      title={msg("Add your documents")}
+      sub={msg("Contracts, messages, notices, receipts. The AI reads them to answer your questions. Optional.")}
       gap={20}
     >
       <div className="flex flex-col gap-2 rounded-input border border-line bg-subtle px-4 py-[14px] text-[13px]">
         <div className="flex justify-between gap-3">
-          <span className="text-muted">Case</span>
+          <span className="text-muted">{t("Case")}</span>
           <span className="text-right font-display tracking-[-0.02em]">
-            {title.trim() || "Untitled"}
+            {title.trim() || t("Untitled")}
           </span>
         </div>
         <div className="flex justify-between gap-3">
-          <span className="text-muted">I am</span>
+          <span className="text-muted">{t("I am")}</span>
           <span>{sideLabel(side)}</span>
         </div>
         <div className="flex justify-between gap-3">
-          <span className="text-muted">Others</span>
-          <span className="text-right">{named.join(", ") || "None added"}</span>
+          <span className="text-muted">{t("Others")}</span>
+          <span className="text-right">{named.join(", ") || t("None added")}</span>
         </div>
         <div className="flex justify-between gap-3">
-          <span className="text-muted">Budget</span>
+          <span className="text-muted">{t("Budget")}</span>
           <span className="text-right">{formatBudget(budgetFromDraft(budget))}</span>
         </div>
       </div>
@@ -497,9 +515,9 @@ export function StepDocuments() {
             }`}
           >
             <UploadCloud size={26} className="text-muted" />
-            <div className="font-display text-lg tracking-[-0.02em]">Add documents</div>
+            <div className="font-display text-lg tracking-[-0.02em]">{t("Add documents")}</div>
             <div className="text-[12.5px] text-muted">
-              Tap to browse, or drag and drop. {describeLimits(limits)}. They upload once your case is created.
+              {t("Tap to browse, or drag and drop. {limits}. They upload once your case is created.", { limits: describeLimits(limits) })}
             </div>
           </button>
         )}
@@ -520,7 +538,7 @@ export function StepDocuments() {
               <span className="min-w-0 flex-1 truncate">{f.name}</span>
               <button
                 type="button"
-                aria-label={`Remove ${f.name}`}
+                aria-label={t("Remove {name}", { name: f.name })}
                 onClick={() => removeFile(i)}
                 className="flex items-center justify-center text-muted"
               >

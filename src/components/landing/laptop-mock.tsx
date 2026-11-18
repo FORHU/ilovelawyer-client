@@ -1,3 +1,4 @@
+import { useLandingContent } from "./landing-content";
 import { MiniDesktopScreen } from "./mini-app";
 import type { HowChat } from "./use-how";
 
@@ -7,16 +8,6 @@ import type { HowChat } from "./use-how";
 const SCREEN_W = 1040;
 const SCALE = 852 / SCREEN_W;
 
-const LABELS = [
-  "The new-case chat, asking what's going on",
-  "A case's overview: what a lawyer needs, an AI summary and a timeline with its sources",
-  "Three quotes received, with the lawyer's fee, the platform fee and the total",
-  "Comparing a second lawyer's quote, with the option to accept or decline it",
-  "Messages with the chosen lawyer, with a shared letter",
-  "The case interview, where the AI has read a letter",
-];
-const PATHS = ["cases/new", "cases", "cases", "cases", "cases", "cases"];
-
 const Key = () => <span className="block rounded-[3px] bg-[#121110] shadow-[inset_0_-1px_0_rgba(255,255,255,.05)]" />;
 const KeyRow = ({ count }: { count: number }) => (
   <span className="grid h-3.5 gap-[5px]" style={{ gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }}>
@@ -25,11 +16,12 @@ const KeyRow = ({ count }: { count: number }) => (
 );
 
 export function LaptopMock({ scene, chat }: { scene: number; chat: HowChat }) {
+  const { mock } = useLandingContent();
   return (
     <div
       data-how="desk"
       role="img"
-      aria-label={`The ilovelawyer app on a laptop, showing a sample case. ${LABELS[scene]}.`}
+      aria-label={`${mock.frame.laptopLabel} ${mock.frame.labels[scene]}.`}
       className="pointer-events-none absolute left-0 top-0 z-9 flex h-[620px] w-[940px] flex-col items-center opacity-0"
       style={{ transformOrigin: "50% 50%", transform: "translate(-200vw, 0)" }}
     >
@@ -42,9 +34,9 @@ export function LaptopMock({ scene, chat }: { scene: number; chat: HowChat }) {
           <div className="flex h-[30px] flex-none items-center gap-1.5 border-b border-[#e3dfd8] bg-[#f1efeb] px-3">
             {[0, 1, 2].map((i) => <span key={i} className="size-[9px] rounded-full bg-[#d6d2cb]" />)}
             <span className="flex flex-1 justify-center">
-              <span className="w-[330px] rounded-md bg-white py-[3px] text-center text-[10px] text-[#6b6760]">ilovelawyer.com/{PATHS[scene]}</span>
+              <span className="w-[330px] rounded-md bg-white py-[3px] text-center text-[10px] text-[#6b6760]">{mock.frame.urlHost}/{mock.frame.paths[scene]}</span>
             </span>
-            <span className="rounded-full bg-[#fbf3e0] px-2 py-0.5 text-[9px] font-semibold text-[#8a6200]">Sample case</span>
+            <span className="rounded-full bg-[#fbf3e0] px-2 py-0.5 text-[9px] font-semibold text-[#8a6200]">{mock.frame.sampleCase}</span>
           </div>
           <div className="relative min-h-0 flex-1 overflow-hidden">
             <div className="absolute left-0 top-0 origin-top-left" style={{ width: SCREEN_W, height: `${100 / SCALE}%`, transform: `scale(${SCALE})` }}>
