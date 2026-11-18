@@ -6,7 +6,9 @@ import { ClosedStage, EngagedStage, ExpiredStage, PaymentSuccess, QuoteStage, Re
 import type { LawyerTabProps } from "./lawyer-tab";
 import { useLawyerTab } from "./use-lawyer-tab";
 
+import { useT } from "@/components/site/language-provider";
 export function LawyerTabDesktop({ c, request }: LawyerTabProps) {
+  const t = useT();
   const { justPaid, dismissPaid, confirm, decline, withdraw, deciding, visible, phase, canWithdraw, showVisibility, engaged, activity } = useLawyerTab(c, request);
 
   if (!visible) return null;
@@ -14,11 +16,11 @@ export function LawyerTabDesktop({ c, request }: LawyerTabProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
       <div className="mx-auto flex w-full max-w-[1120px] flex-wrap items-start gap-6 px-4 pb-14 pt-7 md:px-10">
-        <aside aria-label="Request progress" className="flex min-w-0 flex-[1_1_300px] flex-col gap-4">
+        <aside aria-label={t("Request progress")} className="flex min-w-0 flex-[1_1_300px] flex-col gap-4">
           <section data-tour="request-status" className="flex flex-col gap-4 rounded-card border border-line bg-white p-5">
             <div className="flex flex-col gap-0.5">
-              <Eyebrow muted>Matched for you</Eyebrow>
-              <h2 className="text-base font-semibold">Your lawyer request</h2>
+              <Eyebrow muted>{t("Matched for you")}</Eyebrow>
+              <h2 className="text-base font-semibold">{t("Your lawyer request")}</h2>
             </div>
             <RequestSteps request={request} phase={phase} />
             {canWithdraw && <WithdrawControl request={request} withdraw={withdraw} disabled={deciding} />}
@@ -26,7 +28,7 @@ export function LawyerTabDesktop({ c, request }: LawyerTabProps) {
 
           <section className="flex flex-col gap-2.5 rounded-card border border-line bg-white px-5 py-[18px]">
             <h3>
-              <Eyebrow muted>Activity</Eyebrow>
+              <Eyebrow muted>{t("Activity")}</Eyebrow>
             </h3>
             <ul className="flex flex-col gap-2.5">
               {activity.map((ev) => (

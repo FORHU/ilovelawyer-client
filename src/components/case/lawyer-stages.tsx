@@ -38,6 +38,8 @@ import { firstName, formatDateTime } from "@/lib/format";
 import { money } from "@/lib/pricing";
 import type { Case } from "@/lib/types";
 
+import { useT } from "@/components/site/language-provider";
+import { msg } from "@/lib/i18n/msg";
 // The pieces of the Lawyer tab that both its views use: the progress line, the stage cards for each
 // phase, and the controls inside them. The desktop and mobile views (lawyer-tab.desktop.tsx and
 // lawyer-tab.mobile.tsx) decide how they are arranged; classes marked `max-md:` are the phone's
@@ -69,11 +71,12 @@ function StepDot({ n, state }: { n: number; state: "done" | "current" | "fail" |
 /** The five-step line (#19): done steps check off, the current one is ringed and says what to
  * expect, later ones are dimmed. A request nobody picked up fails on step two. */
 export function RequestSteps({ request, phase }: { request: LawyerRequest; phase: Phase }) {
+  const t = useT();
   const steps = stepsFor(request, phase);
   const pos = POSITION[phase];
   const failed = phase === "expired";
   return (
-    <ol className="flex flex-col" aria-label="Request progress">
+    <ol className="flex flex-col" aria-label={t("Request progress")}>
       {steps.map((st, i) => {
         const state = i < pos ? "done" : i === pos ? (failed ? "fail" : "current") : "upcoming";
         const last = i === steps.length - 1;
@@ -129,20 +132,21 @@ function Tile({ label, children }: { label: string; children: ReactNode }) {
 /** What the client pays for a quotation: the lawyer's quote, nothing added. ilovelawyer's platform
  * fee is deducted from what the lawyer receives, so it isn't the client's to pay. */
 function QuoteBreakdown({ quotation, lawyerFirst }: { quotation: Quotation; lawyerFirst: string }) {
+  const t = useT();
   // The quote is fixed when it's sent and copied when it's accepted, so this is what's charged.
   const total = amountDue(quotation);
   return (
     <div className="flex flex-col gap-1.5 rounded-input border border-line bg-subtle px-4 py-3.5 text-[13px]">
       <div className="flex justify-between gap-2">
-        <span>{lawyerFirst}&apos;s quote</span>
+        <span>{t("{name}'s quote", { name: lawyerFirst })}</span>
         <span>{money(total)}</span>
       </div>
       <div className="flex justify-between gap-2 text-ink-2">
-        <span>Added by ilovelawyer</span>
-        <span>Nothing</span>
+        <span>{t("Added by ilovelawyer")}</span>
+        <span>{t("Nothing")}</span>
       </div>
       <div className="flex justify-between gap-2 border-t border-line pt-2 text-[15px] font-semibold">
-        <span>You pay</span>
+        <span>{t("You pay")}</span>
         <span>{money(total)}</span>
       </div>
     </div>
@@ -166,6 +170,7 @@ function Disclosures({ request }: { request: LawyerRequest }) {
 }
 
 export function WithdrawControl({ request, withdraw, disabled }: { request: LawyerRequest; withdraw: ReturnType<typeof useWithdrawLawyerRequestMutation>; disabled?: boolean }) {
+  const t = useT();
   const [asking, setAsking] = useState(false);
   const [error, setError] = useState("");
   return (
@@ -173,10 +178,10 @@ export function WithdrawControl({ request, withdraw, disabled }: { request: Lawy
       {error && <ErrorBox message={error} />}
       {asking ? (
         <div className="flex flex-col gap-2.5 rounded-xl border border-error-line bg-error-bg px-3.5 py-3">
-          <span className="text-[13px] text-error-ink">Withdraw this request? Lawyers who have it lose access to your summary. You can ask again later.</span>
+          <span className="text-[13px] text-error-ink">{t("Withdraw this request? Lawyers who have it lose access to your summary. You can ask again later.")}</span>
           <div className="flex gap-2">
             <Button variant="soft" size="sm" className="max-md:!h-11 max-md:flex-1" onClick={() => setAsking(false)} disabled={withdraw.isPending} autoFocus>
-              Keep it
+              {t("Keep it")}
             </Button>
             <Button
               variant="danger"
@@ -188,18 +193,18 @@ export function WithdrawControl({ request, withdraw, disabled }: { request: Lawy
                 withdraw.mutate(request.id, {
                   onError: (err) => {
                     setAsking(false);
-                    setError(err instanceof Error ? err.message : "Couldn't withdraw. Try again.");
+                    setError(err instanceof Error ? err.message : t("Couldn't withdraw. Try again."));
                   },
                 });
               }}
             >
-              {withdraw.isPending ? "Withdrawing…" : "Withdraw"}
+              {withdraw.isPending ? t("Withdrawing…") : t("Withdraw")}
             </Button>
           </div>
         </div>
       ) : (
         <Button variant="soft" size="sm" className="self-start max-md:!h-11 max-md:w-full" onClick={() => setAsking(true)} disabled={disabled}>
-          Withdraw request
+          {t("Withdraw request")}
         </Button>
       )}
     </div>
@@ -207,6 +212,7 @@ export function WithdrawControl({ request, withdraw, disabled }: { request: Lawy
 }
 
 function LawyerHeader({ lawyer, tone = "plain", children }: { lawyer: NonNullable<LawyerRequest["lawyer"]>; tone?: "plain" | "success"; children?: ReactNode }) {
+  const t = useT();
   return (
     <section
       className={cn(
@@ -218,7 +224,7 @@ function LawyerHeader({ lawyer, tone = "plain", children }: { lawyer: NonNullabl
       <div className="flex min-w-[220px] flex-1 flex-col max-md:min-w-[160px]">
         <span className="text-base font-semibold">{children ?? lawyer.name}</span>
         <span className={cn("text-[12.5px]", tone === "success" ? "text-success-ink" : "text-ink-2")}>
-          {lawyer.firmName ?? "Solo practitioner"} · {lawyer.regulator} {lawyer.registrationNumber} · verified
+          {lawyer.firmName ?? t("Solo practitioner")} · {t(lawyer.regulator ?? "")} {lawyer.registrationNumber} · {t("verified")}
         </span>
       </div>
     </section>
@@ -229,16 +235,17 @@ function LawyerHeader({ lawyer, tone = "plain", children }: { lawyer: NonNullabl
  * when it isn't the kind of fee they preferred. Nothing for "Not sure". Measured by what the client
  * pays (the lawyer's quote), the same amount the card shows. */
 function BudgetFit({ budget, quote, payMinor }: { budget: ClientBudget | null; quote: NonNullable<LawyerOffer["quote"]>; payMinor: number }) {
+  const t = useT();
   const against = quoteAgainstBudget(budget, { type: quote.type, amountMinor: payMinor });
   if (!against || (!against.fit && !against.otherFeeType)) return null;
   return (
     <div className="flex flex-wrap gap-1.5 text-[11.5px] font-medium">
       {against.fit === "WITHIN" && (
-        <span className="rounded-full border border-success-line bg-success-bg px-2.5 py-0.5 text-success-ink">Within your budget</span>
+        <span className="rounded-full border border-success-line bg-success-bg px-2.5 py-0.5 text-success-ink">{t("Within your budget")}</span>
       )}
-      {against.fit === "ABOVE" && <span className="rounded-full border border-warn-line bg-warn-bg px-2.5 py-0.5 text-warn-ink">Above your budget</span>}
+      {against.fit === "ABOVE" && <span className="rounded-full border border-warn-line bg-warn-bg px-2.5 py-0.5 text-warn-ink">{t("Above your budget")}</span>}
       {against.otherFeeType && (
-        <span className="rounded-full border border-line px-2.5 py-0.5 text-ink-2">Not the kind of fee you preferred</span>
+        <span className="rounded-full border border-line px-2.5 py-0.5 text-ink-2">{t("Not the kind of fee you preferred")}</span>
       )}
     </div>
   );
@@ -248,6 +255,7 @@ function BudgetFit({ budget, quote, payMinor }: { budget: ClientBudget | null; q
  * thread. Kept closed until asked for, so opening the tab doesn't mark every lawyer's messages read.
  * On a phone the thread is the messages card, which opens a full screen of its own. */
 function OfferMessages({ c, request, offer }: { c: Case; request: LawyerRequest; offer: LawyerOffer }) {
+  const t = useT();
   const device = useDevice();
   const [open, setOpen] = useState(false);
   const thread = useEngagementMessagesQuery(request.id, offer.claimId);
@@ -261,7 +269,7 @@ function OfferMessages({ c, request, offer }: { c: Case; request: LawyerRequest;
       <div className="flex flex-col gap-2">
         <LawyerMessages c={c} requestId={request.id} claimId={offer.claimId} lawyerName={offer.lawyer.name} closed={false} beforeHire />
         <Button variant="ghost" size="sm" className="self-start" onClick={() => setOpen(false)}>
-          Hide messages
+          {t("Hide messages")}
         </Button>
       </div>
     );
@@ -269,9 +277,9 @@ function OfferMessages({ c, request, offer }: { c: Case; request: LawyerRequest;
   return (
     <Button variant="outline" size="sm" className="self-start" onClick={() => setOpen(true)}>
       <MessageCircleMore size={14} aria-hidden="true" />
-      Message {offer.lawyer.name}
+      {t("Message {name}", { name: offer.lawyer.name })}
       {unread > 0 && (
-        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-error px-1.5 text-[11px] text-white" aria-label={`${unread} unread`}>
+        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-error px-1.5 text-[11px] text-white" aria-label={t("{n} unread", { n: unread })}>
           {unread}
         </span>
       )}
@@ -300,7 +308,8 @@ function OfferCard({
   busy: boolean;
   onError: (message: string) => void;
 }) {
-  const first = firstName(offer.lawyer.name) ?? "the lawyer";
+  const t = useT();
+  const first = firstName(offer.lawyer.name) ?? t("the lawyer");
   const pay = offer.quotation ? amountDue(offer.quotation) : null;
   const expired = !!offer.quotation && quoteExpired(offer.quotation);
   return (
@@ -309,16 +318,16 @@ function OfferCard({
       {offer.lawyer.bio && <p className="px-1 text-[13px] leading-[1.6] text-ink-2">{offer.lawyer.bio}</p>}
       {offer.quote ? (
         <section className={CARD}>
-          <Eyebrow muted>{offer.quote.type === "FIXED_FEE" ? "Fixed fee quote" : "First consultation"}</Eyebrow>
+          <Eyebrow muted>{offer.quote.type === "FIXED_FEE" ? t("Fixed fee quote") : t("First consultation")}</Eyebrow>
           <span className="font-display text-[34px] tracking-[-0.02em] max-md:text-[30px]">{money(pay ?? offer.quote.amount)}</span>
           <BudgetFit budget={c.budget} quote={offer.quote} payMinor={(pay ?? offer.quote.amount).amountMinor} />
           {offer.quote.message && <p className="text-[#4a4a4a]">{offer.quote.message}</p>}
           {offer.quotation && <QuoteBreakdown quotation={offer.quotation} lawyerFirst={first} />}
           {offer.quotation &&
             (expired ? (
-              <p className="text-[12.5px] text-error-ink">This quote expired on {pickByDay(offer.quotation.expiresAt)}, so it can&apos;t be accepted any more.</p>
+              <p className="text-[12.5px] text-error-ink">{t("This quote expired on {date}, so it can't be accepted any more.", { date: pickByDay(offer.quotation.expiresAt) })}</p>
             ) : (
-              <p className="text-[12.5px] text-ink-2">This quote is valid until {pickByDay(offer.quotation.expiresAt)}. Accept and pay before then.</p>
+              <p className="text-[12.5px] text-ink-2">{t("This quote is valid until {date}. Accept and pay before then.", { date: pickByDay(offer.quotation.expiresAt) })}</p>
             ))}
           <div className="flex flex-wrap gap-2.5">
             <Button
@@ -326,29 +335,29 @@ function OfferCard({
               className="!h-[46px] min-w-[200px] flex-1 !text-sm !font-semibold max-md:!h-12 max-md:min-w-full"
               disabled={busy || expired}
               onClick={() =>
-                confirm.mutate({ id: request.id, claimId: offer.claimId }, { onError: (err) => onError(err instanceof Error ? err.message : "Couldn't confirm. Try again.") })
+                confirm.mutate({ id: request.id, claimId: offer.claimId }, { onError: (err) => onError(err instanceof Error ? err.message : t("Couldn't confirm. Try again.")) })
               }
             >
               {confirm.isPending && confirm.variables?.claimId === offer.claimId
-                ? "Accepting…"
+                ? t("Accepting…")
                 : pay && pay.amountMinor > 0
-                  ? `Accept and pay ${money(pay)}`
-                  : `Hire ${offer.lawyer.name}`}
+                  ? t("Accept and pay {amount}", { amount: money(pay) })
+                  : t("Hire {name}", { name: offer.lawyer.name })}
             </Button>
             <Button
               variant="soft"
               className="!h-[46px] min-w-[200px] flex-1 !text-sm max-md:!h-12 max-md:min-w-full"
               disabled={busy}
               onClick={() =>
-                decline.mutate({ id: request.id, claimId: offer.claimId }, { onError: (err) => onError(err instanceof Error ? err.message : "Couldn't decline. Try again.") })
+                decline.mutate({ id: request.id, claimId: offer.claimId }, { onError: (err) => onError(err instanceof Error ? err.message : t("Couldn't decline. Try again.")) })
               }
             >
-              {decline.isPending && decline.variables?.claimId === offer.claimId ? "Declining…" : "Decline this quote"}
+              {decline.isPending && decline.variables?.claimId === offer.claimId ? t("Declining…") : t("Decline this quote")}
             </Button>
           </div>
         </section>
       ) : (
-        <div className="rounded-input border border-line bg-subtle px-4 py-3 text-[13px] text-ink-2">Reviewing your case. They&apos;ll send a quote within 24 hours.</div>
+        <div className="rounded-input border border-line bg-subtle px-4 py-3 text-[13px] text-ink-2">{t("Reviewing your case. They'll send a quote within 24 hours.")}</div>
       )}
       <OfferMessages c={c} request={request} offer={offer} />
     </div>
@@ -373,17 +382,18 @@ export function QuoteStage({
   confirm: ReturnType<typeof useConfirmLawyerRequestMutation>;
   decline: ReturnType<typeof useDeclineLawyerRequestMutation>;
 }) {
+  const t = useT();
   const [error, setError] = useState("");
   const busy = confirm.isPending || decline.isPending || locked;
 
   if (finalising) {
     if (request.awaitingPayment && request.quotation) return <PayStage c={c} request={request} quotation={request.quotation} />;
-    const first = firstName(request.lawyer?.name) ?? "your lawyer";
+    const first = firstName(request.lawyer?.name) ?? t("your lawyer");
     return (
       <div className="flex flex-col gap-4">
         {request.lawyer && <LawyerHeader lawyer={request.lawyer} />}
         <div className="flex items-center gap-2 rounded-xl border border-warn-line bg-warn-bg px-3.5 py-3 text-[13px] text-warn-ink">
-          You confirmed {first}. They&apos;re finishing setup on their side — you&apos;ll be able to message them here in a few minutes. Nothing else for you to do.
+          {t("You confirmed {name}. They're finishing setup on their side — you'll be able to message them here in a few minutes. Nothing else for you to do.", { name: first })}
         </div>
         <Disclosures request={request} />
       </div>
@@ -393,9 +403,9 @@ export function QuoteStage({
   const quoted = request.lawyers.filter((l) => l.quote).length;
   return (
     <div className="flex flex-col gap-4">
-      <h2 className={HEADING}>{quoted > 1 ? `${quoted} quotes received` : "Quote received"}</h2>
+      <h2 className={HEADING}>{quoted > 1 ? t("{n} quotes received", { n: quoted }) : t("Quote received")}</h2>
       {request.pickByAt && (
-        <p className="text-[13px] text-ink-2">Choose a lawyer by {pickByTime(request.pickByAt)}. If you don&apos;t, this request closes and you can ask again.</p>
+        <p className="text-[13px] text-ink-2">{t("Choose a lawyer by {time}. If you don't, this request closes and you can ask again.", { time: pickByTime(request.pickByAt) })}</p>
       )}
 
       {/* Above the offers, so it's read before any Accept, which acknowledges it. The sharing
@@ -416,7 +426,7 @@ export function QuoteStage({
       ))}
 
       {(request.openToLawyers ?? request.lawyers.length < MAX_LAWYERS) && (
-        <div className="text-xs text-ink-2">Up to {MAX_LAWYERS} lawyers can send you a quote. Others may still take up your request.</div>
+        <div className="text-xs text-ink-2">{t("Up to {n} lawyers can send you a quote. Others may still take up your request.", { n: MAX_LAWYERS })}</div>
       )}
 
       {error && <ErrorBox message={error} />}
@@ -432,6 +442,7 @@ const PAYMENT_CHECK_MS = 1500;
  * Element takes the card; with the dummy provider, the payment settles at once. Once paid, the API
  * engages the request and this tab moves on. */
 function PayStage({ c, request, quotation }: { c: Case; request: LawyerRequest; quotation: Quotation }) {
+  const t = useT();
   const pay = usePayQuotationMutation(c.id);
   const refresh = useRefreshLawyerRequests(c.id);
   const [intent, setIntent] = useState<PaymentStart["intent"]>(null);
@@ -440,10 +451,10 @@ function PayStage({ c, request, quotation }: { c: Case; request: LawyerRequest; 
   // The API says it's paid: only the stage changing is left, so nothing to pay again.
   const [paid, setPaid] = useState(false);
   const [simulateDecline, setSimulateDecline] = useState(false);
-  const first = firstName(request.lawyer?.name) ?? "your lawyer";
+  const first = firstName(request.lawyer?.name) ?? t("your lawyer");
   const total = amountDue(quotation);
   const expired = quoteExpired(quotation);
-  const expiredMessage = `This quote expired on ${pickByDay(quotation.expiresAt)}, so it can't be paid any more. You can ask for a lawyer again.`;
+  const expiredMessage = t("This quote expired on {date}, so it can't be paid any more. You can ask for a lawyer again.", { date: pickByDay(quotation.expiresAt) });
 
   function start() {
     setError("");
@@ -455,7 +466,7 @@ function PayStage({ c, request, quotation }: { c: Case; request: LawyerRequest; 
         },
         onError: (err) => {
           if (err instanceof ApiError && err.code === CLIENT_HANDOFF_ERROR_CODES.QUOTATION_EXPIRED) return setError(expiredMessage);
-          setError(err instanceof Error ? err.message : "Your payment didn't go through. Try again.");
+          setError(err instanceof Error ? err.message : t("Your payment didn't go through. Try again."));
         },
       },
     );
@@ -475,14 +486,14 @@ function PayStage({ c, request, quotation }: { c: Case; request: LawyerRequest; 
           return;
         }
         if (payment?.status === "FAILED" || payment?.status === "CANCELED") {
-          setError(payment.failureReason ?? "Your payment didn't go through. Try again.");
+          setError(payment.failureReason ?? t("Your payment didn't go through. Try again."));
           return;
         }
         await new Promise((resolve) => setTimeout(resolve, PAYMENT_CHECK_MS));
       }
-      setError("Your payment is still being processed. This page moves on by itself once it's confirmed, so there's no need to pay again.");
+      setError(t("Your payment is still being processed. This page moves on by itself once it's confirmed, so there's no need to pay again."));
     } catch {
-      setError("We couldn't check your payment. Refresh the page to see whether it went through before paying again.");
+      setError(t("We couldn't check your payment. Refresh the page to see whether it went through before paying again."));
     } finally {
       setChecking(false);
       refresh();
@@ -511,25 +522,23 @@ function PayStage({ c, request, quotation }: { c: Case; request: LawyerRequest; 
     <div className="flex flex-col gap-4">
       {request.lawyer && <LawyerHeader lawyer={request.lawyer} />}
       <section className={CARD}>
-        <h2 className={HEADING}>Pay {first}&apos;s quote</h2>
+        <h2 className={HEADING}>{t("Pay {name}'s quote", { name: first })}</h2>
         <p className="text-[#4a4a4a]">
-          {expired ? (
-            <>You accepted {first}&apos;s quote, but it expired on {pickByDay(quotation.expiresAt)} before it was paid.</>
-          ) : (
-            <>
-              You accepted {first}&apos;s quote. Pay it here to get started: {first} can see your case and message you once it&apos;s paid. Pay by {pickByDay(quotation.expiresAt)},
-              or the quote expires.
-            </>
-          )}
+          {expired
+            ? t("You accepted {name}'s quote, but it expired on {date} before it was paid.", { name: first, date: pickByDay(quotation.expiresAt) })
+            : t("You accepted {name}'s quote. Pay it here to get started: {name} can see your case and message you once it's paid. Pay by {date}, or the quote expires.", {
+                name: first,
+                date: pickByDay(quotation.expiresAt),
+              })}
         </p>
         <QuoteBreakdown quotation={quotation} lawyerFirst={first} />
         {/* Paying is what gives the lawyer the case, so the notice is here too, above the Pay button. */}
         {!expired && request.sharingNotice && <DisclosureNote text={request.sharingNotice} />}
         {error && <ErrorBox message={error} />}
         {checking ? (
-          <div className="py-2 text-center text-[13px] text-ink-2">Confirming your payment…</div>
+          <div className="py-2 text-center text-[13px] text-ink-2">{t("Confirming your payment…")}</div>
         ) : paid ? (
-          <div className="py-2 text-center text-[13px] text-ink-2">Your payment went through. Setting up your engagement…</div>
+          <div className="py-2 text-center text-[13px] text-ink-2">{t("Your payment went through. Setting up your engagement…")}</div>
         ) : expired ? (
           <ErrorBox message={expiredMessage} />
         ) : intent ? (
@@ -537,12 +546,12 @@ function PayStage({ c, request, quotation }: { c: Case; request: LawyerRequest; 
             clientSecret={intent.clientSecret}
             publishableKey={intent.publishableKey}
             returnUrl={typeof window === "undefined" ? "" : window.location.href}
-            payLabel={`Pay ${money(total)}`}
+            payLabel={t("Pay {amount}", { amount: money(total) })}
             onPaid={() => void afterStripe()}
             onFailed={() => {
               // Back to the Pay button, which asks the API for the payment again.
               setIntent(null);
-              setError("The payment form couldn't load. Try again.");
+              setError(t("The payment form couldn't load. Try again."));
             }}
           />
         ) : (
@@ -550,15 +559,15 @@ function PayStage({ c, request, quotation }: { c: Case; request: LawyerRequest; 
             {isDev && (
               <label className="flex items-center gap-2 text-[12px] text-muted">
                 <input type="checkbox" checked={simulateDecline} onChange={(e) => setSimulateDecline(e.target.checked)} />
-                Dev only: simulate a declined payment (dummy provider; with Stripe, use card 4000 0000 0000 0002)
+                {t("Dev only: simulate a declined payment (dummy provider; with Stripe, use card 4000 0000 0000 0002)")}
               </label>
             )}
             <Button variant="dark" className="!h-[46px] !text-sm !font-semibold max-md:!h-12" disabled={pay.isPending} onClick={start}>
-              {pay.isPending ? "Starting payment…" : `Pay ${money(total)}`}
+              {pay.isPending ? t("Starting payment…") : t("Pay {amount}", { amount: money(total) })}
             </Button>
           </>
         )}
-        <span className="text-center text-xs text-muted">Pay securely with Stripe. Your card details go to Stripe, never to ilovelawyer.</span>
+        <span className="text-center text-xs text-muted">{t("Pay securely with Stripe. Your card details go to Stripe, never to ilovelawyer.")}</span>
       </section>
     </div>
   );
@@ -566,23 +575,24 @@ function PayStage({ c, request, quotation }: { c: Case; request: LawyerRequest; 
 
 /** "Payment successful", at the top of the engaged stage, right after the client pays. */
 export function PaymentSuccess({ request, onDismiss }: { request: LawyerRequest; onDismiss: () => void }) {
+  const t = useT();
   // Only a real payment: a free first consultation engages with nothing paid.
   if (!paidThroughUs(request.quotation)) return null;
   const paid = amountDue(request.quotation);
   const paidAt = request.quotation?.paidAt ?? request.engagedAt;
-  const lawyerName = request.lawyer?.name ?? "your lawyer";
-  const first = firstName(request.lawyer?.name) ?? "your lawyer";
+  const lawyerName = request.lawyer?.name ?? t("your lawyer");
+  const first = firstName(request.lawyer?.name) ?? t("your lawyer");
   return (
     <section role="status" className="flex items-start gap-3 rounded-card border border-success-line bg-success-bg px-5 py-4 text-success-ink">
       <CircleCheck size={22} className="mt-0.5 shrink-0" aria-hidden />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <h2 className="text-[15px] font-semibold">Payment successful</h2>
+        <h2 className="text-[15px] font-semibold">{t("Payment successful")}</h2>
         <p className="text-[13px] leading-[1.5]">
-          You paid {money(paid)} to {lawyerName}. {first} can now see your case and message you here.
+          {t("You paid {amount} to {lawyer}. {name} can now see your case and message you here.", { amount: money(paid), lawyer: lawyerName, name: first })}
         </p>
-        {paidAt && <p className="text-xs opacity-80">Paid {formatDateTime(paidAt)}</p>}
+        {paidAt && <p className="text-xs opacity-80">{t("Paid {date}", { date: formatDateTime(paidAt) })}</p>}
       </div>
-      <button type="button" aria-label="Dismiss" onClick={onDismiss} data-no-tap className="flex size-11 shrink-0 items-center justify-center text-success-ink md:size-auto">
+      <button type="button" aria-label={t("Dismiss")} onClick={onDismiss} data-no-tap className="flex size-11 shrink-0 items-center justify-center text-success-ink md:size-auto">
         <X size={16} />
       </button>
     </section>
@@ -597,26 +607,27 @@ export function PaymentSuccess({ request, onDismiss }: { request: LawyerRequest;
 /** "Confirm and close", said twice: what closing means for the client, before it happens. It can't
  * be undone: the lawyer loses access, and any payment goes to them after the usual hold. */
 function ConfirmCompletionModal({ c, request, onClose }: { c: Case; request: LawyerRequest; onClose: () => void }) {
+  const t = useT();
   const confirm = useConfirmCompletionMutation(c.id);
   const [error, setError] = useState("");
-  const first = firstName(request.lawyer?.name) ?? "Your lawyer";
+  const first = firstName(request.lawyer?.name) ?? t("Your lawyer");
   const paid = paidThroughUs(request.quotation);
   return (
-    <Modal open onClose={onClose} locked={confirm.isPending} title="Is the work finished?" subtitle={`Confirm that ${first} has finished the work on your case.`}>
+    <Modal open onClose={onClose} locked={confirm.isPending} title={t("Is the work finished?")} subtitle={t("Confirm that {name} has finished the work on your case.", { name: first })}>
       <ul className="flex list-disc flex-col gap-1.5 pl-5 text-[13.5px] leading-[1.5] text-ink-2">
-        <li>The engagement closes, and {first} no longer has access to your case.</li>
+        <li>{t("The engagement closes, and {name} no longer has access to your case.", { name: first })}</li>
         {paid ? (
-          <li>Nothing is refunded: {first} is paid for the work after the usual holding period.</li>
+          <li>{t("Nothing is refunded: {name} is paid for the work after the usual holding period.", { name: first })}</li>
         ) : (
-          <li>Nothing was paid through ilovelawyer, so there&apos;s nothing to refund.</li>
+          <li>{t("Nothing was paid through ilovelawyer, so there's nothing to refund.")}</li>
         )}
-        <li>You can rate {first} once it&apos;s closed.</li>
-        <li>You can&apos;t undo this. If something is still left to do, choose &ldquo;It&apos;s not finished&rdquo; instead.</li>
+        <li>{t("You can rate {name} once it's closed.", { name: first })}</li>
+        <li>{t("You can't undo this. If something is still left to do, choose “It's not finished” instead.")}</li>
       </ul>
       {error && <ErrorBox message={error} />}
       <div className="flex justify-end gap-2.5">
         <Button variant="outline" onClick={onClose} disabled={confirm.isPending}>
-          Not yet
+          {t("Not yet")}
         </Button>
         <Button
           variant="primary"
@@ -625,11 +636,11 @@ function ConfirmCompletionModal({ c, request, onClose }: { c: Case; request: Law
             setError("");
             confirm.mutate(request.id, {
               onSuccess: onClose,
-              onError: (err) => setError(err instanceof Error ? err.message : "Couldn't confirm. Try again."),
+              onError: (err) => setError(err instanceof Error ? err.message : t("Couldn't confirm. Try again.")),
             });
           }}
         >
-          {confirm.isPending ? "Confirming…" : "Yes, close the engagement"}
+          {confirm.isPending ? t("Confirming…") : t("Yes, close the engagement")}
         </Button>
       </div>
     </Modal>
@@ -637,19 +648,20 @@ function ConfirmCompletionModal({ c, request, onClose }: { c: Case; request: Law
 }
 
 export function CompletionCard({ c, request }: { c: Case; request: LawyerRequest }) {
+  const t = useT();
   const decline = useDeclineCompletionMutation(c.id);
   const [confirming, setConfirming] = useState(false);
   const [declining, setDeclining] = useState(false);
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
   const completion = request.completion;
-  const first = firstName(request.lawyer?.name) ?? "Your lawyer";
+  const first = firstName(request.lawyer?.name) ?? t("Your lawyer");
   if (!completion) return null;
   if (!completion.requestedAt) {
     if (!completion.declinedAt) return null;
     return (
       <p className="rounded-input border border-line bg-subtle px-4 py-3 text-[13px] text-ink-2">
-        You told {first} the work isn&apos;t finished on {day(completion.declinedAt)}. They&apos;ll let you know when it is.
+        {t("You told {name} the work isn't finished on {date}. They'll let you know when it is.", { name: first, date: day(completion.declinedAt) })}
       </p>
     );
   }
@@ -658,18 +670,18 @@ export function CompletionCard({ c, request }: { c: Case; request: LawyerRequest
   return (
     <section aria-labelledby="completion-heading" className="flex flex-col gap-3 rounded-input border border-gold/40 bg-warn-bg px-4 py-4">
       <h2 id="completion-heading" className="text-[15px] font-semibold">
-        {first} says the work is finished
+        {t("{name} says the work is finished", { name: first })}
       </h2>
       {completion.note && <p className="whitespace-pre-wrap break-words text-[13.5px] leading-[1.5] text-ink">&ldquo;{completion.note}&rdquo;</p>}
       <p className="text-[13px] text-ink-2">
-        Confirm it to close the engagement, or tell {first} what&apos;s left.
-        {completion.autoClosesAt && ` If you don't answer by ${day(completion.autoClosesAt)}, it closes by itself.`}
+        {t("Confirm it to close the engagement, or tell {name} what's left.", { name: first })}
+        {completion.autoClosesAt && ` ${t("If you don't answer by {date}, it closes by itself.", { date: day(completion.autoClosesAt) })}`}
       </p>
       {error && <ErrorBox message={error} />}
       {declining ? (
         <div className="flex flex-col gap-2">
           <label htmlFor="completion-reason" className="text-[13px] font-semibold">
-            What&apos;s left to do?
+            {t("What's left to do?")}
           </label>
           <textarea
             id="completion-reason"
@@ -683,7 +695,7 @@ export function CompletionCard({ c, request }: { c: Case; request: LawyerRequest
           />
           <div className="flex flex-wrap gap-2.5">
             <Button variant="soft" size="sm" className="max-md:!h-11 max-md:flex-1" disabled={busy} onClick={() => setDeclining(false)}>
-              Back
+              {t("Back")}
             </Button>
             <Button
               variant="dark"
@@ -694,11 +706,11 @@ export function CompletionCard({ c, request }: { c: Case; request: LawyerRequest
                 setError("");
                 decline.mutate(
                   { id: request.id, reason: reason.trim() },
-                  { onSuccess: () => setDeclining(false), onError: (err) => fail(err, "Couldn't send that. Try again.") },
+                  { onSuccess: () => setDeclining(false), onError: (err) => fail(err, t("Couldn't send that. Try again.")) },
                 );
               }}
             >
-              {decline.isPending ? "Sending…" : `Send to ${first}`}
+              {decline.isPending ? t("Sending…") : t("Send to {name}", { name: first })}
             </Button>
           </div>
         </div>
@@ -714,10 +726,10 @@ export function CompletionCard({ c, request }: { c: Case; request: LawyerRequest
               setConfirming(true);
             }}
           >
-            Confirm and close
+            {t("Confirm and close")}
           </Button>
           <Button variant="soft" size="sm" className="max-md:!h-11 max-md:flex-1" disabled={busy} onClick={() => setDeclining(true)}>
-            It&apos;s not finished
+            {t("It's not finished")}
           </Button>
         </div>
       )}
@@ -727,27 +739,28 @@ export function CompletionCard({ c, request }: { c: Case; request: LawyerRequest
 }
 
 export function EngagedStage({ c, request }: { c: Case; request: LawyerRequest }) {
+  const t = useT();
   const end = useEndLawyerRequestMutation(c.id);
   const [asking, setAsking] = useState(false);
   const [error, setError] = useState("");
   const lawyer = request.lawyer;
-  const first = firstName(lawyer?.name) ?? "your lawyer";
+  const first = firstName(lawyer?.name) ?? t("your lawyer");
   return (
     <div className="flex flex-col gap-4">
       {lawyer && (
         <LawyerHeader lawyer={lawyer} tone="success">
-          You&apos;re working with {lawyer.name}
+          {t("You're working with {name}", { name: lawyer.name })}
         </LawyerHeader>
       )}
       <CompletionCard c={c} request={request} />
       {request.refund && <RefundSummary refund={request.refund} />}
-      <LawyerMessages c={c} requestId={request.id} lawyerName={lawyer?.name ?? "your lawyer"} closed={false} />
+      <LawyerMessages c={c} requestId={request.id} lawyerName={lawyer?.name ?? t("your lawyer")} closed={false} />
       {error && <ErrorBox message={error} />}
       {asking ? (
         <div className="flex flex-wrap items-center gap-2.5 rounded-xl border border-error-line bg-error-bg px-3.5 py-3">
-          <span className="min-w-[240px] flex-1 text-[13px] text-error-ink max-md:min-w-full">End this engagement? {first} loses access to your case. Your messages stay readable.</span>
+          <span className="min-w-[240px] flex-1 text-[13px] text-error-ink max-md:min-w-full">{t("End this engagement? {name} loses access to your case. Your messages stay readable.", { name: first })}</span>
           <Button variant="soft" size="sm" className="max-md:!h-11 max-md:flex-1" onClick={() => setAsking(false)} disabled={end.isPending} autoFocus>
-            Keep working
+            {t("Keep working")}
           </Button>
           <Button
             variant="danger"
@@ -761,18 +774,18 @@ export function EngagedStage({ c, request }: { c: Case; request: LawyerRequest }
                 {
                   onError: (err) => {
                     setAsking(false);
-                    setError(err instanceof Error ? err.message : "Couldn't end the engagement. Try again.");
+                    setError(err instanceof Error ? err.message : t("Couldn't end the engagement. Try again."));
                   },
                 },
               );
             }}
           >
-            {end.isPending ? "Ending…" : "End engagement"}
+            {end.isPending ? t("Ending…") : t("End engagement")}
           </Button>
         </div>
       ) : (
         <Button variant="quiet" size="sm" className="self-start !text-error hover:!text-error-ink max-md:!h-11" onClick={() => setAsking(true)}>
-          End engagement
+          {t("End engagement")}
         </Button>
       )}
     </div>
@@ -781,35 +794,37 @@ export function EngagedStage({ c, request }: { c: Case; request: LawyerRequest }
 
 /** Where a refund stands, as the client reads it: what the Lawyer Exit's status means for their money. */
 const EXIT_REFUND_STATUS: Record<NonNullable<ClientRefundSummary["lawyerExit"]>["status"], string> = {
-  REFUNDING: "Your refund is on its way.",
-  AWAITING_REVIEW: "We're reviewing your refund, to decide how much of your payment comes back to you. We'll let you know.",
-  WAITING_ON_DISPUTE: "Your bank is looking at a dispute on this payment, so it decides what you get back.",
-  NEEDS_ATTENTION: "We're sorting out your refund. You don't need to do anything.",
-  SETTLED: "Your refund is settled.",
+  REFUNDING: msg("Your refund is on its way."),
+  AWAITING_REVIEW: msg("We're reviewing your refund, to decide how much of your payment comes back to you. We'll let you know."),
+  WAITING_ON_DISPUTE: msg("Your bank is looking at a dispute on this payment, so it decides what you get back."),
+  NEEDS_ATTENTION: msg("We're sorting out your refund. You don't need to do anything."),
+  SETTLED: msg("Your refund is settled."),
 };
 
 /** The client's payment for the lawyer they hired and what's come back of it: shown once anything has
  * been, or is being, refunded, and always after a lawyer stopped acting. */
 export function RefundSummary({ refund }: { refund: ClientRefundSummary }) {
+  const t = useT();
   const exit = refund.lawyerExit;
   const done = refund.refunds.filter((r) => r.status === "SUCCEEDED");
   if (!exit && done.length === 0 && refund.pending.amountMinor === 0) return null;
   return (
     <div className="flex flex-col gap-3 rounded-input border border-line bg-subtle px-4 py-3.5">
       <div className="flex flex-wrap gap-2.5">
-        <Tile label="You paid">{money(refund.paid)}</Tile>
-        <Tile label="Refunded to your card">{money(refund.refunded)}</Tile>
-        {refund.pending.amountMinor > 0 && <Tile label="On its way">{money(refund.pending)}</Tile>}
+        <Tile label={t("You paid")}>{money(refund.paid)}</Tile>
+        <Tile label={t("Refunded to your card")}>{money(refund.refunded)}</Tile>
+        {refund.pending.amountMinor > 0 && <Tile label={t("On its way")}>{money(refund.pending)}</Tile>}
       </div>
-      {exit && <p className="text-[13px] text-ink-2">{exit.status === "SETTLED" && refund.refunded.amountMinor === 0 ? "No refund is due." : EXIT_REFUND_STATUS[exit.status]}</p>}
+      {exit && <p className="text-[13px] text-ink-2">{exit.status === "SETTLED" && refund.refunded.amountMinor === 0 ? t("No refund is due.") : t(EXIT_REFUND_STATUS[exit.status])}</p>}
       {(done.length > 0 || refund.pending.amountMinor > 0) && (
-        <p className="text-[12.5px] text-ink-2">A refund can take 5 to 10 working days to show on your statement.</p>
+        <p className="text-[12.5px] text-ink-2">{t("A refund can take 5 to 10 working days to show on your statement.")}</p>
       )}
     </div>
   );
 }
 
 export function ClosedStage({ c, request }: { c: Case; request: LawyerRequest }) {
+  const t = useT();
   const { data: eligibility } = useEligibilityQuery(c.id);
   const name = request.lawyer?.name;
   // The lawyer stopped acting (a Lawyer Exit): they couldn't continue, rather than finished the work.
@@ -817,25 +832,26 @@ export function ClosedStage({ c, request }: { c: Case; request: LawyerRequest })
   return (
     <div className="flex flex-col gap-4">
       <section className={CARD}>
-        <h2 className={HEADING}>{exited ? `${firstName(name) ?? "Your lawyer"} can't continue` : "Engagement ended"}</h2>
+        <h2 className={HEADING}>{exited ? t("{name} can't continue", { name: firstName(name) ?? t("Your lawyer") }) : t("Engagement ended")}</h2>
         <p className="text-[#4a4a4a]">
           {exited
-            ? "Your lawyer has stopped acting on your case."
+            ? t("Your lawyer has stopped acting on your case.")
             : request.closedBy === "CLIENT"
-              ? "You ended this engagement."
+              ? t("You ended this engagement.")
               : request.completion?.confirmedBy === "CLIENT"
-                ? "You confirmed the work is finished."
+                ? t("You confirmed the work is finished.")
                 : request.completion?.confirmedBy === "AUTO"
-                  ? "Your lawyer said the work was finished, and it closed after 7 days without an answer."
-                  : "Your lawyer closed this engagement."}
-          {name && request.engagedAt && request.closedAt && ` You worked with ${name} from ${day(request.engagedAt)} to ${day(request.closedAt)}.`} They no longer have access to your case; your messages stay below.
+                  ? t("Your lawyer said the work was finished, and it closed after 7 days without an answer.")
+                  : t("Your lawyer closed this engagement.")}
+          {name && request.engagedAt && request.closedAt && ` ${t("You worked with {name} from {from} to {to}.", { name, from: day(request.engagedAt), to: day(request.closedAt) })}`}{" "}
+          {t("They no longer have access to your case; your messages stay below.")}
         </p>
         {request.refund && <RefundSummary refund={request.refund} />}
         {eligibility?.eligible && (
           <>
-            {exited && <p className="text-[13px] text-ink-2">You can ask for another lawyer on this case. {firstName(name) ?? "This lawyer"} won&apos;t be offered it.</p>}
+            {exited && <p className="text-[13px] text-ink-2">{t("You can ask for another lawyer on this case. {name} won't be offered it.", { name: firstName(name) ?? t("This lawyer") })}</p>}
             <Button variant="dark" size="md" className="self-start max-md:w-full" onClick={() => useLawyerRequestForm.getState().openFor(c.id)}>
-              Get another lawyer
+              {t("Get another lawyer")}
             </Button>
           </>
         )}
@@ -847,21 +863,21 @@ export function ClosedStage({ c, request }: { c: Case; request: LawyerRequest })
 }
 
 export function ExpiredStage({ caseId }: { caseId: string }) {
+  const t = useT();
   const { data: eligibility } = useEligibilityQuery(caseId);
   return (
     <section className={cn(CARD, "border-error-line")}>
-      <h2 className={HEADING}>No lawyer found</h2>
+      <h2 className={HEADING}>{t("No lawyer found")}</h2>
       <p className="text-[#4a4a4a]">
-        No lawyer picked up your request within 48 hours, or no quote was chosen within 7 days. You haven&apos;t been charged anything, and any case fee credit stays on your
-        account.
+        {t("No lawyer picked up your request within 48 hours, or no quote was chosen within 7 days. You haven't been charged anything, and any case fee credit stays on your account.")}
       </p>
       <ul className="flex list-disc flex-col gap-1 pl-[18px] text-[13px] text-[#4a4a4a]">
-        <li>Answering the questions still open in your interview helps lawyers see what you need.</li>
-        <li>You can send it again any time.</li>
+        <li>{t("Answering the questions still open in your interview helps lawyers see what you need.")}</li>
+        <li>{t("You can send it again any time.")}</li>
       </ul>
       {eligibility?.eligible && (
         <Button variant="dark" size="md" className="self-start max-md:w-full" onClick={() => useLawyerRequestForm.getState().openFor(caseId)}>
-          Send it again
+          {t("Send it again")}
         </Button>
       )}
     </section>
@@ -869,11 +885,12 @@ export function ExpiredStage({ caseId }: { caseId: string }) {
 }
 
 export function StageCard({ c, request, phase }: { c: Case; request: LawyerRequest; phase: Phase }) {
+  const t = useT();
   if (phase === "sent") {
     return (
       <section className={CARD}>
-        <h2 className={HEADING}>Preparing your request</h2>
-        <p className="text-[#4a4a4a]">We&apos;re turning your overview into an anonymised summary — no names except for the conflict check. This takes about a minute; you can leave this page.</p>
+        <h2 className={HEADING}>{t("Preparing your request")}</h2>
+        <p className="text-[#4a4a4a]">{t("We're turning your overview into an anonymised summary — no names except for the conflict check. This takes about a minute; you can leave this page.")}</p>
         <div className="flex flex-col gap-2" aria-hidden>
           <span className="h-2.5 w-[90%] animate-pulse rounded-md bg-chip" />
           <span className="h-2.5 w-3/4 animate-pulse rounded-md bg-chip" />
@@ -888,34 +905,31 @@ export function StageCard({ c, request, phase }: { c: Case; request: LawyerReque
     if (named && request.requestedOnly) {
       return (
         <section className={CARD}>
-          <h2 className={HEADING}>Waiting for {named}</h2>
-          <p className="text-[#4a4a4a]">
-            Only {named} has an anonymised summary of your case. If they take it up, they&apos;ll check for conflicts and send you a quote.
-          </p>
+          <h2 className={HEADING}>{t("Waiting for {name}", { name: named })}</h2>
+          <p className="text-[#4a4a4a]">{t("Only {name} has an anonymised summary of your case. If they take it up, they'll check for conflicts and send you a quote.", { name: named })}</p>
           <div className="flex flex-wrap gap-2.5">
-            <Tile label="Sent">{formatDateTime(request.createdAt)}</Tile>
-            {request.routingExpiresAt && <Tile label={`${named} has until`}>{formatDateTime(request.routingExpiresAt)}</Tile>}
-            <Tile label={`If ${named} can't take it`}>
-              <span className="font-sans text-sm">It goes to other verified lawyers who match, automatically</span>
+            <Tile label={t("Sent")}>{formatDateTime(request.createdAt)}</Tile>
+            {request.routingExpiresAt && <Tile label={t("{name} has until", { name: named })}>{formatDateTime(request.routingExpiresAt)}</Tile>}
+            <Tile label={t("If {name} can't take it", { name: named })}>
+              <span className="font-sans text-sm">{t("It goes to other verified lawyers who match, automatically")}</span>
             </Tile>
           </div>
-          <span className="text-[12.5px] text-ink-2">We&apos;ll email you the moment {named} picks it up.</span>
+          <span className="text-[12.5px] text-ink-2">{t("We'll email you the moment {name} picks it up.", { name: named })}</span>
         </section>
       );
     }
     return (
       <section className={CARD}>
-        <h2 className={HEADING}>Finding the right lawyer</h2>
-        {named && <p className="text-[#4a4a4a]">{named} couldn&apos;t take it up, so we&apos;ve sent it to other verified lawyers who match, as you agreed.</p>}
+        <h2 className={HEADING}>{t("Finding the right lawyer")}</h2>
+        {named && <p className="text-[#4a4a4a]">{t("{name} couldn't take it up, so we've sent it to other verified lawyers who match, as you agreed.", { name: named })}</p>}
         <p className="text-[#4a4a4a]">
-          Verified lawyers who handle cases like yours have an anonymised summary of your case. Up to {MAX_LAWYERS} can take it up; each checks for conflicts and sends you a
-          quote.
+          {t("Verified lawyers who handle cases like yours have an anonymised summary of your case. Up to {n} can take it up; each checks for conflicts and sends you a quote.", { n: MAX_LAWYERS })}
         </p>
         <div className="flex flex-wrap gap-2.5">
-          <Tile label="Sent">{formatDateTime(request.createdAt)}</Tile>
-          <Tile label="Usually picked up within">a day</Tile>
+          <Tile label={t("Sent")}>{formatDateTime(request.createdAt)}</Tile>
+          <Tile label={t("Usually picked up within")}>{t("a day")}</Tile>
         </div>
-        <span className="text-[12.5px] text-ink-2">We&apos;ll email you the moment a lawyer picks it up.</span>
+        <span className="text-[12.5px] text-ink-2">{t("We'll email you the moment a lawyer picks it up.")}</span>
       </section>
     );
   }
@@ -923,14 +937,15 @@ export function StageCard({ c, request, phase }: { c: Case; request: LawyerReque
     const on = request.lawyers.length;
     return (
       <section className={CARD}>
-        <h2 className={HEADING}>{on > 1 ? `${on} lawyers are reviewing your case` : "A lawyer is reviewing your case"}</h2>
+        <h2 className={HEADING}>{on > 1 ? t("{n} lawyers are reviewing your case", { n: on }) : t("A lawyer is reviewing your case")}</h2>
         <p className="text-[#4a4a4a]">
-          {on > 1 ? "Each is" : "They're"} checking they don&apos;t already act for the other side, then {on > 1 ? "each will" : "they'll"} send you a quote within 24 hours. You
-          don&apos;t need to do anything yet.
+          {on > 1
+            ? t("Each is checking they don't already act for the other side, then each will send you a quote within 24 hours. You don't need to do anything yet.")
+            : t("They're checking they don't already act for the other side, then they'll send you a quote within 24 hours. You don't need to do anything yet.")}
         </p>
         <div className="flex flex-wrap gap-2.5">
-          <Tile label="If they can't take it">
-            <span className="font-sans text-sm">It goes back to other lawyers automatically</span>
+          <Tile label={t("If they can't take it")}>
+            <span className="font-sans text-sm">{t("It goes back to other lawyers automatically")}</span>
           </Tile>
         </div>
         {/* Each lawyer's thread is open from when they take it up, before any quote (phase 5b). */}
@@ -948,9 +963,10 @@ export function StageCard({ c, request, phase }: { c: Case; request: LawyerReque
 
 /** "What the lawyer can see" and from when. */
 export function VisibilityCard({ engaged, since }: { engaged: boolean; since?: string | null }) {
+  const t = useT();
   return (
     <section className="flex flex-col gap-2.5 rounded-card border border-line bg-white px-5 py-[18px]">
-      <h3 className="text-[13.5px] font-semibold">What the lawyer can see</h3>
+      <h3 className="text-[13.5px] font-semibold">{t("What the lawyer can see")}</h3>
       <ul className="flex flex-col gap-2">
         {VISIBILITY(engaged, since).map((v) => (
           <li key={v.text} className="flex items-center gap-2.5 text-[13px]">
@@ -962,7 +978,7 @@ export function VisibilityCard({ engaged, since }: { engaged: boolean; since?: s
             </span>
             <span className="flex-1">{v.text}</span>
             <span className="text-xs text-ink-2">{v.when}</span>
-            <span className="sr-only">{v.yes ? "(visible)" : "(not visible yet)"}</span>
+            <span className="sr-only">{v.yes ? t("(visible)") : t("(not visible yet)")}</span>
           </li>
         ))}
       </ul>

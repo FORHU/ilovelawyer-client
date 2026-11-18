@@ -51,7 +51,8 @@ describe("Korean catalog", () => {
   });
 
   it("keeps every {placeholder} of the English in the Korean", () => {
-    const names = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
+    // The same names, each at least once: Korean may say one fewer times what English repeats.
+    const names = (s: string) => [...new Set([...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]))].sort();
     const broken = Object.entries(KO).filter(([en, ko]) => names(en).join() !== names(ko).join()).map(([en]) => en);
     expect(broken).toEqual([]);
   });

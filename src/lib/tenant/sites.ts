@@ -56,13 +56,15 @@ export const SITES: Record<TenantCode, SiteConfig> = {
     code: "KR",
     country: msg("Korea"),
     locale: "ko-KR",
-    clientRequests: "coming-soon",
-    intakeChat: "coming-soon",
+    // KR clients ask KR lawyers, quoted and paid in won.
+    clientRequests: "open",
+    // Chat Wonder's Korean intake persona (intake_kr).
+    intakeChat: "open",
     regionQuestion: false,
     lawyerAppUrl: lawyerAppUrl("KR"),
     seo: {
       title: "ilovelawyer Korea",
-      description: "Keep your legal problem and its documents in one place. Lawyers in Korea are coming soon.",
+      description: "Understand your legal problem, then find a verified lawyer in Korea.",
     },
   },
 };

@@ -206,7 +206,7 @@ function NewCase() {
     const id = draftId.current;
     let created;
     try {
-      created = await createCaseDirect.mutateAsync(describeCasePayload(text, caseAreas ?? []));
+      created = await createCaseDirect.mutateAsync(describeCasePayload(text, caseAreas ?? [], site.regionQuestion));
     } catch (err) {
       setChatCreating(false);
       setChatError(err instanceof Error && err.message ? err.message : "We couldn't create the case. Try again.");

@@ -7,6 +7,7 @@ import { firstConsultationLabel, toneFor, type ClientLawyer } from "@/lib/lawyer
 import { AreaChip, LawyerAvatar, Rating, VerifiedBadge } from "./lawyer-parts";
 import { RequestLawyerModal } from "./request-lawyer-modal";
 
+import { useT } from "@/components/site/language-provider";
 /** Practice-area chips shown before "+N": one row, so cards stay short and the same height. */
 const MAX_CHIPS = 2;
 
@@ -14,8 +15,9 @@ const MAX_CHIPS = 2;
  * the card); Request is its own button on top. Fewer lines than the desktop card, so more
  * lawyers show per screen. */
 export function LawyerCardMobile({ lawyer }: { lawyer: ClientLawyer }) {
+  const t = useT();
   const [requesting, setRequesting] = useState(false);
-  const place = [lawyer.firmName ?? "Independent solicitor", lawyer.town].filter(Boolean).join(" · ");
+  const place = [lawyer.firmName ?? t("Independent lawyer"), lawyer.town].filter(Boolean).join(" · ");
   const chips = lawyer.practiceAreas.slice(0, MAX_CHIPS);
   const more = lawyer.practiceAreas.length - chips.length;
   return (
@@ -48,12 +50,12 @@ export function LawyerCardMobile({ lawyer }: { lawyer: ClientLawyer }) {
 
       <div className="flex items-center justify-between gap-3 border-t border-line pt-3">
         <div className="flex min-w-0 flex-col">
-          <span className="text-[12px] text-ink-2">First consultation</span>
+          <span className="text-[12px] text-ink-2">{t("First consultation")}</span>
           <span className="truncate text-[15px] font-semibold">{firstConsultationLabel(lawyer)}</span>
         </div>
         {/* Above the stretched profile link, so it takes its own taps. */}
         <Button variant="dark" size="lg" className="relative z-10 shrink-0" onClick={() => setRequesting(true)} data-no-tap>
-          Request
+          {t("Request")}
         </Button>
       </div>
       <RequestLawyerModal lawyer={lawyer} open={requesting} onClose={() => setRequesting(false)} />

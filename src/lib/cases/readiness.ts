@@ -4,6 +4,7 @@ import { apiFetch } from "@/lib/api/fetch";
 import { useSession } from "@/lib/auth/session";
 import type { CaseArea } from "@/lib/types";
 import { caseKeys } from "./queries";
+import { tr } from "@/lib/i18n/translate";
 
 /** Whether the case has what a lawyer needs (GET /api/client/cases/:id/lawyer-readiness). The API
  * asks Jev after each AI answer and keeps the result, so fetching it again is free. */
@@ -47,7 +48,7 @@ export function useLawyerReadinessQuery(caseId: string, latestAnswerId: string |
  * lawyer". The names are admins' (case areas), so they're used as written. */
 export function lawyerKind(r: Pick<LawyerReadiness, "caseAreas" | "ukJurisdiction">) {
   const names = (r.caseAreas ?? []).filter((a) => a.code !== "OTHER").map((a) => a.name);
-  const list = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0];
-  const who = list ? `a lawyer for ${list}` : "a lawyer";
+  const list = names.length > 1 ? tr("{list} and {last}", { list: names.slice(0, -1).join(", "), last: names.at(-1)! }) : names[0];
+  const who = list ? tr("a lawyer for {areas}", { areas: list }) : tr("a lawyer");
   return r.ukJurisdiction ? `${who} in ${r.ukJurisdiction}` : who;
 }

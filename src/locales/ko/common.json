@@ -1,5 +1,7 @@
 {
   " items": "개",
+  "({n} review)": "(후기 {n}개)",
+  "({n} reviews)": "(후기 {n}개)",
   "Bringing the complaint": "문제를 제기하는 쪽",
   "Cancel": "취소",
   "Contents": "목차",
@@ -8,6 +10,7 @@
   "Dismiss": "닫기",
   "Drop to attach": "놓아서 첨부",
   "Korea": "한국",
+  "Korean Bar Association": "대한변호사협회",
   "Legal": "법적 고지",
   "Not set yet": "아직 정하지 않음",
   "Not sure": "잘 모르겠음",
@@ -40,5 +43,7 @@
   "{n} hours ago": "{n}시간 전",
   "{n} minute ago": "{n}분 전",
   "{n} minutes ago": "{n}분 전",
+  "{n} out of 5": "5점 만점에 {n}점",
+  "{regulator} verified": "{regulator} 인증",
   "{types}, up to {size} at a time": "{types}, 한 번에 최대 {size}"
 }

@@ -8,6 +8,7 @@ import { toneFor, type ClientLawyer } from "@/lib/lawyers/marketplace";
 import { AreaChip, LawyerAvatar, Rating, VerifiedBadge } from "./lawyer-parts";
 import { RequestPanel } from "./request-panel";
 
+import { useT } from "@/components/site/language-provider";
 /** Practice-area chips shown before "+N more". */
 const MAX_CHIPS = 3;
 
@@ -15,7 +16,8 @@ const MAX_CHIPS = 3;
  * the client can ask them without leaving the list. The full profile is a link away. On a phone it
  * is a bottom sheet with the lawyer cut down to a line or two, so the request is on screen at once. */
 export function RequestLawyerModal({ lawyer, open, onClose }: { lawyer: ClientLawyer; open: boolean; onClose: () => void }) {
-  const place = [lawyer.firmName ?? "Independent solicitor", lawyer.town].filter(Boolean).join(" · ");
+  const t = useT();
+  const place = [lawyer.firmName ?? t("Independent lawyer"), lawyer.town].filter(Boolean).join(" · ");
   const chips = lawyer.practiceAreas.slice(0, MAX_CHIPS);
   const more = lawyer.practiceAreas.length - chips.length;
   const profile = `/lawyers/${lawyer.id}`;
@@ -34,7 +36,7 @@ export function RequestLawyerModal({ lawyer, open, onClose }: { lawyer: ClientLa
                 {lawyer.regulator && <VerifiedBadge regulator={lawyer.regulator} />}
               </div>
               <Link href={profile} onClick={onClose} className="self-start text-[13px] font-medium">
-                View full profile
+                {t("View full profile")}
               </Link>
             </div>
           </div>
@@ -73,7 +75,7 @@ export function RequestLawyerModal({ lawyer, open, onClose }: { lawyer: ClientLa
           )}
           {lawyer.bio.trim() && <p className="line-clamp-5 text-[13.5px] leading-[1.6] text-ink">{lawyer.bio.trim()}</p>}
           <Link href={profile} onClick={onClose} className="self-start text-[13px] font-medium">
-            View full profile
+            {t("View full profile")}
           </Link>
         </div>
 

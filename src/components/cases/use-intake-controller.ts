@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useCaseAreasQuery } from "@/lib/cases/case-areas";
+import { useSite } from "@/components/site/site-provider";
 import type { DraftChat } from "@/lib/cases/drafts";
 import { checkFiles, useLimitsQuery } from "@/lib/cases/limits";
 import { type IntakeDraft, useIntakeChat } from "@/lib/cases/use-intake-chat";
@@ -57,7 +58,8 @@ const PLACEHOLDER = {
 export function useIntakeController({ onFirstMessage, initial, onChange }: Pick<IntakeChatProps, "onFirstMessage" | "initial" | "onChange">) {
   const areasQuery = useCaseAreasQuery();
   const areas = areasQuery.data ?? [];
-  const chat = useIntakeChat({ areas, initial: initial?.chat, initialFiles: initial?.files });
+  const { regionQuestion } = useSite();
+  const chat = useIntakeChat({ areas, initial: initial?.chat, initialFiles: initial?.files, regionQuestion });
   const { messages, step, typing, files, draft, askedSteps } = chat;
   const { data: limits } = useLimitsQuery();
 
@@ -151,6 +153,8 @@ export function useIntakeController({ onFirstMessage, initial, onChange }: Pick<
     .filter(Boolean)
     .join(", ");
   const titleMissing = !draft.title.trim();
+  // A part of the UK is needed only on a site that asks for one (not KR or PH).
+  const regionMissing = regionQuestion && !draft.region;
 
   // Grows with what's typed, up to a cap, like the composers people already know.
   const box = useRef<HTMLTextAreaElement>(null);
@@ -184,6 +188,8 @@ export function useIntakeController({ onFirstMessage, initial, onChange }: Pick<
     choiceStep,
     placeholder,
     areaNames,
+    regionQuestion,
+    regionMissing,
     titleMissing,
     canAttach,
     dragging,

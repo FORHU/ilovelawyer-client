@@ -8,6 +8,7 @@ import { RequestPanel } from "./request-panel";
 import { formatDay, firstName } from "@/lib/format";
 import { firstConsultationLabel, toneFor, type ClientLawyerProfile } from "@/lib/lawyers/marketplace";
 
+import { useT } from "@/components/site/language-provider";
 function Section({ title, aside, children }: { title: string; aside?: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-3">
@@ -21,20 +22,21 @@ function Section({ title, aside, children }: { title: string; aside?: string; ch
 }
 
 export function LawyerProfileDesktop({ lawyer }: { lawyer: ClientLawyerProfile }) {
+  const t = useT();
   const name = firstName(lawyer.name) ?? lawyer.name;
   const max = Math.max(...lawyer.ratingBreakdown, 1);
-  const place = [lawyer.firmName ?? "Independent solicitor", lawyer.town].filter(Boolean).join(" · ");
+  const place = [lawyer.firmName ?? t("Independent lawyer"), lawyer.town].filter(Boolean).join(" · ");
   const credentials: [string, string][] = [
-    ["Regulator", lawyer.regulator ? REGULATORS[lawyer.regulator] : "—"],
-    ["Registration no.", lawyer.registrationNumber ?? "—"],
-    ["Verified by ilovelawyer", lawyer.verifiedAt ? formatDay(lawyer.verifiedAt) : "—"],
+    [t("Regulator"), lawyer.regulator ? t(REGULATORS[lawyer.regulator] ?? lawyer.regulator) : "—"],
+    [t("Registration no."), lawyer.registrationNumber ?? "—"],
+    [t("Verified by ilovelawyer"), lawyer.verifiedAt ? formatDay(lawyer.verifiedAt) : "—"],
   ];
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
       <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-8 px-5 py-8 md:px-10">
         <Link href="/lawyers" className="inline-flex items-center gap-1.5 self-start text-[13px] font-medium">
-          <ArrowLeft size={14} aria-hidden /> All lawyers
+          <ArrowLeft size={14} aria-hidden /> {t("All lawyers")}
         </Link>
 
         <div className="grid items-start gap-8 lg:grid-cols-[1fr_340px]">
@@ -49,11 +51,11 @@ export function LawyerProfileDesktop({ lawyer }: { lawyer: ClientLawyerProfile }
                   {lawyer.qualifiedJurisdictions.length > 0 && <span>{lawyer.qualifiedJurisdictions.join(", ")}</span>}
                   {lawyer.languages.length > 0 && <span>{lawyer.languages.join(", ")}</span>}
                 </div>
-                {!lawyer.available && <p className="text-[13px] font-medium text-ink-2">Not taking new requests right now</p>}
+                {!lawyer.available && <p className="text-[13px] font-medium text-ink-2">{t("Not taking new requests right now")}</p>}
               </div>
             </header>
 
-            <Section title="About">
+            <Section title={t("About")}>
               <p className="whitespace-pre-line text-[16px] leading-[1.65]">{lawyer.bio.trim() || `${name} hasn’t written about their practice yet.`}</p>
               {lawyer.practiceAreas.length > 0 && (
                 <div className="flex flex-wrap gap-2">
@@ -64,17 +66,17 @@ export function LawyerProfileDesktop({ lawyer }: { lawyer: ClientLawyerProfile }
               )}
             </Section>
 
-            <Section title="Fees">
+            <Section title={t("Fees")}>
               <div className="flex items-center justify-between rounded-card border border-line px-5 py-4 text-[15px]">
-                <span className="text-ink-2">First consultation</span>
+                <span className="text-ink-2">{t("First consultation")}</span>
                 <span className="font-semibold">{firstConsultationLabel(lawyer)}</span>
               </div>
               <p className="text-[13px] text-ink-2">Every other fee is in the quote {name} sends after reading your case, before you pay anything.</p>
             </Section>
 
-            <Section title="Reviews" aside="From clients whose engagement has ended">
+            <Section title={t("Reviews")} aside={t("From clients whose engagement has ended")}>
               {lawyer.rating === null ? (
-                <p className="rounded-card border border-dashed border-line-input p-5 text-sm text-ink-2">No reviews yet.</p>
+                <p className="rounded-card border border-dashed border-line-input p-5 text-sm text-ink-2">{t("No reviews yet.")}</p>
               ) : (
                 <>
                   <div className="flex items-center gap-6 rounded-card border border-line p-5">
@@ -98,7 +100,7 @@ export function LawyerProfileDesktop({ lawyer }: { lawyer: ClientLawyerProfile }
                   {lawyer.reviews.map((r, i) => (
                     <div key={`${r.createdAt}-${i}`} className="flex flex-col gap-1 border-b border-line pb-4 last:border-b-0">
                       <div className="flex flex-wrap items-center gap-x-2 text-[13px] text-ink-2">
-                        <Stars n={r.rating} /> · Verified client{r.caseAreas.length > 0 && ` · ${r.caseAreas.join(", ")}`} · {monthOf(r.createdAt)}
+                        <Stars n={r.rating} /> · {t("Verified client")}{r.caseAreas.length > 0 && ` · ${r.caseAreas.join(", ")}`} · {monthOf(r.createdAt)}
                       </div>
                       <p className="whitespace-pre-line text-[15px] leading-[1.6]">{r.comment}</p>
                     </div>
@@ -107,7 +109,7 @@ export function LawyerProfileDesktop({ lawyer }: { lawyer: ClientLawyerProfile }
               )}
             </Section>
 
-            <Section title="Credentials">
+            <Section title={t("Credentials")}>
               <div className="grid gap-3 sm:grid-cols-3">
                 {credentials.map(([k, v]) => (
                   <div key={k} className="flex flex-col gap-1 rounded-input border border-line bg-subtle px-4 py-3.5">

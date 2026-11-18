@@ -58,7 +58,7 @@ export default function CasePage() {
     { id: "chat", label: t("Interview") },
     { id: "overview", label: t("Overview") },
     { id: "docs", label: t("Documents"), count: c.documents.length },
-    ...(request ? [{ id: "lawyer", label: "Lawyer", status: lawyerTabStatus(request.status, firstName(request.lawyer?.name)) }] : []),
+    ...(request ? [{ id: "lawyer", label: t("Lawyer"), status: lawyerTabStatus(request.status, firstName(request.lawyer?.name)) }] : []),
   ];
 
   return (

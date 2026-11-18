@@ -5,8 +5,8 @@ import { useCaseAvailability } from "@/components/lawyers/use-case-availability"
 import { useCaseAreasQuery } from "@/lib/cases/case-areas";
 import { useCasesQuery } from "@/lib/cases/queries";
 import {
-  DEFAULT_FILTERS,
-  MAX_CONSULTATION,
+  consultationScale,
+  defaultFilters,
   useLawyersQuery,
   useMarketplaceCase,
   type LawyerFilters,
@@ -39,7 +39,7 @@ export function useLawyersList() {
   // falls back to "All areas" instead of a filter the client can't see.
   const caseArea = areas.find((a) => a.code === activeCase?.areas[0]?.code)?.code ?? null;
   const caseJurisdiction = activeCase?.ukJurisdiction ?? null;
-  const filters: LawyerFilters = { ...DEFAULT_FILTERS, area: caseArea, jurisdiction: caseJurisdiction, ...overrides };
+  const filters: LawyerFilters = { ...defaultFilters(), area: caseArea, jurisdiction: caseJurisdiction, ...overrides };
   const followsCase = !!activeCase && filters.area === caseArea && filters.jurisdiction === caseJurisdiction;
   const availability = useCaseAvailability(activeCase?.id ?? null);
   const search = useDebounced(filters.search);
@@ -53,7 +53,7 @@ export function useLawyersList() {
   }, [activeCase, caseChoice]);
 
   const set = (patch: Partial<LawyerFilters>) => setOverrides((o) => ({ ...o, ...patch }));
-  const clear = () => setOverrides({ ...DEFAULT_FILTERS });
+  const clear = () => setOverrides({ ...defaultFilters() });
   const pickCase = (id: string) => {
     useMarketplaceCase.getState().set(id);
     setOverrides({});
@@ -64,7 +64,7 @@ export function useLawyersList() {
   const areaName = areas.find((a) => a.code === filters.area)?.name;
   const summary = [areaName?.toLowerCase(), filters.jurisdiction].filter(Boolean).join(" in ");
   const activeFilters =
-    (filters.area ? 1 : 0) + (filters.jurisdiction ? 1 : 0) + (filters.maxConsultation < MAX_CONSULTATION ? 1 : 0) + filters.languages.length;
+    (filters.area ? 1 : 0) + (filters.jurisdiction ? 1 : 0) + (filters.maxConsultation < consultationScale().max ? 1 : 0) + filters.languages.length;
 
   return {
     cases,

@@ -9,9 +9,11 @@ import { ClosedStage, EngagedStage, ExpiredStage, PaymentSuccess, QuoteStage, Re
 import type { LawyerTabProps } from "./lawyer-tab";
 import { useLawyerTab } from "./use-lawyer-tab";
 
+import { useT } from "@/components/site/language-provider";
 /** The phone's Lawyer tab: one column, the stage first. A quote or a conversation is what the client
  * came for, so it leads; the progress line and the activity follow, and the activity folds away. */
 export function LawyerTabMobile({ c, request }: LawyerTabProps) {
+  const t = useT();
   const { justPaid, dismissPaid, confirm, decline, withdraw, deciding, visible, phase, canWithdraw, showVisibility, engaged, activity } = useLawyerTab(c, request);
   const [showActivity, setShowActivity] = useState(false);
 
@@ -29,11 +31,11 @@ export function LawyerTabMobile({ c, request }: LawyerTabProps) {
         {phase === "closed" && <ClosedStage c={c} request={request} />}
         {phase === "expired" && <ExpiredStage caseId={c.id} />}
 
-        <aside aria-label="Request progress" className="flex flex-col gap-4">
+        <aside aria-label={t("Request progress")} className="flex flex-col gap-4">
           <section data-tour="request-status" className="flex flex-col gap-4 rounded-card border border-line bg-white p-5">
             <div className="flex flex-col gap-0.5">
-              <Eyebrow muted>Matched for you</Eyebrow>
-              <h2 className="text-base font-semibold">Your lawyer request</h2>
+              <Eyebrow muted>{t("Matched for you")}</Eyebrow>
+              <h2 className="text-base font-semibold">{t("Your lawyer request")}</h2>
             </div>
             <RequestSteps request={request} phase={phase} />
             {canWithdraw && <WithdrawControl request={request} withdraw={withdraw} disabled={deciding} />}
@@ -48,7 +50,7 @@ export function LawyerTabMobile({ c, request }: LawyerTabProps) {
               className="flex min-h-12 w-full items-center gap-2 px-5 text-left active:bg-chip"
             >
               <ChevronRight size={16} aria-hidden className={cn("shrink-0 text-ink-2 transition-transform", showActivity && "rotate-90")} />
-              <span className="flex-1 text-[14px] font-medium">Recent activity</span>
+              <span className="flex-1 text-[14px] font-medium">{t("Recent activity")}</span>
               <span className="text-[13px] text-ink-2">{activity.length}</span>
             </button>
             {showActivity && (

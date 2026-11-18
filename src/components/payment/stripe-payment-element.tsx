@@ -5,6 +5,7 @@ import { loadStripe, type Stripe, type StripeElements } from "@stripe/stripe-js"
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 
+import { useT } from "@/components/site/language-provider";
 const stripes = new Map<string, Promise<Stripe | null>>();
 
 /** One Stripe.js per publishable key, loaded on first use (it's a script from js.stripe.com). A load
@@ -50,6 +51,7 @@ export function StripePaymentElement({
   onPaid: () => void;
   onFailed?: () => void;
 }) {
+  const t = useT();
   const container = useRef<HTMLDivElement>(null);
   const stripeRef = useRef<Stripe | null>(null);
   const elementsRef = useRef<StripeElements | null>(null);
@@ -112,13 +114,13 @@ export function StripePaymentElement({
     try {
       const { error: failed } = await stripe.confirmPayment({ elements, redirect: "if_required", confirmParams: { return_url: returnUrl } });
       if (failed) {
-        setError(failed.message ?? "Your payment didn't go through. Try another card.");
+        setError(failed.message ?? t("Your payment didn't go through. Try another card."));
         return;
       }
     } catch (err) {
       // Stripe threw rather than answering (the form was torn down, or an integration error).
       console.error("Stripe's payment confirmation failed", err);
-      setError("Your payment couldn't be sent. Try again.");
+      setError(t("Your payment couldn't be sent. Try again."));
       return;
     } finally {
       setPaying(false);
@@ -128,13 +130,13 @@ export function StripePaymentElement({
 
   return (
     <div className="flex flex-col gap-3">
-      {state === "loading" && <div className="py-6 text-center text-[13px] text-muted">Loading the secure payment form…</div>}
-      {state === "failed" && <ErrorBox message="The payment form couldn't load. Check your connection and try again." />}
+      {state === "loading" && <div className="py-6 text-center text-[13px] text-muted">{t("Loading the secure payment form…")}</div>}
+      {state === "failed" && <ErrorBox message={t("The payment form couldn't load. Check your connection and try again.")} />}
       <div ref={container} />
       {error && <ErrorBox message={error} />}
       {state === "ready" && (
         <Button variant="dark" className="!h-[46px] !text-sm !font-semibold" disabled={paying} onClick={() => void confirm()}>
-          {paying ? "Paying…" : payLabel}
+          {paying ? t("Paying…") : payLabel}
         </Button>
       )}
     </div>

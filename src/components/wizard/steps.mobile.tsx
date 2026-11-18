@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { FilePicker } from "@/components/ui/file-picker";
 import { inputClass, TextInput, WizardLabel } from "@/components/ui/input";
 import { RadioCard } from "@/components/ui/radio-card";
-import { BUDGET_RANGES, FEE_PREFERENCES, budgetFromDraft, formatBudget, ownAmountError, type BudgetDraft } from "@/lib/cases/budget";
+import { budgetCurrency, budgetRanges, FEE_PREFERENCES, budgetFromDraft, formatBudget, ownAmountError, type BudgetDraft } from "@/lib/cases/budget";
 import { useCaseAreasQuery } from "@/lib/cases/case-areas";
 import { describeLimits } from "@/lib/cases/limits";
 import { cn } from "@/lib/cn";
@@ -234,27 +234,28 @@ export function StepPeopleMobile() {
 /** What they can spend, as one list to tap: a range, their own amount, or not sure. */
 function BudgetFieldMobile({ value, onChange, error }: { value: BudgetDraft; onChange: (patch: Partial<BudgetDraft>) => void; error?: boolean }) {
   const ownError = error ? ownAmountError(value) : null;
+  const t = useT();
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2.5" role="radiogroup" aria-label="What can you spend on a lawyer?">
-        <WizardLabel>What can you spend on a lawyer?</WizardLabel>
-        {BUDGET_RANGES.map((r) => (
+      <div className="flex flex-col gap-2.5" role="radiogroup" aria-label={t("What can you spend on a lawyer?")}>
+        <WizardLabel>{t("What can you spend on a lawyer?")}</WizardLabel>
+        {budgetRanges().map((r) => (
           <RadioCard key={r.value} compact selected={value.choice === r.value} onSelect={() => onChange({ choice: r.value })} title={r.label} />
         ))}
-        <RadioCard compact selected={value.choice === "OWN"} onSelect={() => onChange({ choice: "OWN" })} title="Set my own amount" />
+        <RadioCard compact selected={value.choice === "OWN"} onSelect={() => onChange({ choice: "OWN" })} title={t("Set my own amount")} />
         {value.choice === "OWN" && (
           <div className="flex flex-col gap-1.5">
             <div className="relative">
               <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[16px] text-muted" aria-hidden="true">
-                £
+                {budgetCurrency() === "KRW" ? "₩" : "£"}
               </span>
               <TextInput
                 id="budget-own"
-                aria-label="Your budget in pounds"
+                aria-label={budgetCurrency() === "KRW" ? t("Your budget in won") : "Your budget in pounds"}
                 inputMode="decimal"
                 autoFocus
                 value={value.own}
-                placeholder="1,200"
+                placeholder={budgetCurrency() === "KRW" ? "1,500,000" : "1,200"}
                 aria-invalid={!!ownError}
                 aria-describedby={ownError ? "budget-own-err" : undefined}
                 onChange={(e) => onChange({ own: e.target.value })}
@@ -268,15 +269,15 @@ function BudgetFieldMobile({ value, onChange, error }: { value: BudgetDraft; onC
             )}
           </div>
         )}
-        <RadioCard compact selected={value.choice === ""} onSelect={() => onChange({ choice: "", own: "" })} title="Not sure" />
-        <Hint>Lawyers see this before they quote, so their quotes fit what you can spend. You can change it later.</Hint>
+        <RadioCard compact selected={value.choice === ""} onSelect={() => onChange({ choice: "", own: "" })} title={t("Not sure")} />
+        <Hint>{t("Lawyers see this before they quote, so their quotes fit what you can spend. You can change it later.")}</Hint>
       </div>
-      <div className="flex flex-col gap-2.5" role="radiogroup" aria-label="Which kind of fee would you prefer?">
-        <WizardLabel>Which kind of fee would you prefer?</WizardLabel>
+      <div className="flex flex-col gap-2.5" role="radiogroup" aria-label={t("Which kind of fee would you prefer?")}>
+        <WizardLabel>{t("Which kind of fee would you prefer?")}</WizardLabel>
         {FEE_PREFERENCES.map((f) => (
-          <RadioCard key={f.label} compact selected={value.fee === f.value} onSelect={() => onChange({ fee: f.value })} title={f.label} />
+          <RadioCard key={f.label} compact selected={value.fee === f.value} onSelect={() => onChange({ fee: f.value })} title={t(f.label)} />
         ))}
-        <Hint>A fixed fee covers the whole piece of work. A first consultation is a paid first meeting to talk it through.</Hint>
+        <Hint>{t("A fixed fee covers the whole piece of work. A first consultation is a paid first meeting to talk it through.")}</Hint>
       </div>
     </div>
   );

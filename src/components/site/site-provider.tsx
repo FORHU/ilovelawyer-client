@@ -4,6 +4,7 @@ import { createContext, useContext, useSyncExternalStore, type ReactNode } from 
 import { siteForHost } from "@/lib/tenant/resolve-host";
 import { SITES, type SiteConfig } from "@/lib/tenant/sites";
 import { DEFAULT_SITE, type TenantCode } from "@/lib/tenant/client-tenant";
+import { setCurrentSite } from "@/lib/tenant/current-site";
 
 const SiteContext = createContext<SiteConfig>(SITES[DEFAULT_SITE]);
 
@@ -22,6 +23,8 @@ const readClient = (): TenantCode => siteForHost(window.location.host);
  */
 export function SiteProvider({ initial = DEFAULT_SITE, children }: { initial?: TenantCode; children: ReactNode }) {
   const code = useSyncExternalStore(subscribe, readClient, () => initial);
+  // Code outside React (budgets, the marketplace's fee scale) reads it; only right in the browser.
+  if (typeof window !== "undefined") setCurrentSite(code);
   return <SiteContext.Provider value={SITES[code]}>{children}</SiteContext.Provider>;
 }
 

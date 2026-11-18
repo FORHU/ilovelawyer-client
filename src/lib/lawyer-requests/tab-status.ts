@@ -1,4 +1,5 @@
 import type { ClientRequestStatus } from "@/lib/client-handoff";
+import { tr } from "@/lib/i18n/translate";
 
 export type TabStatusTone = "warn" | "error" | "success";
 
@@ -7,22 +8,22 @@ export type TabStatusTone = "warn" | "error" | "success";
 export function lawyerTabStatus(status: ClientRequestStatus, lawyerFirstName?: string | null): { text: string; tone: TabStatusTone } {
   switch (status) {
     case "REQUESTED":
-      return { text: "Sending request", tone: "warn" };
+      return { text: tr("Sending request"), tone: "warn" };
     case "ROUTED":
-      return { text: "Finding a lawyer", tone: "warn" };
+      return { text: tr("Finding a lawyer"), tone: "warn" };
     case "CLAIMED":
-      return { text: "Lawyer reviewing", tone: "warn" };
+      return { text: tr("Lawyer reviewing"), tone: "warn" };
     case "QUOTED":
-      return { text: "Quote to review", tone: "error" };
+      return { text: tr("Quote to review"), tone: "error" };
     case "CONFIRMED":
-      return { text: "Finalising", tone: "warn" };
+      return { text: tr("Finalising"), tone: "warn" };
     case "ENGAGED":
-      return { text: lawyerFirstName ? `Working with ${lawyerFirstName}` : "Working with your lawyer", tone: "success" };
+      return { text: lawyerFirstName ? tr("Working with {name}", { name: lawyerFirstName }) : tr("Working with your lawyer"), tone: "success" };
     case "CLOSED":
-      return { text: "Closed", tone: "warn" };
+      return { text: tr("Closed"), tone: "warn" };
     case "EXPIRED":
-      return { text: "No lawyer found", tone: "error" };
+      return { text: tr("No lawyer found"), tone: "error" };
     case "WITHDRAWN":
-      return { text: "Withdrawn", tone: "warn" };
+      return { text: tr("Withdrawn"), tone: "warn" };
   }
 }

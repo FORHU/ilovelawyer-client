@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 import { lawyerKind, useLawyerReadinessQuery } from "@/lib/cases/readiness";
 import { useLawyerRequestForm } from "@/lib/lawyer-requests/api";
 
+import { useT } from "@/components/site/language-provider";
 /**
  * Under the chat, after the AI's latest answer: suggests a lawyer once the case has what a lawyer
  * needs (checked by the API, see lib/cases/readiness.ts), and until then shows what's still
@@ -17,6 +18,7 @@ import { useLawyerRequestForm } from "@/lib/lawyer-requests/api";
  * up with the AI's text, past the avatar, with the button beside it.
  */
 export function LawyerSuggestion({ caseId, latestAnswerId }: { caseId: string; latestAnswerId: string }) {
+  const t = useT();
   const mobile = useDevice() === "mobile";
   const openForm = () => useLawyerRequestForm.getState().openFor(caseId);
   const { data: r } = useLawyerReadinessQuery(caseId, latestAnswerId);
@@ -29,7 +31,7 @@ export function LawyerSuggestion({ caseId, latestAnswerId }: { caseId: string; l
   );
   const action = (
     <Button size={mobile ? "lg" : "sm"} className={mobile ? "w-full" : undefined} onClick={openForm}>
-      Get a lawyer
+      {t("Get a lawyer")}
     </Button>
   );
 
@@ -39,8 +41,8 @@ export function LawyerSuggestion({ caseId, latestAnswerId }: { caseId: string; l
     return (
       <div className={card}>
         <div className={mobile ? undefined : "min-w-[200px] flex-1"}>
-          <div className="text-sm font-semibold">Want a lawyer to look at this case?</div>
-          <div className="text-[13px] leading-[1.45] text-ink-2">A verified lawyer reviews this case and your chat. Included with your case.</div>
+          <div className="text-sm font-semibold">{t("Want a lawyer to look at this case?")}</div>
+          <div className="text-[13px] leading-[1.45] text-ink-2">{t("A verified lawyer reviews this case and your chat. Included with your case.")}</div>
         </div>
         {action}
       </div>
@@ -51,8 +53,8 @@ export function LawyerSuggestion({ caseId, latestAnswerId }: { caseId: string; l
     return (
       <div className={cn(indent, "text-[13px] leading-[1.45] text-ink-2")}>
         {r.blockedBy === "OUTSIDE_UK"
-          ? "Lawyers are only available for cases in the UK for now. You can keep asking the AI about it."
-          : "We can't connect personal injury cases with a lawyer yet. You can keep asking the AI about it."}
+          ? t("Lawyers are only available for cases in the UK for now. You can keep asking the AI about it.")
+          : t("We can't connect personal injury cases with a lawyer yet. You can keep asking the AI about it.")}
       </div>
     );
   }
@@ -61,9 +63,9 @@ export function LawyerSuggestion({ caseId, latestAnswerId }: { caseId: string; l
     return (
       <div className={card}>
         <div className={mobile ? undefined : "min-w-[200px] flex-1"}>
-          <div className="text-sm font-semibold">Your case has what a lawyer needs</div>
+          <div className="text-sm font-semibold">{t("Your case has what a lawyer needs")}</div>
           <div className="text-[13px] leading-[1.45] text-ink-2">
-            We&apos;d look for {lawyerKind(r)}. A verified lawyer reviews this case and your chat.
+            {t("We'd look for {who}. A verified lawyer reviews this case and your chat.", { who: lawyerKind(r) })}
           </div>
         </div>
         {action}
@@ -75,7 +77,7 @@ export function LawyerSuggestion({ caseId, latestAnswerId }: { caseId: string; l
   return (
     <div className={cn(indent, "flex flex-col gap-2 rounded-card border border-dashed border-line py-3.5", mobile ? "px-4" : "px-[18px]")}>
       <div className="text-[13px] font-semibold">
-        To suggest the right lawyer, tell me a little more about {missing.length === 1 ? "this" : "these"}:
+        {missing.length === 1 ? t("To suggest the right lawyer, tell me a little more about this:") : t("To suggest the right lawyer, tell me a little more about these:")}
       </div>
       <ul className="flex flex-col gap-1">
         {r.criteria.map((c) => (

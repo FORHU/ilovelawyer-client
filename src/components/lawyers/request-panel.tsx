@@ -11,6 +11,8 @@ import { formatDateTime, firstName } from "@/lib/format";
 import { useLawyerRequestForm, useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
 import { firstConsultationLabel, takesCase, useMarketplaceCase, type ClientLawyer } from "@/lib/lawyers/marketplace";
 
+import { useT } from "@/components/site/language-provider";
+import { useSite } from "@/components/site/site-provider";
 /** Why the request button is off, in words, with the step that fixes it when there is one. */
 interface BlockedReason {
   title: string;
@@ -53,6 +55,7 @@ export function RequestPanel({
   className?: string;
   onLeave?: () => void;
 }) {
+  const t = useT();
   const { data: cases = [] } = useCasesQuery();
   const picked = useMarketplaceCase((s) => s.caseId);
   const [chosen, setChosen] = useState<string | null>(null);
@@ -65,6 +68,7 @@ export function RequestPanel({
   const available = lawyer.available ?? true;
 
   const sentToThem = open && open.caseId === caseId && open.requestedLawyer?.id === lawyer.id ? open : null;
+  const { regionQuestion } = useSite();
   const fits = !!theCase && takesCase(lawyer, theCase);
   const canAsk = !!caseId && availability.canRequest && available && fits;
 
@@ -80,35 +84,38 @@ export function RequestPanel({
   if (theCase && availability.code === "REQUEST_ALREADY_OPEN") {
     const holder = open?.requestedOnly && open.requestedLawyer ? (firstName(open.requestedLawyer.name) ?? open.requestedLawyer.name) : null;
     blocked = {
-      title: "This case already has a request open",
-      body: `${holder ? `“${theCase.title}” is with ${holder} right now.` : `“${theCase.title}” has been sent to matching lawyers already.`} A case can only have one request at a time. To ask ${name} instead, withdraw that request from the case’s Lawyer tab first.`,
-      link: { href: `/cases/${theCase.id}`, label: "Open the case’s Lawyer tab" },
+      title: t("This case already has a request open"),
+      body: `${holder ? t("“{title}” is with {name} right now.", { title: theCase.title, name: holder }) : t("“{title}” has been sent to matching lawyers already.", { title: theCase.title })} ${t("A case can only have one request at a time. To ask {name} instead, withdraw that request from the case’s Lawyer tab first.", { name })}`,
+      link: { href: `/cases/${theCase.id}`, label: t("Open the case’s Lawyer tab") },
     };
   } else if (theCase && availability.code) {
     blocked = {
       title:
         availability.code === "NOT_UK_CASE"
-          ? "This case isn’t in the UK"
+          ? t("This case isn’t in the UK")
           : availability.code === "REGION_UNKNOWN"
-            ? "Which part of the UK is this case in?"
-            : "We can’t send this case to a lawyer",
+            ? t("Which part of the UK is this case in?")
+            : t("We can’t send this case to a lawyer"),
       body: availability.reason ?? "",
       link:
         availability.code === "NOT_UK_CASE" || availability.code === "REGION_UNKNOWN"
-          ? { href: `/cases/${theCase.id}`, label: "Check the case’s details" }
+          ? { href: `/cases/${theCase.id}`, label: t("Check the case’s details") }
           : undefined,
     };
   } else if (!available) {
     blocked = {
-      title: `${name} isn’t taking new requests right now`,
-      body: `They may be busy or away. You can still let us match you with other verified lawyers who handle cases like yours.`,
+      title: t("{name} isn’t taking new requests right now", { name }),
+      body: t("They may be busy or away. You can still let us match you with other verified lawyers who handle cases like yours."),
     };
   } else if (theCase && availability.canRequest && !fits) {
-    const caseAreas = theCase.areas.map((a) => a.name).join(", ") || "its type of issue";
-    const where = theCase.ukJurisdiction ?? "outside the UK";
+    const caseAreas = theCase.areas.map((a) => a.name).join(", ") || t("its type of issue");
+    const handles = lawyer.practiceAreas.join(", ") || t("other areas");
     blocked = {
-      title: `${name} doesn’t take cases like this one`,
-      body: `“${theCase.title}” is about ${caseAreas} in ${where}. ${name} handles ${lawyer.practiceAreas.join(", ") || "other areas"} in ${lawyer.qualifiedJurisdictions.join(", ") || "other parts of the UK"}. Choose another case, or let us match you with a lawyer who fits.`,
+      title: t("{name} doesn’t take cases like this one", { name }),
+      // The UK's parts of the UK only on the UK: another site's lawyers take its whole country.
+      body: regionQuestion
+        ? `“${theCase.title}” is about ${caseAreas} in ${theCase.ukJurisdiction ?? "outside the UK"}. ${name} handles ${handles} in ${lawyer.qualifiedJurisdictions.join(", ") || "other parts of the UK"}. Choose another case, or let us match you with a lawyer who fits.`
+        : t("“{title}” is about {areas}. {name} handles {handles}. Choose another case, or let us match you with a lawyer who fits.", { title: theCase.title, areas: caseAreas, name, handles }),
     };
   }
 
@@ -116,7 +123,7 @@ export function RequestPanel({
     <div id={id} className={cn("flex flex-col gap-4", className)}>
       <dl className="flex flex-col text-[15px]">
         <div className="flex justify-between py-2.5">
-          <dt className="text-ink-2">First consultation</dt>
+          <dt className="text-ink-2">{t("First consultation")}</dt>
           <dd className="font-semibold">{firstConsultationLabel(lawyer)}</dd>
         </div>
       </dl>
@@ -125,7 +132,7 @@ export function RequestPanel({
         <p className="text-[13px] leading-[1.6] text-ink-2">
           You need a case to send a request.{" "}
           <Link href="/cases/new" onClick={onLeave}>
-            Start one
+            {t("Start one")}
           </Link>
           , then come back.
         </p>
@@ -133,7 +140,7 @@ export function RequestPanel({
         <>
           <div className="flex flex-col gap-1.5">
             <label htmlFor={`request-case-${lawyer.id}`} className="text-xs font-semibold text-ink-2">
-              For which case
+              {t("For which case")}
             </label>
             <select
               id={`request-case-${lawyer.id}`}
@@ -155,37 +162,36 @@ export function RequestPanel({
                 <span className="flex size-6 items-center justify-center rounded-full bg-success-bg text-success-ink">
                   <Check size={14} aria-hidden />
                 </span>
-                {sentToThem.requestedOnly ? `Sent to ${name}` : `Sent to ${name} and other lawyers`}
+                {sentToThem.requestedOnly ? t("Sent to {name}", { name }) : t("Sent to {name} and other lawyers", { name })}
               </div>
               <p className="text-[13px] leading-[1.6] text-ink-2">
                 {sentToThem.requestedOnly && sentToThem.routingExpiresAt
-                  ? `${name} has until ${formatDateTime(sentToThem.routingExpiresAt)} to take it up. If they don’t, it goes to other verified lawyers who match.`
-                  : `${name} couldn’t take it up in time, so other verified lawyers who match can now send you a quote.`}
+                  ? t("{name} has until {date} to take it up. If they don’t, it goes to other verified lawyers who match.", { name, date: formatDateTime(sentToThem.routingExpiresAt) })
+                  : t("{name} couldn’t take it up in time, so other verified lawyers who match can now send you a quote.", { name })}
               </p>
               <Link
                 href={`/cases/${sentToThem.caseId}`}
                 onClick={onLeave}
                 className={cn(buttonClass("dark", "sm"), "self-start text-white no-underline hover:text-white")}
               >
-                Go to my case
+                {t("Go to my case")}
               </Link>
             </div>
           ) : (
             <>
               {blocked && <BlockedNotice reason={blocked} onLeave={onLeave} />}
               <Button variant="dark" size="xl" className="w-full !text-[14px]" disabled={!canAsk} onClick={() => openForm(true)}>
-                Request {name}
+                {t("Request {name}", { name })}
               </Button>
               <Button variant="soft" size="lg" className="w-full" disabled={!availability.canRequest} onClick={() => openForm(false)}>
-                Let us match me instead
+                {t("Let us match me instead")}
               </Button>
             </>
           )}
         </>
       )}
       <p className="text-[12.5px] leading-[1.6] text-ink-2">
-        Only {name} gets this request at first. They’ll check for conflicts and can send you a quote. If they pass, or don’t take it up within 24 hours, it goes to other
-        verified lawyers who match.
+        {t("Only {name} gets this request at first. They’ll check for conflicts and can send you a quote. If they pass, or don’t take it up within 24 hours, it goes to other verified lawyers who match.", { name })}
       </p>
     </div>
   );

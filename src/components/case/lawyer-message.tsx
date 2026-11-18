@@ -3,16 +3,18 @@
 import { FileText } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { EngagementMessage } from "@/lib/client-handoff";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, formatDay } from "@/lib/format";
+import { useT } from "@/components/site/language-provider";
 
 /** One message in a thread with a lawyer: the client's on the right, the lawyer's on the left, and a
  * shared document as a small card. `large` is the phone's full-screen thread (15px text). */
 export function LawyerMessage({ message, large = false }: { message: EngagementMessage; large?: boolean }) {
   const mine = message.author.side === "CLIENT";
+  const t = useT();
   return (
     <li className={cn("flex flex-col gap-1", large ? "max-w-[88%]" : "max-w-[85%]", mine ? "items-end self-end" : "items-start self-start")}>
       <span className={cn("text-muted", large ? "text-[12px]" : "text-[11.5px]")}>
-        {mine ? "You" : `${message.author.name} · Your lawyer`} · {formatDateTime(message.createdAt)}
+        {mine ? t("You") : t("{name} · Your lawyer", { name: message.author.name })} · {formatDateTime(message.createdAt)}
       </span>
       {message.body && (
         <p
@@ -31,7 +33,7 @@ export function LawyerMessage({ message, large = false }: { message: EngagementM
           <div className="min-w-0">
             <div className={cn("truncate font-medium text-ink", large ? "text-[14px]" : "text-[13px]")}>{message.document.filename}</div>
             <div className="text-[11.5px] text-muted">
-              Shared by {message.document.submittedBy.name} · {new Date(message.document.submittedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+              {t("Shared by {name}", { name: message.document.submittedBy.name })} · {formatDay(message.document.submittedAt)}
             </div>
           </div>
         </div>

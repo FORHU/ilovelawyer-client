@@ -10,7 +10,7 @@ import { RadioCard } from "@/components/ui/radio-card";
 import { Eyebrow } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { checkFiles, describeLimits, useLimitsQuery } from "@/lib/cases/limits";
-import { BUDGET_RANGES, FEE_PREFERENCES, budgetFromDraft, formatBudget, ownAmountError, type BudgetDraft } from "@/lib/cases/budget";
+import { budgetCurrency, budgetRanges, FEE_PREFERENCES, budgetFromDraft, formatBudget, ownAmountError, type BudgetDraft } from "@/lib/cases/budget";
 import { NOTES_FIELD_MAX } from "@/lib/cases/notes";
 import { useCaseAreasQuery } from "@/lib/cases/case-areas";
 import {
@@ -313,35 +313,36 @@ export function IntakeNotesField({
  */
 export function BudgetField({ value, onChange, error }: { value: BudgetDraft; onChange: (patch: Partial<BudgetDraft>) => void; error?: boolean }) {
   const ownError = error ? ownAmountError(value) : null;
+  const t = useT();
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2" role="radiogroup" aria-label="What can you spend on a lawyer?">
-        <WizardLabel>What can you spend on a lawyer?</WizardLabel>
+      <div className="flex flex-col gap-2" role="radiogroup" aria-label={t("What can you spend on a lawyer?")}>
+        <WizardLabel>{t("What can you spend on a lawyer?")}</WizardLabel>
         <div className="flex flex-wrap gap-1.5">
-          {BUDGET_RANGES.map((r) => (
+          {budgetRanges().map((r) => (
             <Chip key={r.value} selected={value.choice === r.value} onClick={() => onChange({ choice: r.value })}>
               {r.label}
             </Chip>
           ))}
           <Chip selected={value.choice === "OWN"} onClick={() => onChange({ choice: "OWN" })}>
-            Set my own amount
+            {t("Set my own amount")}
           </Chip>
           <Chip selected={value.choice === ""} onClick={() => onChange({ choice: "", own: "" })}>
-            Not sure
+            {t("Not sure")}
           </Chip>
         </div>
         {value.choice === "OWN" && (
           <div className="flex flex-col gap-1.5 pt-1">
             <div className="relative max-w-[220px]">
               <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[15px] text-muted" aria-hidden="true">
-                £
+                {budgetCurrency() === "KRW" ? "₩" : "£"}
               </span>
               <TextInput
-                aria-label="Your budget in pounds"
+                aria-label={budgetCurrency() === "KRW" ? t("Your budget in won") : "Your budget in pounds"}
                 inputMode="decimal"
                 autoFocus
                 value={value.own}
-                placeholder="1,200"
+                placeholder={budgetCurrency() === "KRW" ? "1,500,000" : "1,200"}
                 aria-invalid={!!ownError}
                 aria-describedby={ownError ? "budget-own-err" : undefined}
                 onChange={(e) => onChange({ own: e.target.value })}
@@ -355,18 +356,18 @@ export function BudgetField({ value, onChange, error }: { value: BudgetDraft; on
             )}
           </div>
         )}
-        <div className="text-xs text-muted">Lawyers see this before they quote, so their quotes fit what you can spend. You can change it later.</div>
+        <div className="text-xs text-muted">{t("Lawyers see this before they quote, so their quotes fit what you can spend. You can change it later.")}</div>
       </div>
-      <div className="flex flex-col gap-2" role="radiogroup" aria-label="Which kind of fee would you prefer?">
-        <WizardLabel>Which kind of fee would you prefer?</WizardLabel>
+      <div className="flex flex-col gap-2" role="radiogroup" aria-label={t("Which kind of fee would you prefer?")}>
+        <WizardLabel>{t("Which kind of fee would you prefer?")}</WizardLabel>
         <div className="flex flex-wrap gap-1.5">
           {FEE_PREFERENCES.map((f) => (
             <Chip key={f.label} selected={value.fee === f.value} onClick={() => onChange({ fee: f.value })}>
-              {f.label}
+              {t(f.label)}
             </Chip>
           ))}
         </div>
-        <div className="text-xs text-muted">A fixed fee covers the whole piece of work. A first consultation is a paid first meeting to talk it through.</div>
+        <div className="text-xs text-muted">{t("A fixed fee covers the whole piece of work. A first consultation is a paid first meeting to talk it through.")}</div>
       </div>
     </div>
   );

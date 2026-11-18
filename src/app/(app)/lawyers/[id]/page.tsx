@@ -12,12 +12,14 @@ import { useLawyerQuery } from "@/lib/lawyers/marketplace";
 import { useSite } from "@/components/site/site-provider";
 import { ComingSoon } from "@/components/site/coming-soon";
 
+import { useT } from "@/components/site/language-provider";
 export default function LawyerProfilePage() {
   if (useSite().clientRequests !== "open") return <ComingSoon feature="lawyers" />;
   return <LawyerProfile />;
 }
 
 function LawyerProfile() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const { data: lawyer, isLoading, error, refetch } = useLawyerQuery(id);
 
@@ -31,9 +33,9 @@ function LawyerProfile() {
   if (error) {
     return (
       <div className="mx-auto flex w-full max-w-[640px] flex-col items-start gap-3 px-6 py-16">
-        <ErrorBox message="Couldn't load this lawyer." />
+        <ErrorBox message={t("Couldn't load this lawyer.")} />
         <Button variant="soft" size="sm" onClick={() => void refetch()}>
-          Try again
+          {t("Try again")}
         </Button>
       </div>
     );
@@ -42,10 +44,10 @@ function LawyerProfile() {
   if (!lawyer) {
     return (
       <div className="mx-auto flex w-full max-w-[640px] flex-col items-start gap-3 px-6 py-16">
-        <h1 className="font-display text-[28px]">Lawyer not found</h1>
-        <p className="text-sm text-ink-2">They may no longer be listed.</p>
+        <h1 className="font-display text-[28px]">{t("Lawyer not found")}</h1>
+        <p className="text-sm text-ink-2">{t("They may no longer be listed.")}</p>
         <Link href="/lawyers" className="text-sm font-medium">
-          Back to all lawyers
+          {t("Back to all lawyers")}
         </Link>
       </div>
     );

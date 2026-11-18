@@ -58,7 +58,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, hasDraft, onUseForm, controller }: IntakeViewProps) {
   const {
     chat, step, typing, files, draft, text, setText, recorder, rejected, endRef, box,
-    send, submitFirst, canSend, onKey, addFiles, choiceStep, placeholder, areaNames, titleMissing, canAttach, empty, messages, dragging, dragProps,
+    send, submitFirst, canSend, onKey, addFiles, choiceStep, placeholder, areaNames, titleMissing, regionQuestion, regionMissing, canAttach, empty, messages, dragging, dragProps,
   } = controller;
 
   const composer = (
@@ -330,9 +330,11 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
 
                 <dl className="rounded-input border border-line bg-white px-4">
                   <Row label="Type of issue">{areaNames || "Not set"}</Row>
-                  <Row label="Part of the UK">
-                    {draft.region ? (draft.region === "OUTSIDE_UK" ? "Outside the UK" : draft.region) : "Not set"}
-                  </Row>
+                  {regionQuestion && (
+                    <Row label="Part of the UK">
+                      {draft.region ? (draft.region === "OUTSIDE_UK" ? "Outside the UK" : draft.region) : "Not set"}
+                    </Row>
+                  )}
                   {draft.where && <Row label="Town or city">{draft.where}</Row>}
                   <Row label="Your side">{draft.side ? sideLabel(draft.side) : "Not set"}</Row>
                   <Row label="What happened">{draft.happened || "Not set"}</Row>
@@ -347,7 +349,7 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
 
                 <div className="flex flex-wrap items-center gap-2.5">
                   <Button
-                    disabled={creating || titleMissing || draft.areas.length === 0 || !draft.region}
+                    disabled={creating || titleMissing || draft.areas.length === 0 || regionMissing}
                     onClick={() => onCreate(draft, files)}
                     className="px-[26px]"
                   >
@@ -357,9 +359,11 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
                     Edit details
                   </Button>
                 </div>
-                {(draft.areas.length === 0 || !draft.region) && (
+                {(draft.areas.length === 0 || regionMissing) && (
                   <div className="text-xs text-error">
-                    A type of issue and a part of the UK are needed. Use Edit details to add them.
+                    {regionQuestion
+                      ? "A type of issue and a part of the UK are needed. Use Edit details to add them."
+                      : "A type of issue is needed. Use Edit details to add it."}
                   </div>
                 )}
               </section>
