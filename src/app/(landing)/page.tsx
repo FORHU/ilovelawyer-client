@@ -11,13 +11,12 @@ import { landingContentFor } from "@/lib/marketing/content";
 import { siteLandingCopy } from "@/lib/marketing/site-landing";
 import { serverSiteAndLang } from "@/lib/tenant/server-site";
 
-/** The page a site shows: Korea's full story in Korean (lib/marketing/content/kr.ts), the UK's
- * everywhere else it has one, and its own short page (SiteLanding) for a site with no story of its
- * own (PH) or a language its story isn't written in (KR in English). */
+/** The page a site shows: the full landing in the site's own words (lib/marketing/content: Korean on
+ * KR, whatever language the visitor picked), or a short page of its own (SiteLanding) for a site
+ * whose lawyers and AI aren't open yet (PH). */
 async function landingFor() {
   const { site, lang } = await serverSiteAndLang();
-  const story = site === "UK" || (site === "KR" && lang === "ko");
-  return { site, copy: story ? undefined : siteLandingCopy(site, lang) };
+  return { site, copy: siteLandingCopy(site, lang) };
 }
 
 // The title, description and sharing card follow the site the visitor is on (KR is Korean). Read
