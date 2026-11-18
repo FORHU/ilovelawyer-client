@@ -2,13 +2,16 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Check, Info } from "lucide-react";
 import { Button, buttonClass } from "@/components/ui/button";
 import { useCaseAvailability } from "@/components/lawyers/use-case-availability";
 import { useCasesQuery } from "@/lib/cases/queries";
+import { useSession } from "@/lib/auth/session";
 import { cn } from "@/lib/cn";
 import { formatDateTime, firstName } from "@/lib/format";
 import { useLawyerRequestForm, useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
+import { useChosenLawyer } from "@/lib/lawyers/chosen-lawyer";
 import { firstConsultationLabel, takesCase, useMarketplaceCase, type ClientLawyer } from "@/lib/lawyers/marketplace";
 
 import { useT } from "@/components/site/language-provider";
@@ -72,6 +75,17 @@ export function RequestPanel({
   const fits = !!theCase && takesCase(lawyer, theCase);
   const canAsk = !!caseId && availability.canRequest && available && fits;
 
+  const router = useRouter();
+  const userId = useSession((s) => s.user?.id);
+  // No case for them yet: tell us about it on New case, which keeps this lawyer for it, and the
+  // case offers to send it to them once it has what a lawyer needs (lib/lawyers/chosen-lawyer.ts).
+  const startCase = () => {
+    if (!userId) return;
+    useChosenLawyer.getState().choose(lawyer, userId);
+    onLeave?.();
+    router.push("/cases/new");
+  };
+
   const openForm = (named: boolean) => {
     if (!caseId) return;
     onLeave?.();
@@ -129,13 +143,14 @@ export function RequestPanel({
       </dl>
 
       {cases.length === 0 ? (
-        <p className="text-[13px] leading-[1.6] text-ink-2">
-          You need a case to send a request.{" "}
-          <Link href="/cases/new" onClick={onLeave}>
-            {t("Start one")}
-          </Link>
-          , then come back.
-        </p>
+        <div className="flex flex-col gap-2.5">
+          <p className="text-[13px] leading-[1.6] text-ink-2">
+            {t("Tell us what's going on first. Once your case has what a lawyer needs, we'll offer to send it to {name}.", { name })}
+          </p>
+          <Button variant="dark" size="xl" className="w-full !text-[14px]" disabled={!available} onClick={startCase}>
+            {t("Tell us about your case")}
+          </Button>
+        </div>
       ) : (
         <>
           <div className="flex flex-col gap-1.5">
@@ -155,6 +170,11 @@ export function RequestPanel({
               ))}
             </select>
           </div>
+          {!sentToThem && available && (
+            <button type="button" onClick={startCase} className="-mt-2 self-start border-0 bg-transparent p-0 text-[13px] font-medium text-ink underline underline-offset-4">
+              Or start a new case for {name}
+            </button>
+          )}
 
           {sentToThem ? (
             <div className="flex flex-col gap-3 rounded-input border border-line bg-subtle p-4">

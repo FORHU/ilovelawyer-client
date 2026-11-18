@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "@/lib/auth/session";
 import type { NewCase } from "@/lib/cases/api";
 import { budgetFromDraft, type BudgetDraft } from "@/lib/cases/budget";
 import { removeDraft } from "@/lib/cases/drafts";
 import { composeNotes } from "@/lib/cases/notes";
 import { uploadAll, useCreateCaseMutation } from "@/lib/cases/queries";
 import { useFailedUploads } from "@/lib/failed-uploads";
+import { useChosenLawyer } from "@/lib/lawyers/chosen-lawyer";
 import { useApp } from "@/lib/store";
 import { regionFields, type CaseRegion, type OtherParty, type Side } from "@/lib/types";
 import { useWizard } from "@/lib/wizard-store";
@@ -83,6 +85,9 @@ export function useCreateCaseFromWizard() {
     }
     // It's a case now, not a draft.
     if (draftId) removeDraft(draftId);
+    // A lawyer chosen first (Find a lawyer) goes with the case.
+    const userId = useSession.getState().user?.id;
+    if (userId) useChosenLawyer.getState().attach(created.id, userId);
     const notUploaded = await uploadAll(created.id, w.files);
     useFailedUploads.getState().set(created.id, notUploaded);
     // A New case pressed meanwhile has its own draft, which isn't this one to clear.

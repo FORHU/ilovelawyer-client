@@ -10,6 +10,7 @@ import { inputClass, WizardLabel } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
 import type { IntakeMessage } from "@/lib/cases/use-intake-chat";
 import { sideLabel } from "@/lib/types";
+import { BrowseLawyersLink } from "./browse-lawyers-link";
 import { REGIONS, STARTERS, type IntakeViewProps } from "./use-intake-controller";
 
 function AiBubble({ children }: { children: React.ReactNode }) {
@@ -233,6 +234,7 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
                 {hasDraft ? "Resume your form draft" : "Prefer a form? Fill in a form"}
                 <ArrowRight size={14} className="text-gold" aria-hidden="true" />
               </button>
+              <BrowseLawyersLink />
             </div>
           </div>
         </div>

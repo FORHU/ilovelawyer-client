@@ -8,6 +8,7 @@ import { ErrorBox } from "@/components/ui/banner";
 import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/cn";
 import { firstName, formatDateTime } from "@/lib/format";
+import { useChosenLawyer } from "@/lib/lawyers/chosen-lawyer";
 import { toast } from "@/lib/toast";
 import {
   LAWYER_NOTE_MAX_LENGTH,
@@ -49,6 +50,8 @@ function RequestForm({ caseId, lawyer }: { caseId: string; lawyer: RequestedLawy
       {
         onSuccess: (sent) => {
           close();
+          // Sent: a lawyer chosen first for this case has had their turn, by name or not.
+          useChosenLawyer.getState().forget(caseId);
           // Sent from the case itself, its Lawyer tab already shows the request: no link back to it.
           const link = pathname === `/cases/${caseId}` ? undefined : { href: `/cases/${caseId}`, label: t("Go to my case") };
           if (name) {
