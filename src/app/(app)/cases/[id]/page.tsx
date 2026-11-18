@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { CaseHeader } from "@/components/case/case-header";
 import { Consultation } from "@/components/case/consultation";
 import { LawyerTab } from "@/components/case/lawyer-tab";
@@ -15,13 +15,19 @@ import { clientRequestStage, useLatestLawyerRequestQuery } from "@/lib/lawyer-re
 import { lawyerTabStatus } from "@/lib/lawyer-requests/tab-status";
 import { useT } from "@/components/site/language-provider";
 
-export default function CasePage() {
+const TAB_IDS = ["chat", "overview", "docs", "lawyer"];
+
+/** The tab a link asks for (`?tab=lawyer`, from the Support Chat's Withdraw / End / Review), or the Interview. */
+const tabFromParam = (value: string | null) => (value && TAB_IDS.includes(value) ? value : "chat");
+
+function Case() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const { data: c, error, isPending } = useCaseQuery(id);
   const { data: latestRequest } = useLatestLawyerRequestQuery(id);
   const t = useT();
-  const [tab, setTab] = useState("chat");
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState(() => tabFromParam(searchParams.get("tab")));
   /** A document link from Overview (#45): switches to Documents and scrolls to that file. */
   const [focusDocumentId, setFocusDocumentId] = useState<string | null>(null);
   const clearFocusDocument = useCallback(() => setFocusDocumentId(null), []);
@@ -80,5 +86,13 @@ export default function CasePage() {
       {active === "docs" && <Documents c={c} focusDocumentId={focusDocumentId} onFocused={clearFocusDocument} onOpenOverview={() => setTab("overview")} />}
       {active === "lawyer" && request && <LawyerTab c={c} request={request} />}
     </div>
+  );
+}
+
+export default function CasePage() {
+  return (
+    <Suspense fallback={null}>
+      <Case />
+    </Suspense>
   );
 }

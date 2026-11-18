@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { FilePicker } from "@/components/ui/file-picker";
 import { AiMark } from "@/components/ui/misc";
+import { TypingDots } from "@/components/ui/typing-dots";
 import { ChatBar, ChatScreen, ComposerButton, ComposerPill } from "@/components/mobile/chat";
 import { AfterAnswer } from "@/components/case/after-answer";
 import { DeleteConfirm, MessageMenu } from "@/components/case/message-actions";
@@ -90,9 +91,7 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
               <div className="flex gap-2.5" role="status" aria-label="The assistant is typing">
                 <AiMark size={28} />
                 <div className="flex items-center gap-1 py-2.5">
-                  {[0, 1, 2].map((d) => (
-                    <span key={d} className="size-1.5 rounded-full bg-muted motion-safe:animate-pulse" style={{ animationDelay: `${d * 150}ms` }} />
-                  ))}
+                  <TypingDots />
                   {!connected && <span className="ml-2 text-[13px] text-muted">Reconnecting…</span>}
                 </div>
               </div>

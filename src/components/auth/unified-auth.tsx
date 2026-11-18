@@ -55,6 +55,8 @@ function tabFromParam(value: string | null): Tab {
   return "signin";
 }
 
+const DELETED_NOTICE = msg("Your account is scheduled for deletion in 30 days. Signing in again before then cancels it.");
+
 export function UnifiedAuth() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -75,7 +77,8 @@ export function UnifiedAuth() {
   // The error is about a lawyer account: show a link to the lawyer site with it.
   const [lawyerLink, setLawyerLink] = useState(false);
   const [siteLink, setSiteLink] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  // Arrived from deleting the account in the Support Chat: say what happens next.
+  const [notice, setNotice] = useState<string | null>(() => (searchParams.get("deleted") === "1" ? t(DELETED_NOTICE) : null));
 
   // Sign in
   const [signinEmail, setSigninEmail] = useState("");

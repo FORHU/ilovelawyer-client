@@ -11,10 +11,13 @@ import { setLanguage, useLanguage, useT } from "@/components/site/language-provi
 import { RadioCard } from "@/components/ui/radio-card";
 import { LANG_LABELS } from "@/lib/i18n/translate";
 import { msg } from "@/lib/i18n/msg";
+import { DELETE_ACCOUNT_FLOW_ID } from "@/lib/support/deletion-flow";
+import { useSupport } from "@/lib/support/store";
 
 // The Settings layout from the client UI/UX revisions. Account and Connected accounts have content
-// so far, and only what the API supports: signing out on this device, and Gmail for email import. "Sign out everywhere" and "Close account"
-// have no endpoints yet, so Close account is shown disabled.
+// so far: signing out on this device, Gmail for email import, and closing the account, which is done
+// in the Support Chat (it explains what is lost, checks for open lawyer requests, and asks for the
+// password). "Sign out everywhere" has no endpoint yet.
 
 /** The categories, each with the slug that names it in the URL (`/settings?section=account`). */
 export const SECTIONS = [
@@ -75,9 +78,13 @@ function AccountTab() {
       <section className="flex flex-col items-start gap-3 rounded-card border border-error-line bg-white px-6 py-5">
         <h2 className="text-[15px] font-semibold text-error-ink">{t("Close your account")}</h2>
         <p className="text-sm leading-[1.6] text-ink-2">
-          {t("Deletes your cases, documents and AI history after 30 days. Open lawyer requests are withdrawn, and unused chat credits aren’t refunded.")}
+          {t("Deletes your cases, documents and AI history after 30 days. Signing in again before then cancels it. Open lawyer requests must be withdrawn or ended first, and unused chat credits aren’t refunded.")}
         </p>
-        <Button variant="danger" size="md" disabled title={t("Not available yet")}>
+        <Button
+          variant="danger"
+          size="md"
+          onClick={() => useSupport.getState().openSupport({ audience: "SIGNED_IN", startFlowId: DELETE_ACCOUNT_FLOW_ID })}
+        >
           {t("Close account…")}
         </Button>
       </section>

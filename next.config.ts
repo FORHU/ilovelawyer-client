@@ -25,6 +25,7 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   experimental: {
+    agentUpgrade: "security",
     // The (app) shell intentionally renders nothing until the persisted client
     // store has hydrated, so implicit instant-navigation validation would flag
     // every page under it as "dropped". Only validate segments that opt in.

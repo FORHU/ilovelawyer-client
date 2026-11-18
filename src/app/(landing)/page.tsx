@@ -1,9 +1,11 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Closing, LandingFooter } from "@/components/landing/closing";
 import { LandingHeader } from "@/components/landing/header";
 import { ScrollRestorer } from "@/components/landing/scroll-restorer";
 import { SiteLanding } from "@/components/landing/site-landing";
 import { Story } from "@/components/landing/story";
+import { SupportLinkRedirect } from "@/components/support/support-deep-link";
 import { siteLandingCopy } from "@/lib/marketing/site-landing";
 import { serverSiteAndLang } from "@/lib/tenant/server-site";
 
@@ -42,6 +44,9 @@ export default async function LandingPage() {
       </main>
       <LandingFooter />
       <ScrollRestorer />
+      <Suspense fallback={null}>
+        <SupportLinkRedirect />
+      </Suspense>
     </>
   );
 }

@@ -40,7 +40,8 @@ function Fallback({ name, url, failed }: { name: string; url: string; failed: bo
   );
 }
 
-/** The file itself, drawn in the page. PDFs and images use the browser's own viewer; .docx, .xlsx
+/** The file itself, drawn in the page. PDFs and images use the browser's own viewer, audio and video
+ * its own player; .docx, .xlsx
  * and .txt are drawn here (the file is a same-origin /files/<token> link, so it never goes to a
  * third-party viewer). Fills its parent's height. */
 export function DocumentPreview({ name, url }: { name: string; url: string }) {
@@ -117,6 +118,19 @@ export function DocumentPreview({ name, url }: { name: string; url: string }) {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- a private, token-proxied file that Next's image optimizer can't fetch
       <img src={url} alt={name} onError={() => setFailed(true)} className="mx-auto h-full max-w-full object-contain p-4" />
+    );
+  }
+
+  if (kind === "audio" || kind === "video") {
+    const Media = kind === "audio" ? "audio" : "video";
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-3 bg-black/5 p-4">
+        <Media src={url} controls preload="metadata" aria-label={name} onError={() => setFailed(true)} className="max-h-full w-full max-w-3xl" />
+        <a href={url} download={name} className="inline-flex items-center gap-1.5 text-[13px] font-medium">
+          <Download size={14} aria-hidden />
+          Download
+        </a>
+      </div>
     );
   }
 
