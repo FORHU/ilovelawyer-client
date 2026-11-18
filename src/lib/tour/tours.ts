@@ -1,3 +1,4 @@
+import { tr } from "@/lib/i18n/translate";
 // The client app's guided tour, from the design in "ilovelawyer - client side guided tour":
 // T0 is the welcome card (no steps), T1 the Cases page, T2 the hint card on New case, T3 a first
 // case, T4 the Lawyer tab, T5 the chat on New case (a new account lands there, not on Cases). Targets are `data-tour="…"` attributes in the screens.
@@ -28,25 +29,45 @@ export interface TourDef {
 export interface TourContext {
   /** The credits every case comes with, once the pricing has loaded. */
   credits: number | null;
+  /** The site's AI chat is open (lib/tenant/sites.ts): its steps are left out where it isn't. */
+  ai: boolean;
+  /** The site's lawyers take client requests. */
+  lawyers: boolean;
 }
 
-export function tourFor(id: TourId, { credits }: TourContext): TourDef {
+// The words are tr(): the tour only runs in the signed-in app, in the browser.
+
+export function tourFor(id: TourId, { credits, ai, lawyers }: TourContext): TourDef {
   switch (id) {
     case "T1":
       return {
-        kicker: "Cases",
+        kicker: tr("Cases"),
         steps: [
-          { target: "new-case", placement: "bottom", title: "Start your first case", body: "Start here. It takes about two minutes, and your answers save as you go." },
-          {
-            target: "cases-credits",
-            placement: "bottom",
-            title: "Credits",
-            body: `Every case is free and comes with ${credits ?? "some"} chat credits for the AI interview. You can top up later.`,
-          },
-          { target: "guide", placement: "right", title: "Guide", body: "Lost? Open the guide to replay this tour or ask how something works." },
+          { target: "new-case", placement: "bottom", title: tr("Start your first case"), body: tr("Start here. It takes about two minutes, and your answers save as you go.") },
+          ...(ai
+            ? [
+                {
+                  target: "cases-credits",
+                  placement: "bottom" as const,
+                  title: "Credits",
+                  body: `Every case is free and comes with ${credits ?? "some"} chat credits for the AI interview. You can top up later.`,
+                },
+              ]
+            : []),
+          { target: "guide", placement: "right", title: tr("Guide"), body: tr("Lost? Open the guide to replay this tour or ask how something works.") },
         ],
       };
     case "T3":
+      if (!ai) {
+        // No interview yet on this site: the case is its details and its documents.
+        return {
+          kicker: tr("Your case"),
+          steps: [
+            { target: "tab-overview", placement: "bottom", title: tr("Overview"), body: tr("Your case's details, and which of the basics are still to fill in.") },
+            { target: "tab-docs", placement: "bottom", title: tr("Documents"), body: tr("Add contracts, letters and screenshots, and keep them with your case.") },
+          ],
+        };
+      }
       return {
         kicker: "Your case",
         steps: [
@@ -59,13 +80,17 @@ export function tourFor(id: TourId, { credits }: TourContext): TourDef {
             title: "Credits",
             body: `Each AI reply uses a credit.${credits ? ` You started with ${credits}.` : ""}`,
           },
-          {
-            target: "get-lawyer",
-            fallback: "case-menu",
-            placement: "bottom",
-            title: "Get a lawyer",
-            body: "When your overview is ready, send it to a solicitor for a quote. Nothing is shared until you choose to.",
-          },
+          ...(lawyers
+            ? [
+                {
+                  target: "get-lawyer",
+                  fallback: "case-menu",
+                  placement: "bottom" as const,
+                  title: "Get a lawyer",
+                  body: "When your overview is ready, send it to a solicitor for a quote. Nothing is shared until you choose to.",
+                },
+              ]
+            : []),
         ],
       };
     case "T5":
@@ -106,12 +131,13 @@ export function guideContext(pathname: string, tab: string | null): GuideContext
   return null;
 }
 
-/** The tour "Tour this page" runs. The New case form has a hint card instead (see TourLayer). */
-export function tourForContext(context: GuideContext | null): TourId | null {
+/** The tour "Tour this page" runs. The New case form has a hint card instead (see TourLayer), and
+ * it's the only way in where the site's AI chat isn't open. */
+export function tourForContext(context: GuideContext | null, { ai, lawyers }: Pick<TourContext, "ai" | "lawyers">): TourId | null {
   if (context === "cases") return "T1";
-  if (context === "new-case") return "T5";
+  if (context === "new-case") return ai ? "T5" : null;
   if (context === "case") return "T3";
-  if (context === "lawyer") return "T4";
+  if (context === "lawyer") return lawyers ? "T4" : null;
   return null;
 }
 
@@ -124,12 +150,14 @@ export interface GuideQuestion {
 export function guideQuestions(context: GuideContext | null, tour: TourContext): GuideQuestion[] {
   if (context === "cases") {
     const [start, credits] = tourFor("T1", tour).steps;
+    if (!tour.ai) return [{ question: tr("How do I start a case?"), step: start }];
     return [
       { question: "How do I start a case?", step: start },
       { question: "What are credits?", step: credits },
     ];
   }
   if (context === "new-case") {
+    if (!tour.ai) return [];
     const [chat, , , form] = tourFor("T5", tour).steps;
     return [
       { question: "How do I start a case?", step: chat },
@@ -138,13 +166,14 @@ export function guideQuestions(context: GuideContext | null, tour: TourContext):
   }
   if (context === "case") {
     const steps = tourFor("T3", tour).steps;
+    if (!tour.ai) return [{ question: tr("Where do I add documents?"), step: steps[1] }];
     return [
       { question: "Where do I add documents?", step: steps[2] },
       { question: "How do I get a lawyer?", step: steps[4] },
       { question: "How many credits do I have?", step: steps[3] },
     ];
   }
-  if (context === "lawyer") {
+  if (context === "lawyer" && tour.lawyers) {
     const [status, messages] = tourFor("T4", tour).steps;
     return [
       { question: "Where will my quote appear?", step: status },

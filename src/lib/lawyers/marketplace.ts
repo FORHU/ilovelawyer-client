@@ -1,4 +1,5 @@
 import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useSite } from "@/components/site/site-provider";
 import { create } from "zustand";
 import { ApiError, apiFetch } from "@/lib/api/fetch";
 import { useSession } from "@/lib/auth/session";
@@ -138,12 +139,13 @@ export const useMarketplaceCase = create<{ caseId: string | null; set: (caseId: 
 /** The marketplace list, a page at a time. The last page stays on screen while a filter change loads. */
 export function useLawyersQuery(params: LawyerListParams) {
   const userId = useSession((s) => s.user?.id);
+  const open = useSite().clientRequests === "open";
   return useInfiniteQuery({
     queryKey: ["marketplace-lawyers", userId, params],
     queryFn: ({ pageParam }) => listLawyers(params, pageParam),
     initialPageParam: 1,
     getNextPageParam: (last, pages) => (pages.length * PAGE_SIZE < last.total ? pages.length + 1 : undefined),
-    enabled: !!userId,
+    enabled: !!userId && open,
     staleTime: 1000 * 60,
     placeholderData: keepPreviousData,
   });
@@ -151,5 +153,6 @@ export function useLawyersQuery(params: LawyerListParams) {
 
 export function useLawyerQuery(id: string) {
   const userId = useSession((s) => s.user?.id);
-  return useQuery({ queryKey: ["marketplace-lawyer", userId, id], queryFn: () => getLawyer(id), enabled: !!userId, staleTime: 1000 * 60 });
+  const open = useSite().clientRequests === "open";
+  return useQuery({ queryKey: ["marketplace-lawyer", userId, id], queryFn: () => getLawyer(id), enabled: !!userId && open, staleTime: 1000 * 60 });
 }

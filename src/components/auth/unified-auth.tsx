@@ -19,7 +19,7 @@ import { GoogleButton, GoogleDivider } from "@/components/auth/google-button";
 import { PasswordRequirements } from "@/components/auth/password-requirements";
 import { TermsReviewDialog } from "@/components/auth/terms-review-dialog";
 import { normalizeEmail } from "@/lib/auth/api";
-import { EMAIL_REGISTERED_AS_LAWYER, authErrorMessage, isApiError, isLawyerAccountError } from "@/lib/auth/errors";
+import { EMAIL_REGISTERED_AS_LAWYER, authErrorMessage, isApiError, isLawyerAccountError, wrongSiteUrl } from "@/lib/auth/errors";
 import {
   signedInPath,
   useCancelSignupMutation,
@@ -33,6 +33,9 @@ import {
   useVerifyOtpMutation,
 } from "@/lib/auth/mutations";
 import { isPasswordValid } from "@/lib/auth/password-policy";
+import { useT } from "@/components/site/language-provider";
+import { msg } from "@/lib/i18n/msg";
+import { rich } from "@/lib/i18n/rich";
 
 type Tab = "signin" | "signup" | "recover";
 
@@ -41,9 +44,9 @@ const OTP_LENGTH = 6;
 const RESEND_COOLDOWN_SECONDS = 30;
 
 const TABS: { key: Tab; label: string }[] = [
-  { key: "signin", label: "Sign In" },
-  { key: "signup", label: "Sign Up" },
-  { key: "recover", label: "Recover" },
+  { key: "signin", label: msg("Sign In") },
+  { key: "signup", label: msg("Sign Up") },
+  { key: "recover", label: msg("Recover") },
 ];
 
 function tabFromParam(value: string | null): Tab {
@@ -55,6 +58,7 @@ function tabFromParam(value: string | null): Tab {
 export function UnifiedAuth() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useT();
 
   const loginMutation = useLoginMutation();
   const signupMutation = useSignupMutation();
@@ -70,6 +74,7 @@ export function UnifiedAuth() {
   const [error, setError] = useState<string | null>(null);
   // The error is about a lawyer account: show a link to the lawyer site with it.
   const [lawyerLink, setLawyerLink] = useState(false);
+  const [siteLink, setSiteLink] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   // Sign in
@@ -122,12 +127,14 @@ export function UnifiedAuth() {
   function clearMessages() {
     setError(null);
     setLawyerLink(false);
+    setSiteLink(null);
     setNotice(null);
   }
 
   function fail(err: unknown, step: Parameters<typeof authErrorMessage>[1]) {
-    setError(authErrorMessage(err, step));
+    setError(authErrorMessage(err, step, t));
     setLawyerLink(isLawyerAccountError(err));
+    setSiteLink(wrongSiteUrl(err));
   }
 
   function selectTab(next: Tab) {
@@ -186,7 +193,7 @@ export function UnifiedAuth() {
           if (isApiError(err) && err.status === 403) {
             // Right password, unverified email: verify it here, then the session starts.
             openOtp(signinEmail, "signin");
-            setNotice("Verify your email to finish signing in. We sent a new code to your inbox.");
+            setNotice(t("Verify your email to finish signing in. We sent a new code to your inbox."));
             sendOtpMutation.mutate(signinEmail, { onError: (sendErr) => fail(sendErr, "otp") });
           } else {
             fail(err, "signin");
@@ -200,15 +207,15 @@ export function UnifiedAuth() {
     e.preventDefault();
     clearMessages();
     if (!isPasswordValid(signupPassword)) {
-      setError("Password does not meet the requirements below.");
+      setError(t("Password does not meet the requirements below."));
       return;
     }
     if (signupPassword !== confirmSignupPassword) {
-      setError("Passwords do not match.");
+      setError(t("Passwords do not match."));
       return;
     }
     if (!agreed) {
-      setError("You must agree to the Terms of Service.");
+      setError(t("You must agree to the Terms of Service."));
       return;
     }
     signupMutation.mutate(
@@ -252,7 +259,7 @@ export function UnifiedAuth() {
       googleTokenRef.current = access_token;
       submitGoogle(access_token, googleRememberRef.current);
     },
-    onError: () => setError("Couldn't connect to Google. Try again."),
+    onError: () => setError(t("Couldn't connect to Google. Try again.")),
   });
 
   function launchGoogle() {
@@ -337,7 +344,7 @@ export function UnifiedAuth() {
     clearMessages();
     setResendCooldown(RESEND_COOLDOWN_SECONDS);
     sendOtpMutation.mutate(otpEmail, {
-      onSuccess: () => setNotice(`We sent a new code to ${otpEmail}.`),
+      onSuccess: () => setNotice(t("We sent a new code to {email}.", { email: otpEmail })),
       onError: (err) => fail(err, "otp"),
     });
   }
@@ -365,33 +372,30 @@ export function UnifiedAuth() {
   const otpComplete = otpDigits.every((d) => d !== "");
 
   const heading = otpStep
-    ? "Verify Your Email"
+    ? t("Verify Your Email")
     : googleLinkEmail
-      ? "Connect Google"
+      ? t("Connect Google")
       : tab === "signup"
-      ? "Create Your Account"
+      ? t("Create Your Account")
       : tab === "recover"
         ? recoverSent
-          ? "Instructions Sent"
-          : "Account Recovery"
-        : "Welcome Back";
+          ? t("Instructions Sent")
+          : t("Account Recovery")
+        : t("Welcome Back");
   const subheading = otpStep ? (
-    <>
-      Enter the 6-digit code sent to <span className="font-semibold text-ink">{otpEmail}</span>
-    </>
+    rich(t("Enter the 6-digit code sent to {email}"), { email: <span className="font-semibold text-ink">{otpEmail}</span> })
   ) : googleLinkEmail ? (
-    <>
-      An account already exists for <span className="font-semibold text-ink">{googleLinkEmail}</span>. Enter its
-      password to connect Google.
-    </>
+    rich(t("An account already exists for {email}. Enter its password to connect Google."), {
+      email: <span className="font-semibold text-ink">{googleLinkEmail}</span>,
+    })
   ) : tab === "recover" ? (
     recoverSent ? (
-      "Check your email for the recovery link."
+      t("Check your email for the recovery link.")
     ) : (
-      "Enter your email to receive secure recovery instructions."
+      t("Enter your email to receive secure recovery instructions.")
     )
   ) : tab === "signin" ? (
-    "Sign in to pick up your cases."
+    t("Sign in to pick up your cases.")
   ) : null;
 
   return (
@@ -408,7 +412,7 @@ export function UnifiedAuth() {
                 type="text"
                 inputMode="numeric"
                 autoComplete={i === 0 ? "one-time-code" : "off"}
-                aria-label={`Digit ${i + 1} of ${OTP_LENGTH}`}
+                aria-label={t("Digit {n} of {total}", { n: i + 1, total: OTP_LENGTH })}
                 maxLength={1}
                 value={digit}
                 onChange={(e) => handleOtpDigitChange(i, e.target.value)}
@@ -420,7 +424,7 @@ export function UnifiedAuth() {
           </div>
 
           <FormNotice message={notice} />
-          <FormError message={error} lawyerLink={lawyerLink} />
+          <FormError message={error} lawyerLink={lawyerLink} siteLink={siteLink} />
 
           <button
             type="button"
@@ -428,7 +432,7 @@ export function UnifiedAuth() {
             onClick={handleVerifyOtp}
             className={primaryButtonClass}
           >
-            {verifyOtpMutation.isPending ? "Verifying…" : <>Verify &amp; Continue</>}
+            {verifyOtpMutation.isPending ? t("Verifying…") : t("Verify & Continue")}
           </button>
 
           <div className="flex items-center justify-between">
@@ -438,33 +442,33 @@ export function UnifiedAuth() {
               disabled={resendCooldown > 0 || sendOtpMutation.isPending}
               className={textButtonClass}
             >
-              {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend Code"}
+              {resendCooldown > 0 ? t("Resend in {seconds}s", { seconds: resendCooldown }) : t("Resend Code")}
             </button>
             <button type="button" onClick={leaveOtp} className={textButtonClass}>
-              {otpSource === "signup" ? "Use a different email" : "Back to sign in"}
+              {otpSource === "signup" ? t("Use a different email") : t("Back to sign in")}
             </button>
           </div>
         </div>
       ) : googleLinkEmail ? (
         <form onSubmit={handleGoogleLink} className="flex flex-col gap-6">
-          <Field id="google-link-password" label="Password">
+          <Field id="google-link-password" label={t("Password")}>
             <PasswordInput
               id="google-link-password"
               value={linkPassword}
               onChange={setLinkPassword}
-              placeholder="Enter the account's password"
+              placeholder={t("Enter the account's password")}
               autoComplete="current-password"
             />
           </Field>
 
-          <FormError message={error} lawyerLink={lawyerLink} />
+          <FormError message={error} lawyerLink={lawyerLink} siteLink={siteLink} />
 
           <button type="submit" disabled={googleLinkMutation.isPending} className={primaryButtonClass}>
-            {googleLinkMutation.isPending ? "Connecting…" : "Connect Google"}
+            {googleLinkMutation.isPending ? t("Connecting…") : t("Connect Google")}
           </button>
 
           <button type="button" onClick={exitGoogleLink} className={textButtonClass}>
-            Back to sign in
+            {t("Back to sign in")}
           </button>
         </form>
       ) : (
@@ -484,7 +488,7 @@ export function UnifiedAuth() {
                     active ? "font-semibold text-ink" : "font-normal text-muted hover:text-ink"
                   }`}
                 >
-                  {label}
+                  {t(label)}
                   {active && <div className="absolute inset-x-0 bottom-0 h-0.5 bg-ink" />}
                 </button>
               );
@@ -493,25 +497,25 @@ export function UnifiedAuth() {
 
           {tab === "signin" && (
             <form onSubmit={handleSignIn} className="flex flex-col gap-6">
-              <Field id="signin-email" label="Email Address">
+              <Field id="signin-email" label={t("Email Address")}>
                 <input
                   id="signin-email"
                   type="email"
                   autoComplete="email"
                   value={signinEmail}
                   onChange={(e) => setSigninEmail(e.target.value)}
-                  placeholder="name@example.com"
+                  placeholder={t("name@example.com")}
                   required
                   className={inputClass}
                 />
               </Field>
 
-              <Field id="signin-password" label="Password">
+              <Field id="signin-password" label={t("Password")}>
                 <PasswordInput
                   id="signin-password"
                   value={signinPassword}
                   onChange={setSigninPassword}
-                  placeholder="Enter your password"
+                  placeholder={t("Enter your password")}
                   autoComplete="current-password"
                 />
               </Field>
@@ -527,7 +531,7 @@ export function UnifiedAuth() {
                   <span className="relative size-4 shrink-0 border-2 border-line bg-surface transition-colors group-hover:border-gold">
                     {remember && <span className="absolute inset-0.5 bg-ink" />}
                   </span>
-                  <span className="text-[10px] uppercase tracking-[0.5px] text-muted">Remember Session</span>
+                  <span className="text-[10px] uppercase tracking-[0.5px] text-muted">{t("Remember Session")}</span>
                 </button>
 
                 <button
@@ -535,14 +539,14 @@ export function UnifiedAuth() {
                   onClick={() => selectTab("recover")}
                   className="cursor-pointer border-0 bg-transparent p-0 text-[10px] uppercase tracking-[0.5px] text-muted underline-offset-2 transition-colors hover:text-gold hover:underline"
                 >
-                  Forgot password?
+                  {t("Forgot password?")}
                 </button>
               </div>
 
-              <FormError message={error} lawyerLink={lawyerLink} />
+              <FormError message={error} lawyerLink={lawyerLink} siteLink={siteLink} />
 
               <button type="submit" disabled={loginMutation.isPending} className={primaryButtonClass}>
-                {loginMutation.isPending ? "Signing In…" : "Sign In"}
+                {loginMutation.isPending ? t("Signing In…") : t("Sign In")}
               </button>
 
               <GoogleDivider />
@@ -552,27 +556,27 @@ export function UnifiedAuth() {
 
           {tab === "signup" && (
             <form onSubmit={handleSignUp} className="flex flex-col gap-5">
-              <Field id="signup-name" label="Full Name">
+              <Field id="signup-name" label={t("Full Name")}>
                 <input
                   id="signup-name"
                   type="text"
                   autoComplete="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="E.g. Juan dela Cruz"
+                  placeholder={t("E.g. Juan dela Cruz")}
                   required
                   className={inputClass}
                 />
               </Field>
 
-              <Field id="signup-email" label="Email Address">
+              <Field id="signup-email" label={t("Email Address")}>
                 <input
                   id="signup-email"
                   type="email"
                   autoComplete="email"
                   value={signupEmail}
                   onChange={(e) => setSignupEmail(e.target.value)}
-                  placeholder="juan.cruz@example.com"
+                  placeholder={t("juan.cruz@example.com")}
                   required
                   className={inputClass}
                 />
@@ -580,13 +584,13 @@ export function UnifiedAuth() {
 
               <div className="flex flex-col gap-2">
                 <label htmlFor="signup-password" className={labelClass}>
-                  Password
+                  {t("Password")}
                 </label>
                 <PasswordInput
                   id="signup-password"
                   value={signupPassword}
                   onChange={setSignupPassword}
-                  placeholder="Create a password"
+                  placeholder={t("Create a password")}
                   autoComplete="new-password"
                 />
                 {signupPassword && <PasswordRequirements password={signupPassword} />}
@@ -594,17 +598,17 @@ export function UnifiedAuth() {
 
               <div className="flex flex-col gap-2">
                 <label htmlFor="signup-confirm" className={labelClass}>
-                  Confirm Password
+                  {t("Confirm Password")}
                 </label>
                 <PasswordInput
                   id="signup-confirm"
                   value={confirmSignupPassword}
                   onChange={setConfirmSignupPassword}
-                  placeholder="Re-enter your password"
+                  placeholder={t("Re-enter your password")}
                   autoComplete="new-password"
                 />
                 {confirmSignupPassword && signupPassword !== confirmSignupPassword && (
-                  <p className="text-xs text-error">Passwords do not match.</p>
+                  <p className="text-xs text-error">{t("Passwords do not match.")}</p>
                 )}
               </div>
 
@@ -613,8 +617,8 @@ export function UnifiedAuth() {
                   type="button"
                   role="checkbox"
                   aria-checked={agreed}
-                  aria-label="Agree to the Terms of Service"
-                  title={hasReadTerms ? "Agree to the Terms of Service" : "Please read the Terms of Service before agreeing."}
+                  aria-label={t("Agree to the Terms of Service")}
+                  title={hasReadTerms ? t("Agree to the Terms of Service") : t("Please read the Terms of Service before agreeing.")}
                   onClick={() => (hasReadTerms ? setAgreed(!agreed) : setTermsDialogOpen(true))}
                   className={`relative mt-1 size-5 shrink-0 cursor-pointer rounded-sm border-2 border-ink/40 bg-surface p-0 transition-colors hover:border-gold ${
                     !hasReadTerms ? "opacity-50" : ""
@@ -623,15 +627,17 @@ export function UnifiedAuth() {
                   {agreed && <span className="absolute inset-0.5 rounded-[1px] bg-ink" />}
                 </button>
                 <p className="text-base leading-6.5 text-muted">
-                  I agree to the{" "}
-                  <button
-                    type="button"
-                    onClick={() => setTermsDialogOpen(true)}
-                    className="cursor-pointer border-0 bg-transparent p-0 text-base font-semibold text-ink underline-offset-2 transition-colors hover:text-gold hover:underline"
-                  >
-                    Terms of Service
-                  </button>
-                  .
+                  {rich(t("I agree to the {terms}."), {
+                    terms: (
+                      <button
+                        type="button"
+                        onClick={() => setTermsDialogOpen(true)}
+                        className="cursor-pointer border-0 bg-transparent p-0 text-base font-semibold text-ink underline-offset-2 transition-colors hover:text-gold hover:underline"
+                      >
+                        {t("Terms of Service")}
+                      </button>
+                    ),
+                  })}
                 </p>
               </div>
 
@@ -644,7 +650,7 @@ export function UnifiedAuth() {
                 }}
               />
 
-              <FormError message={error} lawyerLink={lawyerLink} />
+              <FormError message={error} lawyerLink={lawyerLink} siteLink={siteLink} />
 
               <button
                 type="submit"
@@ -655,7 +661,7 @@ export function UnifiedAuth() {
                 }
                 className={`${primaryButtonClass} font-semibold tracking-[1.6px]`}
               >
-                {signupMutation.isPending ? "Creating Account…" : "Create Account"}
+                {signupMutation.isPending ? t("Creating Account…") : t("Create Account")}
               </button>
 
               <GoogleDivider />
@@ -666,23 +672,23 @@ export function UnifiedAuth() {
           {tab === "recover" &&
             (!recoverSent ? (
               <form onSubmit={handleRecover} className="flex flex-col gap-6">
-                <Field id="recover-email" label="Email Address">
+                <Field id="recover-email" label={t("Email Address")}>
                   <input
                     id="recover-email"
                     type="email"
                     autoComplete="email"
                     value={recoverEmail}
                     onChange={(e) => setRecoverEmail(e.target.value)}
-                    placeholder="name@example.com"
+                    placeholder={t("name@example.com")}
                     required
                     className={inputClass}
                   />
                 </Field>
 
-                <FormError message={error} lawyerLink={lawyerLink} />
+                <FormError message={error} lawyerLink={lawyerLink} siteLink={siteLink} />
 
                 <button type="submit" disabled={forgotPasswordMutation.isPending} className={primaryButtonClass}>
-                  {forgotPasswordMutation.isPending ? "Sending…" : "Send Reset Link"}
+                  {forgotPasswordMutation.isPending ? t("Sending…") : t("Send Reset Link")}
                 </button>
               </form>
             ) : (
@@ -691,8 +697,9 @@ export function UnifiedAuth() {
                   <Mail size={36} className="text-gold" strokeWidth={1.5} aria-hidden />
                 </div>
                 <p className="max-w-90 text-center text-base leading-6.5 text-muted">
-                  If an account exists for <span className="font-semibold text-ink">{recoverEmail}</span>, we&apos;ve
-                  sent it a secure recovery link. The link works for one hour.
+                  {rich(t("If an account exists for {email}, we've sent it a secure recovery link. The link works for one hour."), {
+                    email: <span className="font-semibold text-ink">{recoverEmail}</span>,
+                  })}
                 </p>
                 <button
                   type="button"
@@ -702,7 +709,7 @@ export function UnifiedAuth() {
                   }}
                   className={`${primaryButtonClass} rounded-none`}
                 >
-                  Back to Sign In
+                  {t("Back to Sign In")}
                 </button>
               </div>
             ))}

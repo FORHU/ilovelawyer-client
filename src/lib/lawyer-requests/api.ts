@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSite } from "@/components/site/site-provider";
 import { create } from "zustand";
 import { apiFetch } from "@/lib/api/fetch";
 import { useSession } from "@/lib/auth/session";
@@ -275,10 +276,12 @@ function useUserId() {
  * answer changes with the chat (a personal injury case is spotted by the lawyer readiness check). */
 export function useEligibilityQuery(caseId: string) {
   const userId = useUserId();
+  // A site without lawyers yet has nothing to ask (the API answers 403 CLIENT_REQUESTS_NOT_OPEN).
+  const open = useSite().clientRequests === "open";
   return useQuery({
     queryKey: lawyerRequestKeys.eligibility(userId, caseId),
     queryFn: () => getEligibility(caseId),
-    enabled: !!userId && !!caseId,
+    enabled: !!userId && !!caseId && open,
     staleTime: 0,
   });
 }

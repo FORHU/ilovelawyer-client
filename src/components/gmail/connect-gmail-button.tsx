@@ -9,23 +9,26 @@ import { ApiError } from "@/lib/api/fetch";
 import { GMAIL_READONLY_SCOPE } from "@/lib/gmail/api";
 import { EMAIL_IMPORT_CONSENT_POINTS, useAgreeToEmailImportMutation, useEmailImportConsent } from "@/lib/gmail/consent";
 import { useConnectGmailMutation } from "@/lib/gmail/queries";
+import { useT } from "@/components/site/language-provider";
+import { tr } from "@/lib/i18n/translate";
 
 function messageFor(err: unknown): string {
   if (err instanceof ApiError) {
-    if (err.code === "GMAIL_SCOPE_MISSING") return "Gmail wasn't connected because reading your email was left unticked. Connect again and allow it.";
-    if (err.code === "GMAIL_CONSENT_REQUIRED") return "Google needs you to approve Gmail access once more. Click Connect Gmail again.";
-    if (err.code === "GMAIL_UNAVAILABLE" || err.status === 503) return "Gmail import isn't available right now.";
+    if (err.code === "GMAIL_SCOPE_MISSING") return tr("Gmail wasn't connected because reading your email was left unticked. Connect again and allow it.");
+    if (err.code === "GMAIL_CONSENT_REQUIRED") return tr("Google needs you to approve Gmail access once more. Click Connect Gmail again.");
+    if (err.code === "GMAIL_UNAVAILABLE" || err.status === 503) return tr("Gmail import isn't available right now.");
     return err.message;
   }
-  return "Couldn't connect Gmail. Try again.";
+  return tr("Couldn't connect Gmail. Try again.");
 }
 
 /** What the client agrees to before connecting (#989), as a list. */
 export function EmailImportConsentPoints() {
+  const t = useT();
   return (
     <ul className="flex list-disc flex-col gap-1.5 pl-5 text-[13px] leading-[1.55] text-ink-2">
       {EMAIL_IMPORT_CONSENT_POINTS.map((point) => (
-        <li key={point}>{point}</li>
+        <li key={point}>{t(point)}</li>
       ))}
     </ul>
   );
@@ -41,8 +44,9 @@ export function EmailImportConsentPoints() {
  * popup opens (the popup has to open straight from the click, or the browser blocks it), and the
  * connect waits for it, since the API refuses to connect without it.
  */
-export function ConnectGmailButton({ label = "Connect Gmail", className }: { label?: string; className?: string }) {
+export function ConnectGmailButton({ label, className }: { label?: string; className?: string }) {
   const connect = useConnectGmailMutation();
+  const t = useT();
   const agree = useAgreeToEmailImportMutation();
   const consented = useEmailImportConsent();
   const [ticked, setTicked] = useState(false);
@@ -68,12 +72,12 @@ export function ConnectGmailButton({ label = "Connect Gmail", className }: { lab
     onError: (res) =>
       setError(
         res.error === "access_denied"
-          ? "Google didn't let this account connect. Access was declined, or only approved test accounts can connect for now."
-          : "The Google window closed before Gmail was connected.",
+          ? t("Google didn't let this account connect. Access was declined, or only approved test accounts can connect for now.")
+          : t("The Google window closed before Gmail was connected."),
       ),
     onNonOAuthError: (err) => {
-      if (err.type === "popup_closed") setError("The Google window closed before Gmail was connected.");
-      else if (err.type === "popup_failed_to_open") setError("Your browser blocked the Google window. Allow pop-ups for this site and try again.");
+      if (err.type === "popup_closed") setError(t("The Google window closed before Gmail was connected."));
+      else if (err.type === "popup_failed_to_open") setError(t("Your browser blocked the Google window. Allow pop-ups for this site and try again."));
     },
   });
 
@@ -93,7 +97,7 @@ export function ConnectGmailButton({ label = "Connect Gmail", className }: { lab
           <EmailImportConsentPoints />
           <label className="flex cursor-pointer items-start gap-2.5 text-[13px] leading-[1.5] text-ink">
             <input type="checkbox" checked={ticked} onChange={(e) => setTicked(e.target.checked)} className="mt-0.5 size-4 shrink-0 accent-ink" />
-            I agree to ilovelawyer reading my Gmail as described above.
+            {t("I agree to ilovelawyer reading my Gmail as described above.")}
           </label>
         </>
       )}
@@ -104,7 +108,7 @@ export function ConnectGmailButton({ label = "Connect Gmail", className }: { lab
         className={className}
       >
         <Mail size={14} aria-hidden />
-        {connect.isPending ? "Connecting…" : label}
+        {connect.isPending ? t("Connecting…") : (label ?? t("Connect Gmail"))}
       </Button>
       {error && <ErrorBox message={error} />}
     </div>

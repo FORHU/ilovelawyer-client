@@ -1,3 +1,4 @@
+import { useSite } from "@/components/site/site-provider";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api/fetch";
 import { useSession } from "@/lib/auth/session";
@@ -29,10 +30,13 @@ export function getLawyerReadiness(caseId: string) {
 /** Keyed by the latest AI answer, so a new answer means a fresh check and an old one is cached. */
 export function useLawyerReadinessQuery(caseId: string, latestAnswerId: string | undefined) {
   const userId = useSession((s) => s.user?.id);
+  // Readiness is the AI's, and it's for a lawyer: only where both are open.
+  const site = useSite();
+  const open = site.intakeChat === "open" && site.clientRequests === "open";
   return useQuery({
     queryKey: [...caseKeys.lawyerReadiness(userId, caseId), latestAnswerId ?? "none"],
     queryFn: () => getLawyerReadiness(caseId),
-    enabled: !!userId && !!latestAnswerId,
+    enabled: !!userId && !!latestAnswerId && open,
     staleTime: Infinity,
     // A refusal (e.g. AI consent withdrawn) just means no suggestion; don't retry it.
     retry: false,

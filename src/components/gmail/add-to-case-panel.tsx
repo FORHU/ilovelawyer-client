@@ -8,6 +8,7 @@ import { offeredExtensions, useLimitsQuery } from "@/lib/cases/limits";
 import { formatBytes } from "@/lib/format";
 import type { GmailAttachment, GmailMessage } from "@/lib/gmail/api";
 import { useImportGmailToCaseMutation } from "@/lib/gmail/queries";
+import { useT } from "@/components/site/language-provider";
 
 const extensionOf = (name: string) => (name.includes(".") ? name.split(".").pop()!.toLowerCase() : "");
 
@@ -60,6 +61,7 @@ export function AddToCasePanel({ caseId, message }: { caseId: string; message: G
   // Every attachment a case can take starts ticked; the client unticks what isn't relevant.
   const [picked, setPicked] = useState<Set<string>>(() => new Set(files.filter(canAdd).map((a) => a.partId)));
   const importMutation = useImportGmailToCaseMutation(caseId);
+  const t = useT();
 
   const chosen = files.filter((a) => picked.has(a.partId) && canAdd(a));
   const count = (includeEmail ? 1 : 0) + chosen.length;
@@ -80,7 +82,7 @@ export function AddToCasePanel({ caseId, message }: { caseId: string; message: G
       <section className="flex flex-col gap-2 rounded-card border border-line bg-white px-4 py-3.5">
         <p className="flex items-center gap-2 text-[13.5px] font-semibold text-ink">
           <CheckCircle2 size={16} aria-hidden className="shrink-0 text-success" />
-          Added {added.length} {added.length === 1 ? "document" : "documents"} to this case
+          {added.length === 1 ? t("Added {n} document to this case", { n: 1 }) : t("Added {n} documents to this case", { n: added.length })}
         </p>
         <ul className="flex flex-col gap-0.5 pl-6 text-[12.5px] text-ink-2">
           {added.map((d) => (
@@ -89,7 +91,7 @@ export function AddToCasePanel({ caseId, message }: { caseId: string; message: G
             </li>
           ))}
         </ul>
-        <p className="pl-6 text-[12px] text-muted">They’re in Documents now, and the AI can use them once they’ve been read.</p>
+        <p className="pl-6 text-[12px] text-muted">{t("They’re in Documents now, and the AI can use them once they’ve been read.")}</p>
       </section>
     );
   }
@@ -97,16 +99,16 @@ export function AddToCasePanel({ caseId, message }: { caseId: string; message: G
   return (
     <section className="flex flex-col gap-3">
       <div className="flex flex-col gap-0.5">
-        <h4 className="text-[13px] font-semibold text-ink">Add to this case</h4>
-        <p className="text-[12px] leading-[1.5] text-ink-2">Only what you tick is copied into the case, each as its own document.</p>
+        <h4 className="text-[13px] font-semibold text-ink">{t("Add to this case")}</h4>
+        <p className="text-[12px] leading-[1.5] text-ink-2">{t("Only what you tick is copied into the case, each as its own document.")}</p>
       </div>
       <div className="flex flex-col divide-y divide-line rounded-card border border-line bg-white">
         <Option
           checked={includeEmail}
           onChange={setIncludeEmail}
           icon={<FileText size={14} aria-hidden />}
-          title="The email, as a PDF"
-          detail="From, To, Cc, Bcc, date, subject and the full text"
+          title={t("The email, as a PDF")}
+          detail={t("From, To, Cc, Bcc, date, subject and the full text")}
         />
         {files.map((a) => (
           <Option
@@ -116,13 +118,13 @@ export function AddToCasePanel({ caseId, message }: { caseId: string; message: G
             onChange={(on) => toggle(a.partId, on)}
             icon={<Paperclip size={14} aria-hidden />}
             title={a.filename}
-            detail={canAdd(a) ? formatBytes(a.size) : `${formatBytes(a.size)} · This file type can’t be added to a case`}
+            detail={canAdd(a) ? formatBytes(a.size) : `${formatBytes(a.size)} · ${t("This file type can’t be added to a case")}`}
           />
         ))}
       </div>
       {importMutation.error && <ErrorBox message={(importMutation.error as Error).message} />}
       <Button variant="dark" onClick={add} disabled={count === 0 || importMutation.isPending} className="self-start">
-        {importMutation.isPending ? "Adding…" : count === 0 ? "Add to case" : `Add ${count} to case`}
+        {importMutation.isPending ? t("Adding…") : count === 0 ? t("Add to case") : t("Add {n} to case", { n: count })}
       </Button>
     </section>
   );

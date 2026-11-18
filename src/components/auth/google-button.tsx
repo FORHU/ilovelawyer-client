@@ -1,19 +1,23 @@
 "use client";
 
+import { useT } from "@/components/site/language-provider";
+
 // Mirrors ilovelawyer-app's placement: a secondary option below the primary submit button,
 // separated by an "OR" divider.
 
 export function GoogleDivider() {
+  const t = useT();
   return (
     <div className="flex items-center gap-3">
       <div className="h-px flex-1 bg-line" />
-      <span className="text-[10px] uppercase tracking-[0.5px] text-muted">Or</span>
+      <span className="text-[10px] uppercase tracking-[0.5px] text-muted">{t("Or")}</span>
       <div className="h-px flex-1 bg-line" />
     </div>
   );
 }
 
 export function GoogleButton({ onClick, pending }: { onClick: () => void; pending: boolean }) {
+  const t = useT();
   return (
     <button
       type="button"
@@ -36,7 +40,7 @@ export function GoogleButton({ onClick, pending }: { onClick: () => void; pendin
           d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962l3.007 2.332C4.672 5.167 6.656 3.58 9 3.58Z"
         />
       </svg>
-      {pending ? "Connecting…" : "Continue with Google"}
+      {pending ? t("Connecting…") : t("Continue with Google")}
     </button>
   );
 }

@@ -8,18 +8,23 @@ import { StepBudget, StepDetails, StepDocuments, StepPeople } from "@/components
 import { cn } from "@/lib/cn";
 import { WIZARD_STEPS, useWizard } from "@/lib/wizard-store";
 import type { NewCaseFormProps } from "./new-case-form";
+import { useT } from "@/components/site/language-provider";
+import { msg } from "@/lib/i18n/msg";
+import { useSite } from "@/components/site/site-provider";
 
 const STEPS = [
-  { numeral: "I", title: "Case details", hint: "Title and place" },
-  { numeral: "II", title: "People involved", hint: "Your side and the others" },
-  { numeral: "III", title: "Budget", hint: "What you can spend. Optional" },
-  { numeral: "IV", title: "Documents", hint: "Files for the AI to read" },
+  { numeral: "I", title: msg("Case details"), hint: msg("Title and place") },
+  { numeral: "II", title: msg("People involved"), hint: msg("Your side and the others") },
+  { numeral: "III", title: msg("Budget"), hint: msg("What you can spend. Optional") },
+  { numeral: "IV", title: msg("Documents"), hint: msg("Files for the AI to read") },
 ];
 
 export function NewCaseFormDesktop({ included, creating, error, onBack, onNext, onChat }: NewCaseFormProps) {
   const wiz = useWizard();
   const { step, maxStep, title, region, side, budget } = wiz;
-  const stepDone = (n: number) => (n === 1 ? !!title.trim() && !!region : n === 2 ? !!side : n === 3 ? !!budget.choice || !!budget.fee : false);
+  const { regionQuestion } = useSite();
+  const t = useT();
+  const stepDone = (n: number) => (n === 1 ? !!title.trim() && (!regionQuestion || !!region) : n === 2 ? !!side : n === 3 ? !!budget.choice || !!budget.fee : false);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
@@ -27,20 +32,21 @@ export function NewCaseFormDesktop({ included, creating, error, onBack, onNext, 
         <div className="flex flex-col gap-5">
           <div className="hidden flex-col gap-2.5 md:flex">
             <h1 className="font-display text-[40px] font-normal leading-none tracking-[-0.02em]">
-              New case
+              {t("New case")}
             </h1>
             <p className="text-[13px] leading-[1.6] text-ink-2">
-              Tell us what happened, who is involved, what you can spend, and add your documents. You can edit
-              everything later. A case is free and includes {included} chat credits.
+              {t("Tell us what happened, who is involved, what you can spend, and add your documents. You can edit everything later. A case is free and includes {included} chat credits.", { included })}
             </p>
-            <button
-              type="button"
-              onClick={onChat}
-              data-no-tap
-              className="min-h-11 self-start text-[13px] font-semibold underline underline-offset-4 hover:text-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
-            >
-              Chat with us instead
-            </button>
+            {onChat && (
+              <button
+                type="button"
+                onClick={onChat}
+                data-no-tap
+                className="min-h-11 self-start text-[13px] font-semibold underline underline-offset-4 hover:text-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+              >
+                {t("Chat with us instead")}
+              </button>
+            )}
           </div>
           <ol className="flex flex-row justify-between gap-1 md:flex-col">
             {STEPS.map((s, i) => {
@@ -76,10 +82,10 @@ export function NewCaseFormDesktop({ included, creating, error, onBack, onNext, 
                           done || cur ? "text-ink" : "text-muted",
                         )}
                       >
-                        {s.title}
+                        {t(s.title)}
                       </span>
                       <span className="mt-0.5 hidden text-[11.5px] text-muted md:block">
-                        {s.hint}
+                        {t(s.hint)}
                       </span>
                     </span>
                   </button>
@@ -99,14 +105,14 @@ export function NewCaseFormDesktop({ included, creating, error, onBack, onNext, 
 
           <div className="sticky bottom-0 z-[2] -mx-4 flex items-center justify-between gap-2.5 border-t border-line bg-white px-4 pb-[30px] pt-3 md:static md:mx-0 md:border-t-0 md:bg-transparent md:p-0">
             <Button variant="outline" onClick={onBack}>
-              Back
+              {t("Back")}
             </Button>
             <div className="flex items-center gap-3.5">
               <div className="hidden text-xs text-muted md:block">
-                Free · includes {included} chat credits
+                {t("Free · includes {included} chat credits", { included })}
               </div>
               <Button className="px-[26px] disabled:!opacity-60" onClick={onNext} disabled={creating}>
-                {step < WIZARD_STEPS ? "Continue" : creating ? "Creating…" : "Create case"}
+                {step < WIZARD_STEPS ? t("Continue") : creating ? t("Creating…") : t("Create case")}
               </Button>
             </div>
           </div>

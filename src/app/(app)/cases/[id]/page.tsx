@@ -13,12 +13,14 @@ import { firstName } from "@/lib/format";
 import { useCaseQuery } from "@/lib/cases/queries";
 import { clientRequestStage, useLatestLawyerRequestQuery } from "@/lib/lawyer-requests/api";
 import { lawyerTabStatus } from "@/lib/lawyer-requests/tab-status";
+import { useT } from "@/components/site/language-provider";
 
 export default function CasePage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const { data: c, error, isPending } = useCaseQuery(id);
   const { data: latestRequest } = useLatestLawyerRequestQuery(id);
+  const t = useT();
   const [tab, setTab] = useState("chat");
   /** A document link from Overview (#45): switches to Documents and scrolls to that file. */
   const [focusDocumentId, setFocusDocumentId] = useState<string | null>(null);
@@ -46,16 +48,16 @@ export default function CasePage() {
   if (!c) {
     return (
       <div className="flex flex-1 items-center justify-center p-6 text-sm text-ink-2">
-        {error instanceof Error ? error.message : "Couldn't load this case."}
+        {error instanceof Error ? error.message : t("Couldn't load this case.")}
       </div>
     );
   }
 
   const active = tab === "lawyer" && !hasLawyerTab ? "chat" : tab;
   const tabs: TabDef[] = [
-    { id: "chat", label: "Interview" },
-    { id: "overview", label: "Overview" },
-    { id: "docs", label: "Documents", count: c.documents.length },
+    { id: "chat", label: t("Interview") },
+    { id: "overview", label: t("Overview") },
+    { id: "docs", label: t("Documents"), count: c.documents.length },
     ...(request ? [{ id: "lawyer", label: "Lawyer", status: lawyerTabStatus(request.status, firstName(request.lawyer?.name)) }] : []),
   ];
 

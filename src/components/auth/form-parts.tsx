@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { LAWYER_APP_URL } from "@/lib/tenant/client-tenant";
+import { useSite } from "@/components/site/site-provider";
+import { useT } from "@/components/site/language-provider";
 
 // Building blocks shared by the auth screens (unified-auth.tsx, reset-password-form.tsx).
 
@@ -40,6 +41,7 @@ export function PasswordInput({
   autoComplete: string;
 }) {
   const [shown, setShown] = useState(false);
+  const t = useT();
   return (
     <div className="relative">
       <input
@@ -61,7 +63,7 @@ export function PasswordInput({
         <button
           type="button"
           onClick={() => setShown(!shown)}
-          aria-label={shown ? "Hide password" : "Show password"}
+          aria-label={shown ? t("Hide password") : t("Show password")}
           className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer border-0 bg-transparent p-1 text-muted transition-colors hover:text-ink"
         >
           {shown ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}
@@ -72,8 +74,11 @@ export function PasswordInput({
 }
 
 /** An error under a form. With `lawyerLink`, it also points a lawyer account at the lawyer site
- * (WRONG_APP, EMAIL_REGISTERED_AS_LAWYER). */
-export function FormError({ message, lawyerLink = false }: { message: string | null; lawyerLink?: boolean }) {
+ * (WRONG_APP, EMAIL_REGISTERED_AS_LAWYER); with `siteLink`, an account opened on another site at
+ * that site (WRONG_SITE). */
+export function FormError({ message, lawyerLink = false, siteLink = null }: { message: string | null; lawyerLink?: boolean; siteLink?: string | null }) {
+  const { lawyerAppUrl } = useSite();
+  const t = useT();
   if (!message) return null;
   return (
     <p role="alert" className="text-sm text-error">
@@ -81,8 +86,16 @@ export function FormError({ message, lawyerLink = false }: { message: string | n
       {lawyerLink && (
         <>
           {" "}
-          <a href={LAWYER_APP_URL} className="font-semibold">
-            Go to the lawyer site
+          <a href={lawyerAppUrl} className="font-semibold">
+            {t("Go to the lawyer site")}
+          </a>
+        </>
+      )}
+      {siteLink && (
+        <>
+          {" "}
+          <a href={`${siteLink}/login`} className="font-semibold">
+            {t("Go to that site")}
           </a>
         </>
       )}

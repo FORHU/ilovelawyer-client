@@ -4,10 +4,17 @@ import { Responsive } from "@/components/device/responsive";
 import { LawyersListDesktop } from "@/components/lawyers/lawyers-list.desktop";
 import { LawyersListMobile } from "@/components/lawyers/lawyers-list.mobile";
 import { useLawyersList } from "@/components/lawyers/use-lawyers-list";
+import { useSite } from "@/components/site/site-provider";
+import { ComingSoon } from "@/components/site/coming-soon";
 
 /** Find a lawyer: one list (use-lawyers-list, held here so a device flip keeps the search and
  * filters), a dedicated view per device. */
 export default function LawyersPage() {
+  if (useSite().clientRequests !== "open") return <ComingSoon feature="lawyers" />;
+  return <LawyersList />;
+}
+
+function LawyersList() {
   const v = useLawyersList();
   return <Responsive desktop={<LawyersListDesktop v={v} />} mobile={<LawyersListMobile v={v} />} />;
 }

@@ -1,4 +1,6 @@
 import type { TenantCode } from "@/lib/tenant/client-tenant";
+import type { Lang } from "@/lib/i18n/translate";
+import { KO_BASE_SECTIONS, KO_EFFECTIVE, KO_GOVERNING_LAW } from "./terms-ko";
 
 // The client app's own Terms of Service — not the lawyer Terms ilovelawyer-app shows.
 // DRAFT pending legal review. Whenever this text materially changes, bump CLIENT_TERMS_VERSION in
@@ -36,6 +38,16 @@ const GOVERNING_LAW: Record<TenantCode, { label: string; paragraphs: string[] }>
     paragraphs: [
       "These Terms are governed by the laws of England and Wales. Any dispute arising from them or from your use of the Platform will be decided by the courts of England and Wales, unless the law where you live gives you the right to bring it there.",
       "We process your personal information in line with the UK GDPR and the Data Protection Act 2018. Nothing in these Terms affects your statutory rights as a consumer.",
+    ],
+  },
+  // DRAFT pending review by Korean counsel. The KR site is new, so adding it changes nothing a UK or
+  // PH client agreed to and needs no new CLIENT_TERMS_VERSION; bump it if this text changes after a
+  // KR client has agreed to it.
+  KR: {
+    label: "Republic of Korea",
+    paragraphs: [
+      "These Terms are governed by the laws of the Republic of Korea. Any dispute arising from them or from your use of the Platform will be brought before the competent courts of the Republic of Korea, unless the law gives you the right to bring it elsewhere.",
+      "We process your personal information in line with the Personal Information Protection Act. Your account, cases and documents are stored on servers in London, United Kingdom. By agreeing to these Terms you consent to your personal information being transferred to and processed in the United Kingdom for that purpose. The Privacy Policy explains what is transferred, why, and how to withdraw your consent.",
     ],
   },
 };
@@ -126,8 +138,16 @@ const BASE_SECTIONS: TermsSection[] = [
 ];
 
 /** The Terms for the client app on `tenant`'s site. Governing law follows the Tenant; with none
- * (an unmapped host), the section names the law of the site the account was opened on. */
-export function getClientTerms(tenant: TenantCode | null): ClientTerms {
+ * (an unmapped host), the section names the law of the site the account was opened on. In Korean
+ * on the KR site when the page is (terms-ko.ts); the English is what's agreed to everywhere else. */
+export function getClientTerms(tenant: TenantCode | null, lang: Lang = "en"): ClientTerms {
+  if (tenant === "KR" && lang === "ko") {
+    return {
+      title: "이용약관",
+      effectiveDate: `${KO_EFFECTIVE} 준거법: ${KO_GOVERNING_LAW.label}.`,
+      sections: [...KO_BASE_SECTIONS, { number: "제10조", title: KO_GOVERNING_LAW.title, paragraphs: KO_GOVERNING_LAW.paragraphs }],
+    };
+  }
   const law = tenant ? GOVERNING_LAW[tenant] : null;
   return {
     title: "Terms of Service",

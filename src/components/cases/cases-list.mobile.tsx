@@ -14,28 +14,32 @@ import { clientRequestStatusLabel } from "@/lib/lawyer-requests/api";
 import { areasLabel, type Case } from "@/lib/types";
 import { DraftsSection } from "./drafts";
 import { SORT_FIELDS, SORT_LABELS, PAGE_SIZE, notesLine, useCasesList, type CaseMenuItem, type SortField, type SortOrder } from "./use-cases-list";
+import { useT } from "@/components/site/language-provider";
+import { currentLang, currentLocale } from "@/lib/i18n/translate";
 
-const shortDate = (iso: string) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(new Date(iso));
+// "12 Nov", or "11월 12일" in Korean.
+const shortDate = (iso: string) => new Intl.DateTimeFormat(currentLocale(), { day: "numeric", month: currentLang() === "ko" ? "long" : "short" }).format(new Date(iso));
 
 /** One case as a card: the whole card opens it, and the "…" sits clear of that tap target. */
 function CaseCard({ c, archived, request, onMenu }: { c: Case; archived: boolean; request?: string; onMenu: () => void }) {
   const note = notesLine(c.notes);
-  const docs = `${c.documents.length} ${c.documents.length === 1 ? "document" : "documents"}`;
+  const t = useT();
+  const docs = c.documents.length === 1 ? t("{n} document", { n: 1 }) : t("{n} documents", { n: c.documents.length });
   const body = (
     <>
       <span className="line-clamp-2 pr-10 font-display text-[18px] leading-[1.25] tracking-[-0.01em] text-ink">{c.title}</span>
       <span className="truncate text-[12px] font-semibold uppercase tracking-[0.6px] text-gold">{areasLabel(c.areas)}</span>
       {note && <span className="line-clamp-2 text-[14px] leading-[1.45] text-ink-2">{note}</span>}
       <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-muted">
-        <span>Updated {shortDate(c.updatedAt)}</span>
+        <span>{t("Updated {date}", { date: shortDate(c.updatedAt) })}</span>
         <span className="inline-flex items-center gap-1">
           <FileText size={12} aria-hidden="true" />
           {docs}
         </span>
-        <span className="tabular-nums">{c.credits} credits</span>
+        <span className="tabular-nums">{t("{n} credits", { n: c.credits })}</span>
       </span>
       <span className="mt-1 flex items-center justify-between gap-2 border-t border-line pt-2.5 text-[13px]">
-        <span className={cn("font-medium", request ? "text-gold" : "text-muted")}>{request ?? (archived ? "Archived" : "No lawyer request")}</span>
+        <span className={cn("font-medium", request ? "text-gold" : "text-muted")}>{request ?? (archived ? t("Archived") : t("No lawyer request"))}</span>
         {!archived && <ChevronRight size={16} className="text-muted" aria-hidden="true" />}
       </span>
     </>
@@ -52,7 +56,7 @@ function CaseCard({ c, archived, request, onMenu }: { c: Case; archived: boolean
       <button
         type="button"
         onClick={onMenu}
-        aria-label={`Actions for ${c.title}`}
+        aria-label={t("Actions for {title}", { title: c.title })}
         aria-haspopup="dialog"
         data-no-tap
         className="absolute right-1 top-1 flex size-11 items-center justify-center rounded-full text-ink-2 active:bg-chip"
@@ -83,28 +87,29 @@ export function CasesListMobile() {
   const [menuFor, setMenuFor] = useState<Case | null>(null);
   const [sorting, setSorting] = useState(false);
   const { status, list, searching } = v;
+  const t = useT();
 
   if (v.hidden) return <div className="flex-1" />;
 
   const items: CaseMenuItem[] = menuFor ? v.menuFor(menuFor) : [];
   const remaining = v.rows.length - v.shownThrough.length;
   const showControls = v.total > 0 || status === "ARCHIVED" || searching;
-  const sortWords = `${SORT_LABELS[v.sort.field]}, ${v.sort.order === "asc" ? "oldest first" : "newest first"}`;
+  const sortWords = v.sort.order === "asc" ? t("{field}, oldest first", { field: t(SORT_LABELS[v.sort.field]) }) : t("{field}, newest first", { field: t(SORT_LABELS[v.sort.field]) });
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <PullToRefresh>
         <div className="flex flex-col gap-4 px-4 pb-6 pt-5">
           <div>
-            <h1 className="font-display text-[28px] font-normal leading-[1.1] tracking-[-0.02em]">Your cases</h1>
+            <h1 className="font-display text-[28px] font-normal leading-[1.1] tracking-[-0.02em]">{t("Your cases")}</h1>
             <p data-tour="cases-credits" className="mt-1.5 text-[14px] leading-[1.45] text-ink-2">
-              {v.count}. Each case is free and includes {v.included} chat credits.
+              {t("{count}. Each case is free and includes {included} chat credits.", { count: v.count, included: v.included })}
             </p>
           </div>
 
           {showControls && (
             <div className="flex flex-col gap-3">
-              <div role="group" aria-label="Which cases" className="grid grid-cols-2 rounded-full border border-line bg-subtle p-1">
+              <div role="group" aria-label={t("Which cases")} className="grid grid-cols-2 rounded-full border border-line bg-subtle p-1">
                 {(["ACTIVE", "ARCHIVED"] as const).map((s) => (
                   <button
                     key={s}
@@ -117,7 +122,7 @@ export function CasesListMobile() {
                       status === s ? "border-line bg-white text-ink shadow-sm" : "border-transparent text-muted",
                     )}
                   >
-                    {s === "ACTIVE" ? "Active" : "Archived"}
+                    {s === "ACTIVE" ? t("Active") : t("Archived")}
                   </button>
                 ))}
               </div>
@@ -129,14 +134,14 @@ export function CasesListMobile() {
                   enterKeyHint="search"
                   value={v.search}
                   onChange={(e) => v.updateSearch(e.target.value)}
-                  placeholder="Search your cases"
-                  aria-label="Search your cases"
+                  placeholder={t("Search your cases")}
+                  aria-label={t("Search your cases")}
                   className="box-border h-12 w-full rounded-full border border-line-input bg-white pl-11 pr-11 text-base text-ink outline-none transition-colors focus:border-ink-2 [&::-webkit-search-cancel-button]:hidden"
                 />
                 {searching && (
                   <button
                     type="button"
-                    aria-label="Clear search"
+                    aria-label={t("Clear search")}
                     onClick={() => v.updateSearch("")}
                     data-no-tap
                     className="absolute right-1 flex size-11 items-center justify-center rounded-full text-muted active:bg-chip"
@@ -148,18 +153,18 @@ export function CasesListMobile() {
 
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[13px] text-muted" aria-live="polite">
-                  {searching ? `${v.rows.length} ${v.rows.length === 1 ? "match" : "matches"}` : ""}
+                  {searching ? (v.rows.length === 1 ? t("{n} match", { n: 1 }) : t("{n} matches", { n: v.rows.length })) : ""}
                 </span>
                 <button
                   type="button"
                   onClick={() => setSorting(true)}
                   aria-haspopup="dialog"
-                  aria-label={`Sort: ${sortWords}. Change`}
+                  aria-label={t("Sort: {sort}. Change", { sort: sortWords })}
                   data-no-tap
                   className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-[14px] font-medium text-ink-2 active:bg-chip"
                 >
                   <ArrowDownUp size={16} aria-hidden="true" />
-                  {SORT_LABELS[v.sort.field]} · {v.sort.order === "asc" ? "Oldest" : "Newest"}
+                  {t(SORT_LABELS[v.sort.field])} · {v.sort.order === "asc" ? t("Oldest") : t("Newest")}
                 </button>
               </div>
             </div>
@@ -183,7 +188,7 @@ export function CasesListMobile() {
 
           {remaining > 0 && (
             <Button variant="outline" size="lg" className="w-full" onClick={() => v.setPage(v.current + 1)}>
-              Show {Math.min(PAGE_SIZE, remaining)} more · {remaining} left
+              {t("Show {n} more · {left} left", { n: Math.min(PAGE_SIZE, remaining), left: remaining })}
             </Button>
           )}
 
@@ -192,17 +197,17 @@ export function CasesListMobile() {
               <div className="flex size-12 items-center justify-center rounded-full border border-line text-gold">
                 <FolderPlus size={20} aria-hidden="true" />
               </div>
-              <div className="font-display text-[22px] tracking-[-0.02em]">Create your first case</div>
+              <div className="font-display text-[22px] tracking-[-0.02em]">{t("Create your first case")}</div>
               <div className="text-[14px] leading-[1.55] text-ink-2">
-                Each case keeps your details, documents and AI consultation in one place. Free to create, with {v.included} chat credits included.
+                {t("Each case keeps your details, documents and AI consultation in one place. Free to create, with {included} chat credits included.", { included: v.included })}
               </div>
             </div>
           )}
           {v.emptyAll && status === "ARCHIVED" && (
-            <div className="py-8 text-center text-[14px] leading-[1.5] text-ink-2">No archived cases. A case you archive waits here until you restore it.</div>
+            <div className="py-8 text-center text-[14px] leading-[1.5] text-ink-2">{t("No archived cases. A case you archive waits here until you restore it.")}</div>
           )}
           {!list.isPending && !list.error && !v.emptyAll && v.rows.length === 0 && (
-            <div className="py-8 text-center text-[14px] text-ink-2">No cases match &ldquo;{v.search.trim()}&rdquo;.</div>
+            <div className="py-8 text-center text-[14px] text-ink-2">{t("No cases match “{search}”.", { search: v.search.trim() })}</div>
           )}
         </div>
       </PullToRefresh>
@@ -210,12 +215,12 @@ export function CasesListMobile() {
       <div data-tour="sticky-bar" className="shrink-0 border-t border-line bg-white px-4 py-3">
         <Button size="xl" className="w-full" data-tour="new-case" onClick={v.newCase}>
           <Plus size={16} aria-hidden="true" />
-          New case
+          {t("New case")}
         </Button>
       </div>
 
-      <BottomSheet open={menuFor !== null} onClose={() => setMenuFor(null)} title={menuFor?.title ?? "Case"}>
-        <div role="menu" aria-label="Case actions">
+      <BottomSheet open={menuFor !== null} onClose={() => setMenuFor(null)} title={menuFor?.title ?? t("Case")}>
+        <div role="menu" aria-label={t("Case actions")}>
           {items.map((item) => (
             <SheetRow
               key={item.label}
@@ -232,16 +237,16 @@ export function CasesListMobile() {
         </div>
       </BottomSheet>
 
-      <BottomSheet open={sorting} onClose={() => setSorting(false)} title="Sort cases">
-        <div role="group" aria-label="Sort by">
+      <BottomSheet open={sorting} onClose={() => setSorting(false)} title={t("Sort cases")}>
+        <div role="group" aria-label={t("Sort by")}>
           {SORT_FIELDS.map((f: SortField) => (
             <SheetRow key={f} selected={v.sort.field === f} onSelect={() => v.applySort(f, v.sort.order)}>
-              {SORT_LABELS[f]} date
+              {t("{field} date", { field: t(SORT_LABELS[f]) })}
             </SheetRow>
           ))}
         </div>
         <div className="mx-3 my-1 border-t border-line" />
-        <div role="group" aria-label="Order">
+        <div role="group" aria-label={t("Order")}>
           {(["desc", "asc"] as SortOrder[]).map((o) => (
             <SheetRow
               key={o}
@@ -251,7 +256,7 @@ export function CasesListMobile() {
                 setSorting(false);
               }}
             >
-              {o === "desc" ? "Newest first" : "Oldest first"}
+              {o === "desc" ? t("Newest first") : t("Oldest first")}
             </SheetRow>
           ))}
         </div>

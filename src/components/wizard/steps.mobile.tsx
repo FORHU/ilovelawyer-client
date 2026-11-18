@@ -13,7 +13,10 @@ import { describeLimits } from "@/lib/cases/limits";
 import { cn } from "@/lib/cn";
 import { UK_JURISDICTIONS, sideLabel, type CaseRegion } from "@/lib/types";
 import { useWizard } from "@/lib/wizard-store";
+import { useSite } from "@/components/site/site-provider";
 import { IntakeNotesField, OthersField, SideField, useWizardFiles } from "./steps";
+import { useT } from "@/components/site/language-provider";
+import { msg } from "@/lib/i18n/msg";
 
 // The phone's version of the four steps. Same questions and same store as the desktop steps, laid
 // out for a thumb: one column, no cards inside cards, pickers in sheets, and full-width choices.
@@ -25,11 +28,12 @@ const REGIONS: { value: CaseRegion; label: string }[] = [
 
 /** A step: its question, a line of help, then the fields. No card around it. */
 function MobileStep({ title, sub, children }: { title: string; sub: string; children: ReactNode }) {
+  const t = useT();
   return (
     <section className="flex flex-col gap-6">
       <div>
-        <h2 className="text-balance font-display text-[26px] font-normal leading-[1.15] tracking-[-0.02em]">{title}</h2>
-        <p className="mt-1.5 text-[14px] leading-[1.5] text-ink-2">{sub}</p>
+        <h2 className="text-balance font-display text-[26px] font-normal leading-[1.15] tracking-[-0.02em]">{t(title)}</h2>
+        <p className="mt-1.5 text-[14px] leading-[1.5] text-ink-2">{t(sub)}</p>
       </div>
       {children}
     </section>
@@ -55,16 +59,17 @@ function AreaFieldMobile({ value, onChange, error }: { value: string[]; onChange
     setOpen(false);
     setQuery("");
   };
+  const t = useT();
 
   return (
-    <div id="field-areas" tabIndex={-1} className="flex flex-col gap-2 outline-none" role="group" aria-label="Type of issue">
-      <WizardLabel>Type of issue *</WizardLabel>
+    <div id="field-areas" tabIndex={-1} className="flex flex-col gap-2 outline-none" role="group" aria-label={t("Type of issue")}>
+      <WizardLabel>{t("Type of issue *")}</WizardLabel>
       {chosen.length > 0 && (
-        <ul className="flex flex-wrap gap-2" aria-label="Picked types of issue">
+        <ul className="flex flex-wrap gap-2" aria-label={t("Picked types of issue")}>
           {chosen.map((a) => (
             <li key={a.code} className="inline-flex min-h-11 items-center gap-1 rounded-full bg-chip pl-4 pr-1 text-[14px] font-medium text-ink">
               {a.name}
-              <button type="button" onClick={() => toggle(a.code)} aria-label={`Remove ${a.name}`} data-no-tap className="flex size-10 items-center justify-center rounded-full text-ink-2 active:bg-ink/10">
+              <button type="button" onClick={() => toggle(a.code)} aria-label={t("Remove {name}", { name: a.name })} data-no-tap className="flex size-10 items-center justify-center rounded-full text-ink-2 active:bg-ink/10">
                 <X size={16} aria-hidden="true" />
               </button>
             </li>
@@ -82,27 +87,27 @@ function AreaFieldMobile({ value, onChange, error }: { value: string[]; onChange
           error || areas.isError ? "border-error-field" : "border-line-input",
         )}
       >
-        <span className={chosen.length ? "text-ink" : "text-muted"}>{areas.isLoading ? "Loading…" : chosen.length ? "Add another type" : "Choose type of issue"}</span>
+        <span className={chosen.length ? "text-ink" : "text-muted"}>{areas.isLoading ? t("Loading…") : chosen.length ? t("Add another type") : t("Choose type of issue")}</span>
         <Plus size={18} className="text-ink-2" aria-hidden="true" />
       </button>
       <Hint error={error || areas.isError}>
-        {areas.isError ? "Couldn't load the types of issue. Refresh to try again." : error ? "Please choose at least one type of issue." : "Pick every one that fits. We'll use them to find the right lawyer."}
+        {areas.isError ? t("Couldn't load the types of issue. Refresh to try again.") : error ? t("Please choose at least one type of issue.") : t("Pick every one that fits. We'll use them to find the right lawyer.")}
       </Hint>
 
-      <BottomSheet open={open} onClose={close} title="Type of issue" className="h-[88dvh]">
+      <BottomSheet open={open} onClose={close} title={t("Type of issue")} className="h-[88dvh]">
         <div className="flex h-full flex-col">
           <div className="px-3 pb-2">
             <input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search types of issue"
-              aria-label="Search types of issue"
+              placeholder={t("Search types of issue")}
+              aria-label={t("Search types of issue")}
               enterKeyHint="search"
               className={cn(inputClass, "rounded-full px-4 text-base")}
             />
           </div>
-          <ul className="min-h-0 flex-1 overflow-y-auto" aria-label="Types of issue">
+          <ul className="min-h-0 flex-1 overflow-y-auto" aria-label={t("Types of issue")}>
             {visible.map((a) => {
               const picked = value.includes(a.code);
               return (
@@ -123,11 +128,11 @@ function AreaFieldMobile({ value, onChange, error }: { value: string[]; onChange
                 </li>
               );
             })}
-            {visible.length === 0 && <li className="px-3 py-8 text-center text-[14px] text-muted">No type of issue matches that. Try another word, or pick Other.</li>}
+            {visible.length === 0 && <li className="px-3 py-8 text-center text-[14px] text-muted">{t("No type of issue matches that. Try another word, or pick Other.")}</li>}
           </ul>
           <div className="px-3 pt-2">
             <Button size="xl" className="w-full" onClick={close}>
-              {value.length ? `Done · ${value.length} picked` : "Done"}
+              {value.length ? t("Done · {n} picked", { n: value.length }) : t("Done")}
             </Button>
           </div>
         </div>
@@ -167,17 +172,19 @@ function RegionFieldMobile({ value, onChange, error }: { value: CaseRegion | "";
 
 export function StepDetailsMobile() {
   const { title, region, where, areas, happened, wants, titleErr, regionErr, areasErr, set } = useWizard();
+  const { regionQuestion } = useSite();
   // The optional notes stay folded away until asked for, unless there is something in them.
   const [more, setMore] = useState(!!(happened || wants));
+  const t = useT();
   return (
-    <MobileStep title="What's your case about?" sub="Give it a short name you'll recognise later.">
+    <MobileStep title={msg("What's your case about?")} sub={msg("Give it a short name you'll recognise later.")}>
       <div className="flex flex-col gap-2">
-        <WizardLabel htmlFor="case-title">Case title *</WizardLabel>
+        <WizardLabel htmlFor="case-title">{t("Case title *")}</WizardLabel>
         <input
           id="case-title"
           value={title}
           maxLength={150}
-          placeholder="e.g. Fired without notice from my job"
+          placeholder={t("e.g. Fired without notice from my job")}
           autoComplete="off"
           enterKeyHint="next"
           aria-invalid={titleErr}
@@ -187,23 +194,23 @@ export function StepDetailsMobile() {
         />
         <div className="flex justify-between gap-3 text-[13px]">
           <span id="case-title-err" role={titleErr ? "alert" : undefined} className="text-error">
-            {titleErr ? "Please give your case a title." : ""}
+            {titleErr ? t("Please give your case a title.") : ""}
           </span>
           <span className="text-muted tabular-nums">{title.length}/150</span>
         </div>
       </div>
       <AreaFieldMobile value={areas} onChange={(codes) => set({ areas: codes })} error={areasErr} />
-      <RegionFieldMobile value={region} onChange={(r) => set({ region: r })} error={regionErr} />
+      {regionQuestion && <RegionFieldMobile value={region} onChange={(r) => set({ region: r })} error={regionErr} />}
       <div className="flex flex-col gap-2">
-        <WizardLabel htmlFor="case-where">Town or city</WizardLabel>
-        <TextInput id="case-where" value={where} placeholder="e.g. Leeds" autoComplete="address-level2" enterKeyHint="done" onChange={(e) => set({ where: e.target.value })} />
+        <WizardLabel htmlFor="case-where">{t("Town or city")}</WizardLabel>
+        <TextInput id="case-where" value={where} placeholder={t("e.g. Leeds")} autoComplete="address-level2" enterKeyHint="done" onChange={(e) => set({ where: e.target.value })} />
       </div>
       <div className="border-t border-line pt-4">
         {more ? (
           <IntakeNotesField happened={happened} wants={wants} onChange={set} />
         ) : (
           <button type="button" onClick={() => setMore(true)} data-no-tap className="flex min-h-12 w-full items-center justify-between rounded-input border border-dashed border-line-input px-4 text-left text-[15px] font-medium text-ink-2 active:bg-chip">
-            Add what happened (optional)
+            {t("Add what happened (optional)")}
             <Plus size={18} aria-hidden="true" />
           </button>
         )}
@@ -215,7 +222,7 @@ export function StepDetailsMobile() {
 export function StepPeopleMobile() {
   const { side, others, set, addOther, updateOther, removeOther } = useWizard();
   return (
-    <MobileStep title="Who is involved?" sub="Tell us your side, and who else is part of this.">
+    <MobileStep title={msg("Who is involved?")} sub={msg("Tell us your side, and who else is part of this.")}>
       <SideField value={side} onChange={(s) => set({ side: s })} />
       <div className="border-t border-line pt-5">
         <OthersField others={others} onAdd={addOther} onUpdate={updateOther} onRemove={removeOther} />
@@ -277,9 +284,15 @@ function BudgetFieldMobile({ value, onChange, error }: { value: BudgetDraft; onC
 
 export function StepBudgetMobile() {
   const { budget, budgetErr, setBudget } = useWizard();
+  const lawyersOpen = useSite().clientRequests === "open";
+  const t = useT();
   return (
-    <MobileStep title="Your budget" sub="Optional. It helps lawyers decide whether to take your case and what to quote.">
-      <BudgetFieldMobile value={budget} onChange={setBudget} error={budgetErr} />
+    <MobileStep title={msg("Your budget")} sub={msg("Optional. It helps lawyers decide whether to take your case and what to quote.")}>
+      {lawyersOpen ? (
+        <BudgetFieldMobile value={budget} onChange={setBudget} error={budgetErr} />
+      ) : (
+        <Hint>{t("Lawyers aren't available on this site yet. You can add a budget when they are.")}</Hint>
+      )}
     </MobileStep>
   );
 }
@@ -288,15 +301,16 @@ export function StepDocumentsMobile() {
   const { title, side, others, budget } = useWizard();
   const { files, removeFile, limits, rejected, add } = useWizardFiles();
   const named = others.map((o) => o.name.trim()).filter(Boolean);
+  const t = useT();
   const summary: [string, string][] = [
-    ["Case", title.trim() || "Untitled"],
-    ["I am", sideLabel(side)],
-    ["Others", named.join(", ") || "None added"],
-    ["Budget", formatBudget(budgetFromDraft(budget))],
+    [t("Case"), title.trim() || t("Untitled")],
+    [t("I am"), sideLabel(side)],
+    [t("Others"), named.join(", ") || t("None added")],
+    [t("Budget"), formatBudget(budgetFromDraft(budget))],
   ];
 
   return (
-    <MobileStep title="Add your documents" sub="Contracts, messages, notices, receipts. The AI reads them to answer your questions. Optional.">
+    <MobileStep title={msg("Add your documents")} sub={msg("Contracts, messages, notices, receipts. The AI reads them to answer your questions. Optional.")}>
       <dl className="rounded-input border border-line bg-subtle px-4">
         {summary.map(([label, text]) => (
           <div key={label} className="border-b border-line py-2.5 last:border-b-0">
@@ -316,8 +330,8 @@ export function StepDocumentsMobile() {
               className="flex min-h-[132px] flex-col items-center justify-center gap-1.5 rounded-input border border-dashed border-line-input bg-subtle px-4 py-6 text-center active:bg-chip"
             >
               <UploadCloud size={28} className="text-muted" aria-hidden="true" />
-              <span className="font-display text-[19px] tracking-[-0.02em]">Choose files</span>
-              <span className="text-[13px] leading-[1.45] text-muted">Pick photos or documents, or take a photo of a letter. {describeLimits(limits)}. They upload once your case is created.</span>
+              <span className="font-display text-[19px] tracking-[-0.02em]">{t("Choose files")}</span>
+              <span className="text-[13px] leading-[1.45] text-muted">{t("Pick photos or documents, or take a photo of a letter. {limits}. They upload once your case is created.", { limits: describeLimits(limits) })}</span>
             </button>
           )}
         </FilePicker>
@@ -329,12 +343,12 @@ export function StepDocumentsMobile() {
         </div>
       )}
       {files.length > 0 && (
-        <ul className="flex flex-col overflow-hidden rounded-input border border-line" aria-label="Chosen files">
+        <ul className="flex flex-col overflow-hidden rounded-input border border-line" aria-label={t("Chosen files")}>
           {files.map((f, i) => (
             <li key={`${f.name}-${i}`} className="flex items-center gap-3 border-b border-line py-1 pl-4 pr-1 text-[14px] last:border-b-0">
               <FileText size={16} className="shrink-0 text-gold" aria-hidden="true" />
               <span className="min-w-0 flex-1 truncate">{f.name}</span>
-              <button type="button" aria-label={`Remove ${f.name}`} onClick={() => removeFile(i)} data-no-tap className="flex size-11 items-center justify-center rounded-full text-muted active:bg-chip">
+              <button type="button" aria-label={t("Remove {name}", { name: f.name })} onClick={() => removeFile(i)} data-no-tap className="flex size-11 items-center justify-center rounded-full text-muted active:bg-chip">
                 <X size={18} aria-hidden="true" />
               </button>
             </li>

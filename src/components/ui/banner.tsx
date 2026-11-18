@@ -1,4 +1,7 @@
+"use client";
+
 import { CircleAlert, CircleCheck, X } from "lucide-react";
+import { useT } from "@/components/site/language-provider";
 
 /** Dismissible success banner shown at the top of the app after payment, sign-in, top-up, request. */
 export function SuccessBanner({
@@ -8,6 +11,7 @@ export function SuccessBanner({
   message: string;
   onDismiss: () => void;
 }) {
+  const t = useT();
   return (
     <div
       role="status"
@@ -17,7 +21,7 @@ export function SuccessBanner({
       <div className="flex-1">{message}</div>
       <button
         type="button"
-        aria-label="Dismiss"
+        aria-label={t("Dismiss")}
         onClick={onDismiss}
         className="flex items-center justify-center text-success-ink"
       >

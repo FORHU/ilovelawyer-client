@@ -7,11 +7,14 @@ import { SignOutButton } from "@/components/shell/sign-out-button";
 import { GuideButton } from "@/components/tour/guide-button";
 import { Avatar, Logo, initialsOf } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
+import { useSite } from "@/components/site/site-provider";
+import { useT } from "@/components/site/language-provider";
+import { msg } from "@/lib/i18n/msg";
 
 const TABS = [
-  { href: "/cases", label: "Cases", Icon: Folder, match: /^\/cases/ },
-  { href: "/lawyers", label: "Find a lawyer", Icon: Scale, match: /^\/lawyers/ },
-  { href: "/settings", label: "Settings", Icon: SlidersHorizontal, match: /^\/settings/ },
+  { href: "/cases", label: msg("Cases"), Icon: Folder, match: /^\/cases/ },
+  { href: "/lawyers", label: msg("Find a lawyer"), Icon: Scale, match: /^\/lawyers/ },
+  { href: "/settings", label: msg("Settings"), Icon: SlidersHorizontal, match: /^\/settings/ },
 ];
 
 /** Screens that bring their own header and a back button (a case, the new-case chat): they get the
@@ -23,15 +26,16 @@ export function isImmersive(pathname: string) {
 /** The phone's top bar on the main screens: the logo, the guide, sign out and who you are. The
  * pages themselves are one tap away in the tab bar, so they are not repeated here. */
 export function MobileTopBar({ name }: { name: string }) {
+  const t = useT();
   return (
     <header className="flex min-h-[52px] shrink-0 items-center justify-between border-b border-line px-4">
-      <Link href="/cases" aria-label="ilovelawyer, your cases" className="flex min-h-11 items-center">
+      <Link href="/cases" aria-label={t("ilovelawyer, your cases")} className="flex min-h-11 items-center">
         <Logo height={20} />
       </Link>
       <div className="flex items-center gap-1">
         <GuideButton variant="bar" />
         <SignOutButton compact />
-        <Avatar initials={initialsOf(name || "You")} size={36} />
+        <Avatar initials={initialsOf(name || t("You"))} size={36} />
       </div>
     </header>
   );
@@ -41,13 +45,17 @@ export function MobileTopBar({ name }: { name: string }) {
  * lets the tour keep its own controls clear of it. */
 export function BottomTabBar() {
   const pathname = usePathname();
+  const t = useT();
+  // No "Find a lawyer" on a site without lawyers yet.
+  const lawyersOpen = useSite().clientRequests === "open";
+  const tabs = TABS.filter((t) => lawyersOpen || t.href !== "/lawyers");
   return (
     <nav
-      aria-label="Main"
+      aria-label={t("Main")}
       data-tour="tab-bar"
-      className="grid shrink-0 grid-cols-3 border-t border-line bg-white pb-[env(safe-area-inset-bottom)]"
+      className={cn("grid shrink-0 border-t border-line bg-white pb-[env(safe-area-inset-bottom)]", tabs.length === 3 ? "grid-cols-3" : "grid-cols-2")}
     >
-      {TABS.map(({ href, label, Icon, match }) => {
+      {tabs.map(({ href, label, Icon, match }) => {
         const on = match.test(pathname);
         return (
           <Link
@@ -61,7 +69,7 @@ export function BottomTabBar() {
           >
             <span aria-hidden="true" className={cn("absolute inset-x-6 top-0 h-0.5 rounded-full", on ? "bg-gold" : "bg-transparent")} />
             <Icon size={22} strokeWidth={on ? 2.2 : 1.8} aria-hidden="true" />
-            {label}
+            {t(label)}
           </Link>
         );
       })}

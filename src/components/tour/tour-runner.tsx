@@ -6,8 +6,9 @@ import { cn } from "@/lib/cn";
 import { firstVisible, SPOTLIGHT_PAD, spotlightRect } from "@/lib/tour/dom";
 import { CARD_WIDTH, placeCard, rectMoved, sheetAtTop, type Rect } from "@/lib/tour/placement";
 import { useTour, type ActiveTour } from "@/lib/tour/store";
-import { tourFor, type TourStep } from "@/lib/tour/tours";
+import { tourFor, type TourContext, type TourStep } from "@/lib/tour/tours";
 import { useViewport } from "./use-viewport";
+import { useT } from "@/components/site/language-provider";
 
 /** How long a target may be missing (the page is still loading) before its step is skipped. */
 const MISSING_TARGET_MS = 1500;
@@ -53,7 +54,7 @@ export function useStickyHeight(enabled: boolean) {
 /** The spotlight, the step card and the control bar for the tour on screen. Everything outside
  * the cut-out is inert; the spotlight follows its target every frame, so scrolling, resizing and
  * the phone's address bar all keep it in place. */
-export function TourRunner({ tour, credits }: { tour: ActiveTour; credits: number | null }) {
+export function TourRunner({ tour, context }: { tour: ActiveTour; context: TourContext }) {
   const { setStep, finish } = useTour.getState();
   const viewport = useViewport();
   // The page's bottom bars, on a phone, measured in the same frame loop as the spotlight below.
@@ -64,8 +65,9 @@ export function TourRunner({ tour, credits }: { tour: ActiveTour; credits: numbe
   });
   const sticky = viewport.phone ? stickyH : 0;
 
-  const steps: TourStep[] = tour.id === "G" ? [tour.step] : tourFor(tour.id, { credits }).steps;
-  const kicker = tour.id === "G" ? "Guide" : tourFor(tour.id, { credits }).kicker;
+  const t = useT();
+  const steps: TourStep[] = tour.id === "G" ? [tour.step] : tourFor(tour.id, context).steps;
+  const kicker = tour.id === "G" ? t("Guide") : tourFor(tour.id, context).kicker;
   const step = steps[tour.i];
   const last = tour.i === steps.length - 1;
   const title = tour.id === "G" ? tour.question : step?.title;
@@ -145,7 +147,7 @@ export function TourRunner({ tour, credits }: { tour: ActiveTour; credits: numbe
     return () => cancelAnimationFrame(raf);
     // `steps` is rebuilt every render and only changes with the tour and its credits.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tour.id, stepIndex, dir, credits]);
+  }, [tour.id, stepIndex, dir, context.credits, context.ai, context.lawyers]);
 
   // The card takes focus on each step, so a screen reader reads it.
   const shown = rect !== null;
@@ -215,20 +217,20 @@ export function TourRunner({ tour, credits }: { tour: ActiveTour; credits: numbe
           data-no-tap
           className="inline-flex min-h-11 items-center px-3.5 text-[11px] font-bold uppercase tracking-[1.2px] text-ink"
         >
-          Skip tour
+          {t("Skip tour")}
         </button>
         <span aria-hidden className="h-6 w-px bg-line" />
         <button
           type="button"
           onClick={prev}
           disabled={tour.i === 0}
-          aria-label="Previous step"
+          aria-label={t("Previous step")}
           data-no-tap
           className="flex size-11 items-center justify-center rounded-full border border-line-input text-ink disabled:text-[#c9c7bf]"
         >
           <ArrowLeft size={17} aria-hidden />
         </button>
-        <span role="status" aria-label={`Step ${tour.i + 1} of ${steps.length}`} className="inline-flex items-center gap-[5px] px-1">
+        <span role="status" aria-label={t("Step {n} of {total}", { n: tour.i + 1, total: steps.length })} className="inline-flex items-center gap-[5px] px-1">
           {steps.map((_, j) => (
             <span key={j} aria-hidden className={cn("h-2 rounded-full transition-[width] motion-reduce:transition-none", j === tour.i ? "w-[22px] bg-ink" : "w-2 bg-line-input")} />
           ))}
@@ -236,7 +238,7 @@ export function TourRunner({ tour, credits }: { tour: ActiveTour; credits: numbe
         <button
           type="button"
           onClick={next}
-          aria-label={last ? "Finish tour" : "Next step"}
+          aria-label={last ? t("Finish tour") : t("Next step")}
           data-no-tap
           className="flex size-11 items-center justify-center rounded-full bg-gold text-white hover:bg-gold-hover"
         >

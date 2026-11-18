@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api/fetch";
 import { useSession } from "@/lib/auth/session";
 import { DOCUMENT_ACCEPT } from "@/components/ui/file-picker";
+import { tr } from "@/lib/i18n/translate";
 
 /** What the API accepts in an upload (GET /api/client/limits). */
 export interface UploadLimits {
@@ -28,10 +29,11 @@ export function offeredExtensions(limits?: UploadLimits) {
 /** "PDF, DOC, DOCX, XLSX, TXT, JPG, JPEG or PNG, up to 1 GB at a time" */
 export function describeLimits(limits?: UploadLimits) {
   const types = offeredExtensions(limits).map((e) => e.toUpperCase());
-  const list = types.length > 1 ? `${types.slice(0, -1).join(", ")} or ${types.at(-1)}` : types.join("");
+  const list = types.length > 1 ? tr("{list} or {last}", { list: types.slice(0, -1).join(", "), last: types.at(-1)! }) : types.join("");
   if (!limits) return list;
   const gb = limits.upload.maxBytes / 1024 ** 3;
-  return `${list}, up to ${gb >= 1 ? `${Math.round(gb)} GB` : `${Math.round(limits.upload.maxBytes / 1024 ** 2)} MB`} at a time`;
+  const size = gb >= 1 ? `${Math.round(gb)} GB` : `${Math.round(limits.upload.maxBytes / 1024 ** 2)} MB`;
+  return tr("{types}, up to {size} at a time", { types: list, size });
 }
 
 /** Splits picked or dropped files into those the API will take and reasons for those it won't, so a
@@ -43,9 +45,9 @@ export function checkFiles(files: File[], limits?: UploadLimits) {
   let total = 0;
   for (const file of files) {
     if (!types.includes(extensionOf(file.name))) {
-      rejected.push(`${file.name} isn't a type we can read.`);
+      rejected.push(tr("{name} isn't a type we can read.", { name: file.name }));
     } else if (limits && total + file.size > limits.upload.maxBytes) {
-      rejected.push(`${file.name} would go over the upload size limit.`);
+      rejected.push(tr("{name} would go over the upload size limit.", { name: file.name }));
     } else {
       total += file.size;
       accepted.push(file);

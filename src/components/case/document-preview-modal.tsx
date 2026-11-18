@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { FileText, X } from "lucide-react";
 import { DocumentPreview, OpenInNewTab } from "./document-preview";
+import { useT } from "@/components/site/language-provider";
 
 const FOCUSABLE = "a[href],button:not([disabled])";
 
@@ -13,6 +14,7 @@ const FOCUSABLE = "a[href],button:not([disabled])";
 export function DocumentPreviewModal({ name, url, onClose }: { name: string; url: string; onClose: () => void }) {
   const panel = useRef<HTMLDivElement>(null);
   const closeRef = useRef(onClose);
+  const t = useT();
   useEffect(() => {
     closeRef.current = onClose;
   });
@@ -73,7 +75,7 @@ export function DocumentPreviewModal({ name, url, onClose }: { name: string; url
             <OpenInNewTab url={url} />
             <button
               type="button"
-              aria-label="Close"
+              aria-label={t("Close")}
               onClick={onClose}
               data-no-tap
               className="flex size-9 items-center justify-center rounded-full text-ink-2 hover:bg-chip hover:text-ink"

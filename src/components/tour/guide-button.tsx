@@ -3,6 +3,7 @@
 import { CircleHelp } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useTour } from "@/lib/tour/store";
+import { useT } from "@/components/site/language-provider";
 
 const variants = {
   /** The sidebar's list of pages. */
@@ -18,18 +19,19 @@ const variants = {
 /** Opens the guide. Rendered in the sidebar and the phone top bar; only the visible one is the
  * tour's "Guide" stop. */
 export function GuideButton({ variant }: { variant: keyof typeof variants }) {
+  const t = useT();
   return (
     <button
       type="button"
       onClick={() => useTour.getState().setGuideOpen(true)}
-      aria-label="Guide"
-      title="Guide"
+      aria-label={t("Guide")}
+      title={t("Guide")}
       data-tour="guide"
       data-no-tap
       className={cn(variants[variant])}
     >
       <CircleHelp size={variant === "rail" ? 15 : variant === "bar" ? 17 : variant === "pill" ? 14 : 16} aria-hidden />
-      {(variant === "nav" || variant === "pill") && "Guide"}
+      {(variant === "nav" || variant === "pill") && t("Guide")}
     </button>
   );
 }

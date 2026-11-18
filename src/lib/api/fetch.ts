@@ -1,5 +1,6 @@
 import { useSession } from "@/lib/auth/session";
 import { API_URL, COOKIE_PATHS } from "./config";
+import { tr } from "@/lib/i18n/translate";
 
 /** A failed API call. `status` is 0 when the API couldn't be reached at all. `code` is the API's
  * optional machine-readable reason (e.g. WRONG_APP), absent on most errors. `body` carries any
@@ -86,14 +87,14 @@ async function send(path: string, options: FetchOptions): Promise<Response> {
     if (init.body instanceof FormData) delete built["Content-Type"];
     return await fetch(resolveUrl(path), { ...init, credentials: "include", headers: built });
   } catch {
-    throw new ApiError("Couldn't reach ilovelawyer. Check your connection and try again.", 0);
+    throw new ApiError(tr("Couldn't reach ilovelawyer. Check your connection and try again."), 0);
   }
 }
 
 async function throwIfNotOk(res: Response): Promise<void> {
   if (res.ok) return;
   const body = (await res.json().catch(() => ({}))) as { message?: string; code?: string } & Record<string, unknown>;
-  const message = res.status >= 500 ? "Something went wrong on our side. Try again in a moment." : (body.message ?? "Request failed");
+  const message = res.status >= 500 ? tr("Something went wrong on our side. Try again in a moment.") : (body.message ?? tr("Request failed"));
   throw new ApiError(message, res.status, body.code, body);
 }
 

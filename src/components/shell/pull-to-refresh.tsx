@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { PULL_THRESHOLD, canStartPull, pullDistance, reachedThreshold } from "@/lib/pull-to-refresh";
+import { useT } from "@/components/site/language-provider";
 
 /** A screen's scroller with pull-to-refresh. The shell never scrolls the document (globals.css
  * turns off overscroll on html and body), so Chrome's own pull-to-refresh can't run on a phone;
@@ -17,6 +18,7 @@ export function PullToRefresh({ children, className }: { children: React.ReactNo
   const [distance, setDistance] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const busy = useRef(false);
+  const t = useT();
 
   useEffect(() => {
     const el = scroller.current;
@@ -90,7 +92,7 @@ export function PullToRefresh({ children, className }: { children: React.ReactNo
         {refreshing ? (
           <>
             <Loader2 size={18} className="animate-spin" aria-hidden />
-            <span className="sr-only">Refreshing</span>
+            <span className="sr-only">{t("Refreshing")}</span>
           </>
         ) : (
           <RefreshCw size={16} aria-hidden style={{ transform: `rotate(${(distance / PULL_THRESHOLD) * 180}deg)` }} />

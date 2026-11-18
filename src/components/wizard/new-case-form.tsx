@@ -14,7 +14,8 @@ export interface NewCaseFormProps {
   /** Continue, or create the case from the last step. */
   onNext: () => void;
   /** Switch to the chat way of starting a case. */
-  onChat: () => void;
+  /** Back to the chat; absent on a site whose chat isn't open yet. */
+  onChat?: () => void;
 }
 
 /** The manual way to start a case: four steps, a dedicated view per device. The answers live in

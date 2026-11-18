@@ -14,6 +14,7 @@ import { areasLabel } from "@/lib/types";
 import { startNewCase } from "@/lib/wizard-store";
 import { DraftsSection } from "./drafts";
 import { SORT_FIELDS, SORT_LABELS, formatDate, notesLine, useCasesList, type SortField, type SortOrder } from "./use-cases-list";
+import { useT } from "@/components/site/language-provider";
 
 /** Name, created, updated, lawyer, menu. */
 const GRID = "grid grid-cols-[minmax(180px,2fr)_104px_104px_150px_44px] items-center gap-4";
@@ -28,6 +29,7 @@ const toggleButton = (active: boolean) =>
 function SortHeader({ field, sort, onSort }: { field: SortField; sort: { field: SortField; order: SortOrder }; onSort: (f: SortField) => void }) {
   const active = sort.field === field;
   const Icon = !active ? ArrowUpDown : sort.order === "asc" ? ArrowUp : ArrowDown;
+  const t = useT();
   return (
     <button
       type="button"
@@ -38,9 +40,9 @@ function SortHeader({ field, sort, onSort }: { field: SortField; sort: { field: 
         active && "text-ink",
       )}
     >
-      {SORT_LABELS[field]}
+      {t(SORT_LABELS[field])}
       <Icon size={12} className={active ? "" : "opacity-40"} aria-hidden />
-      <span className="sr-only">{active ? (sort.order === "asc" ? "Sorted oldest first" : "Sorted newest first") : "Sort by this column"}</span>
+      <span className="sr-only">{active ? (sort.order === "asc" ? t("Sorted oldest first") : t("Sorted newest first")) : t("Sort by this column")}</span>
     </button>
   );
 }
@@ -70,6 +72,7 @@ export function CasesListDesktop() {
     included, total, count, totalPages, current, shown, setPage, switchStatus, switchSort, updateSearch, menuFor,
     searching, emptyAll,
   } = useCasesList();
+  const t = useT();
 
   if (hidden) return <div className="flex-1" />;
 
@@ -78,15 +81,15 @@ export function CasesListDesktop() {
       <div className="mx-auto flex w-full max-w-[1080px] flex-1 flex-col gap-6 px-10 pb-8 pt-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex flex-col gap-1.5">
-            <Eyebrow>Case portfolio</Eyebrow>
-            <h1 className="font-display text-[32px] font-normal tracking-[-0.02em]">Your cases</h1>
+            <Eyebrow>{t("Case portfolio")}</Eyebrow>
+            <h1 className="font-display text-[32px] font-normal tracking-[-0.02em]">{t("Your cases")}</h1>
             <div data-tour="cases-credits" className="text-sm text-ink-2">
-              {count}. Each case is free and includes {included} chat credits.
+              {t("{count}. Each case is free and includes {included} chat credits.", { count, included })}
             </div>
           </div>
           <Link href="/cases/new" onClick={startNewCase} data-tour="new-case" className={buttonClass("primary", "md", "no-underline text-white hover:text-white")}>
             <Plus size={15} />
-            New case
+            {t("New case")}
           </Link>
         </div>
 
@@ -98,14 +101,14 @@ export function CasesListDesktop() {
                 type="text"
                 value={search}
                 onChange={(e) => updateSearch(e.target.value)}
-                placeholder="Search your cases"
-                aria-label="Search your cases"
+                placeholder={t("Search your cases")}
+                aria-label={t("Search your cases")}
                 className="box-border h-11 w-full rounded-full border border-line-input bg-white pl-11 pr-9 text-base text-ink outline-none transition-colors hover:border-line-hover focus:border-ink-2 h-10 text-[13px]"
               />
               {searching && (
                 <button
                   type="button"
-                  aria-label="Clear search"
+                  aria-label={t("Clear search")}
                   onClick={() => updateSearch("")}
                   className="absolute right-3 flex size-5 items-center justify-center rounded-full text-muted hover:text-ink"
                 >
@@ -114,12 +117,12 @@ export function CasesListDesktop() {
               )}
             </div>
 
-            <div className={toggleTrack} role="group" aria-label="Which cases">
+            <div className={toggleTrack} role="group" aria-label={t("Which cases")}>
               <button type="button" aria-pressed={status === "ACTIVE"} onClick={() => switchStatus("ACTIVE")} className={toggleButton(status === "ACTIVE")}>
-                Active
+                {t("Active")}
               </button>
               <button type="button" aria-pressed={status === "ARCHIVED"} onClick={() => switchStatus("ARCHIVED")} className={toggleButton(status === "ARCHIVED")}>
-                Archived
+                {t("Archived")}
               </button>
             </div>
           </div>
@@ -135,11 +138,11 @@ export function CasesListDesktop() {
         {!list.isPending && !list.error && shown.length > 0 && (
           <div className="overflow-x-auto">
             <div className={cn("min-w-[720px] border-b border-line px-4 py-3 text-[10px] font-semibold uppercase tracking-[1px] text-muted", GRID)}>
-              <span>Case</span>
+              <span>{t("Case")}</span>
               {SORT_FIELDS.map((f) => (
                 <SortHeader key={f} field={f} sort={sort} onSort={switchSort} />
               ))}
-              <span>Lawyer</span>
+              <span>{t("Lawyer")}</span>
               <span />
             </div>
             <div className="min-w-[720px]">
@@ -150,7 +153,7 @@ export function CasesListDesktop() {
                   <>
                     <span className="truncate font-display text-[16px] leading-tight tracking-[-0.02em] text-ink">{c.title}</span>
                     <span className="truncate text-[12px] text-ink-2">
-                      {c.others.length > 0 ? c.others.map((o) => o.name).join(" · ") : "No other party listed"}
+                      {c.others.length > 0 ? c.others.map((o) => o.name).join(" · ") : t("No other party listed")}
                     </span>
                     {note && (
                       <span className="truncate text-[12px] text-muted" title={c.notes}>
@@ -158,7 +161,8 @@ export function CasesListDesktop() {
                       </span>
                     )}
                     <span className="text-[11px] text-muted">
-                      {areasLabel(c.areas)} · {c.documents.length} {c.documents.length === 1 ? "document" : "documents"} · {c.credits} credits
+                      {areasLabel(c.areas)} · {c.documents.length === 1 ? t("{n} document", { n: 1 }) : t("{n} documents", { n: c.documents.length })} ·{" "}
+                      {t("{n} credits", { n: c.credits })}
                     </span>
                   </>
                 );
@@ -183,9 +187,9 @@ export function CasesListDesktop() {
                     </div>
                     <div className="contents">
                       <span className={cn("text-[13px]", openRequest ? "text-gold" : "text-muted")}>
-                        {openRequest ? clientRequestStatusLabel(openRequest.status) : status === "ACTIVE" ? "No request" : "Archived"}
+                        {openRequest ? clientRequestStatusLabel(openRequest.status) : status === "ACTIVE" ? t("No request") : t("Archived")}
                       </span>
-                      <ActionMenu label={`Actions for ${c.title}`} items={menuFor(c)} className="justify-self-end" />
+                      <ActionMenu label={t("Actions for {title}", { title: c.title })} items={menuFor(c)} className="justify-self-end" />
                     </div>
                   </div>
                 );
@@ -195,15 +199,15 @@ export function CasesListDesktop() {
         )}
 
         {!list.isPending && !list.error && totalPages > 1 && (
-          <nav aria-label="Pages of cases" className="flex items-center justify-center gap-3">
+          <nav aria-label={t("Pages of cases")} className="flex items-center justify-center gap-3">
             <Button variant="outline" size="sm" disabled={current === 1} onClick={() => setPage(current - 1)}>
-              Previous
+              {t("Previous")}
             </Button>
             <span className="text-[13px] text-ink-2">
-              Page {current} of {totalPages}
+              {t("Page {current} of {total}", { current, total: totalPages })}
             </span>
             <Button variant="outline" size="sm" disabled={current === totalPages} onClick={() => setPage(current + 1)}>
-              Next
+              {t("Next")}
             </Button>
           </nav>
         )}
@@ -213,19 +217,18 @@ export function CasesListDesktop() {
             <div className="flex size-12 items-center justify-center rounded-full border border-line text-gold">
               <FolderPlus size={20} />
             </div>
-            <div className="font-display text-2xl tracking-[-0.02em]">Create your first case</div>
+            <div className="font-display text-2xl tracking-[-0.02em]">{t("Create your first case")}</div>
             <div className="max-w-[380px] text-sm leading-[1.6] text-ink-2">
-              Each case keeps your details, documents and AI consultation in one place. Free to create, with {included} chat credits
-              included.
+              {t("Each case keeps your details, documents and AI consultation in one place. Free to create, with {included} chat credits included.", { included })}
             </div>
             <Button className="mt-1.5" onClick={newCase}>
-              New case
+              {t("New case")}
             </Button>
           </div>
         )}
-        {emptyAll && status === "ARCHIVED" && <div className="py-10 text-center text-sm text-ink-2">No archived cases. A case you archive waits here until you restore it.</div>}
+        {emptyAll && status === "ARCHIVED" && <div className="py-10 text-center text-sm text-ink-2">{t("No archived cases. A case you archive waits here until you restore it.")}</div>}
         {!list.isPending && !list.error && !emptyAll && shown.length === 0 && (
-          <div className="py-10 text-center text-sm text-ink-2">No cases match &ldquo;{search.trim()}&rdquo;.</div>
+          <div className="py-10 text-center text-sm text-ink-2">{t("No cases match “{search}”.", { search: search.trim() })}</div>
         )}
 
         {editing && <EditCaseModal c={editing} onClose={() => setEditing(null)} />}

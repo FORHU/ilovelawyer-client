@@ -1,4 +1,6 @@
 import type { ClientBudget } from "@/lib/cases/budget";
+import { tr } from "@/lib/i18n/translate";
+import { msg } from "@/lib/i18n/msg";
 
 /** A kind of problem a case can be about ("Type of issue"). Admins manage the list
  * (GET /api/client/case-areas, lib/cases/case-areas.ts); a case has one or more, by code, and
@@ -29,7 +31,7 @@ export function caseRegion(c: Pick<Case, "ukJurisdiction" | "outsideUk">): CaseR
 /** "Scotland", "Outside the UK", or "Not set". */
 export function regionLabel(c: Pick<Case, "ukJurisdiction" | "outsideUk">) {
   const region = caseRegion(c);
-  return region === "OUTSIDE_UK" ? "Outside the UK" : region || "Not set";
+  return region === "OUTSIDE_UK" ? "Outside the UK" : region || tr("Not set");
 }
 
 /** What to send the API to put a case in `region` (POST or PATCH /api/client/cases). */
@@ -40,7 +42,8 @@ export function regionFields(region: CaseRegion): { ukJurisdiction: UkJurisdicti
 export type Side = "CLAIMANT" | "RESPONDENT" | "";
 
 export type PartyRole = "Opposing party" | "Witness" | "Other";
-export const PARTY_ROLES: PartyRole[] = ["Opposing party", "Witness", "Other"];
+// Stored as the English words; shown through t(role).
+export const PARTY_ROLES: PartyRole[] = [msg("Opposing party") as PartyRole, msg("Witness") as PartyRole, msg("Other") as PartyRole];
 
 export interface OtherParty {
   id: string;
@@ -193,8 +196,8 @@ export interface CaseIntake {
 
 export function sideLabel(side: Side | null) {
   return side === "CLAIMANT"
-    ? "Bringing the complaint"
+    ? tr("Bringing the complaint")
     : side === "RESPONDENT"
-      ? "Responding to one"
-      : "Not set yet";
+      ? tr("Responding to one")
+      : tr("Not set yet");
 }

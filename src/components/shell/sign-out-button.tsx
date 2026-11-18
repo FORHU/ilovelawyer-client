@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { useLogoutMutation } from "@/lib/auth/mutations";
 import { cn } from "@/lib/cn";
+import { useT } from "@/components/site/language-provider";
 
 /** Asks for confirmation, then ends this device's session and clears the account's local data.
  * `compact`: icon only. */
@@ -14,6 +15,7 @@ export function SignOutButton({ compact = false }: { compact?: boolean }) {
   const logoutMutation = useLogoutMutation();
   const [confirming, setConfirming] = useState(false);
   const pending = logoutMutation.isPending;
+  const t = useT();
 
   return (
     <>
@@ -21,8 +23,8 @@ export function SignOutButton({ compact = false }: { compact?: boolean }) {
         type="button"
         onClick={() => setConfirming(true)}
         disabled={pending}
-        aria-label="Sign out"
-        title="Sign out"
+        aria-label={t("Sign out")}
+        title={t("Sign out")}
         data-no-tap
         className={cn(
           "flex shrink-0 items-center justify-center gap-1.5 rounded-[10px] text-ink-2 hover:bg-chip disabled:opacity-50",
@@ -30,7 +32,7 @@ export function SignOutButton({ compact = false }: { compact?: boolean }) {
         )}
       >
         <LogOut size={compact ? 16 : 14} aria-hidden />
-        {!compact && "Sign out"}
+        {!compact && t("Sign out")}
       </button>
 
       {/* Portalled: the sidebar that holds one of these buttons is display:none on phones and
@@ -41,15 +43,15 @@ export function SignOutButton({ compact = false }: { compact?: boolean }) {
             open
             onClose={() => setConfirming(false)}
             locked={pending}
-            title="Sign out?"
-            subtitle="You'll need to sign in again to see your cases on this device."
+            title={t("Sign out?")}
+            subtitle={t("You'll need to sign in again to see your cases on this device.")}
           >
             <div className="flex flex-col-reverse gap-2 md:flex-row md:justify-end">
               <Button variant="outline" size="lg" onClick={() => setConfirming(false)} disabled={pending}>
-                Cancel
+                {t("Cancel")}
               </Button>
               <Button size="lg" onClick={() => logoutMutation.mutate()} disabled={pending}>
-                {pending ? "Signing out…" : "Sign out"}
+                {pending ? t("Signing out…") : t("Sign out")}
               </Button>
             </div>
           </Modal>,

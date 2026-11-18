@@ -7,14 +7,9 @@ import { ErrorBox } from "@/components/ui/banner";
 import { BottomSheet, SheetRow } from "@/components/mobile/bottom-sheet";
 import { useDeleteDocumentMutation, useRetryDocumentMutation } from "@/lib/cases/queries";
 import { cn } from "@/lib/cn";
-import type { CaseDocument, DocumentStatus } from "@/lib/types";
-import { KindBadge, documentMeta } from "./document-row";
-
-const STATUS: Record<DocumentStatus, { text: string; className: string }> = {
-  READY: { text: "Ready", className: "bg-success-bg text-success-ink" },
-  PENDING: { text: "Reading…", className: "bg-warn-bg text-warn-ink" },
-  FAILED: { text: "Couldn't read", className: "bg-error-bg text-error-ink" },
-};
+import type { CaseDocument } from "@/lib/types";
+import { DOCUMENT_STATUS, KindBadge, documentMeta, usedLabel } from "./document-row";
+import { useT } from "@/components/site/language-provider";
 
 /** One document on a phone: a card. Tapping it opens its details in a sheet; the "…" opens the
  * short list of things to do with it. Remove asks first, in the details sheet. */
@@ -48,18 +43,19 @@ export function DocumentCardMobile({
   const [sheet, setSheet] = useState<"details" | "actions" | null>(null);
   const [confirming, setConfirming] = useState(false);
 
-  const status = STATUS[d.status];
-  const used = usedIn > 0 ? `Used in ${usedIn} ${usedIn === 1 ? "item" : "items"}` : d.status === "READY" ? "Not used yet" : "";
+  const t = useT();
+  const status = DOCUMENT_STATUS[d.status];
+  const used = usedLabel(t, usedIn, d.status === "READY", "");
   const close = () => {
     setSheet(null);
     setConfirming(false);
   };
   const none =
     d.status === "PENDING"
-      ? "Still reading this file — it will show up here when it is done."
+      ? t("Still reading this file — it will show up here when it is done.")
       : d.status === "FAILED"
-        ? "This file couldn't be read, so the AI can't use it yet."
-        : "Nothing in your overview comes from this file yet.";
+        ? t("This file couldn't be read, so the AI can't use it yet.")
+        : t("Nothing in your overview comes from this file yet.");
 
   return (
     <div
@@ -81,14 +77,14 @@ export function DocumentCardMobile({
             <span className="truncate text-[15px] font-medium">{d.name}</span>
             <span className="text-[12.5px] text-ink-2">{documentMeta(d)}</span>
             <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-              <span className={cn("rounded-full px-2 py-[2px] text-[11.5px] font-medium", status.className)}>{status.text}</span>
+              <span className={cn("rounded-full px-2 py-[2px] text-[11.5px] font-medium", status.className)}>{t(status.text)}</span>
               {used && <span className={cn("text-[12px]", usedIn > 0 ? "text-gold" : "text-ink-2")}>{used}</span>}
             </span>
           </span>
         </button>
         <button
           type="button"
-          aria-label={`More actions for ${d.name}`}
+          aria-label={t("More actions for {name}", { name: d.name })}
           onClick={() => setSheet("actions")}
           data-no-tap
           className="flex size-11 shrink-0 items-center justify-center rounded-full text-ink-2 active:bg-chip"
@@ -99,10 +95,10 @@ export function DocumentCardMobile({
 
       {d.status === "FAILED" && (
         <div className="mx-3 mb-3 flex flex-col gap-2 rounded-xl border border-error-line bg-error-bg px-3 py-2.5 text-[13px] text-error-ink">
-          <span>We couldn&apos;t read this file. Try a PDF or a clearer scan — your lawyer can still see it.</span>
+          <span>{t("We couldn't read this file. Try a PDF or a clearer scan — your lawyer can still see it.")}</span>
           <Button variant="soft" size="lg" className="w-full" onClick={() => retry.mutate(d.id)} disabled={retry.isPending}>
             <RotateCw size={14} aria-hidden />
-            {retry.isPending ? "Retrying…" : "Retry reading"}
+            {retry.isPending ? t("Retrying…") : t("Retry reading")}
           </Button>
         </div>
       )}
@@ -122,7 +118,7 @@ export function DocumentCardMobile({
             close();
           }}
         >
-          {opening ? "Opening…" : "Open"}
+          {opening ? t("Opening…") : t("Open")}
         </SheetRow>
         {d.status === "FAILED" && (
           <SheetRow
@@ -133,7 +129,7 @@ export function DocumentCardMobile({
               close();
             }}
           >
-            {retry.isPending ? "Retrying…" : "Retry reading"}
+            {retry.isPending ? t("Retrying…") : t("Retry reading")}
           </SheetRow>
         )}
         <SheetRow
@@ -145,11 +141,11 @@ export function DocumentCardMobile({
             setSheet("details");
           }}
         >
-          Remove
+          {t("Remove")}
         </SheetRow>
       </BottomSheet>
 
-      <BottomSheet open={sheet === "details"} onClose={close} title="Document">
+      <BottomSheet open={sheet === "details"} onClose={close} title={t("Document")}>
         <div className="flex flex-col gap-4 px-3 pb-2 pt-1">
           <div className="flex items-center gap-3">
             <KindBadge name={d.name} size="lg" />
@@ -161,10 +157,10 @@ export function DocumentCardMobile({
 
           {confirming ? (
             <div className="flex flex-col gap-3 rounded-xl border border-error-line bg-error-bg p-3.5">
-              <span className="text-[14px] leading-[1.45] text-error-ink">Remove this document? The overview will need updating.</span>
+              <span className="text-[14px] leading-[1.45] text-error-ink">{t("Remove this document? The overview will need updating.")}</span>
               <div className="grid grid-cols-2 gap-2">
                 <Button variant="soft" size="lg" onClick={() => setConfirming(false)} disabled={remove.isPending}>
-                  Cancel
+                  {t("Cancel")}
                 </Button>
                 <Button
                   variant="danger"
@@ -173,7 +169,7 @@ export function DocumentCardMobile({
                   disabled={remove.isPending}
                   onClick={() => remove.mutate(d.id, { onSuccess: close })}
                 >
-                  {remove.isPending ? "Removing…" : "Remove"}
+                  {remove.isPending ? t("Removing…") : t("Remove")}
                 </Button>
               </div>
               {remove.error && <ErrorBox message={remove.error.message} />}
@@ -189,7 +185,7 @@ export function DocumentCardMobile({
                 onClick={onOpen}
               >
                 <Eye size={16} aria-hidden />
-                {opening ? "Opening…" : "Open"}
+                {opening ? t("Opening…") : t("Open")}
               </Button>
               {openError && (
                 <span role="alert" className="text-[13px] text-error">
@@ -205,13 +201,13 @@ export function DocumentCardMobile({
                   setConfirming(true);
                 }}
               >
-                Remove
+                {t("Remove")}
               </Button>
             </div>
           )}
 
           <div className="flex flex-col gap-2 border-t border-line pt-3">
-            <h3 className="text-[10.5px] font-semibold uppercase tracking-[1px] text-ink-2">Cited in your overview</h3>
+            <h3 className="text-[10.5px] font-semibold uppercase tracking-[1px] text-ink-2">{t("Cited in your overview")}</h3>
             {cites.length > 0 ? (
               <ul className="flex flex-col">
                 {cites.map((cite, i) => (
@@ -237,7 +233,7 @@ export function DocumentCardMobile({
 
           <div className="flex gap-2 rounded-xl bg-chip px-3 py-2.5 text-[12.5px] text-[#4a4a4a]">
             <Lock size={14} aria-hidden className="mt-px shrink-0" />
-            <span>Only you can see this file. A lawyer sees it once you confirm them — before that, they only see an anonymised summary.</span>
+            <span>{t("Only you can see this file. A lawyer sees it once you confirm them — before that, they only see an anonymised summary.")}</span>
           </div>
         </div>
       </BottomSheet>

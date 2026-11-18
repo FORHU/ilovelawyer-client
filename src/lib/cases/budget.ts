@@ -1,3 +1,4 @@
+import { tr } from "@/lib/i18n/translate";
 // What the client can spend on a lawyer (the API's Client Budget): a range, their own amount, or
 // "Not sure", plus the kind of fee they'd rather be quoted. Sent and stored as a low and a high in
 // pence, like a quote. Matching lawyers see it in the brief before they take the request.
@@ -87,7 +88,7 @@ const FEE_WORDS: Record<FeePreference, string> = { FIXED_FEE: "a fixed fee", FIR
 export function formatBudget(budget: ClientBudget | null): string {
   const draft = draftFromBudget(budget);
   const range = BUDGET_RANGES.find((r) => r.value === draft.choice);
-  const amount = range ? range.label : draft.choice === "OWN" && budget?.minMinor != null ? `£${pounds(budget.minMinor)}` : "Not sure";
+  const amount = range ? range.label : draft.choice === "OWN" && budget?.minMinor != null ? `£${pounds(budget.minMinor)}` : tr("Not sure");
   return budget?.feePreference ? `${amount} · prefers ${FEE_WORDS[budget.feePreference]}` : amount;
 }
 

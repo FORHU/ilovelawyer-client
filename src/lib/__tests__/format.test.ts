@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
+import { afterEach } from "vitest";
 import { formatBytes, firstName, formatDateTime, formatDay, formatEventDate, timeAgo } from "../format";
+import { setCurrentLang, setCurrentLocale } from "../i18n/translate";
 
 describe("formatBytes", () => {
   it("shows a small file in bytes", () => {
@@ -80,5 +82,27 @@ describe("firstName", () => {
 describe("formatDateTime", () => {
   it("shows day, month and time", () => {
     expect(formatDateTime("2026-10-29T10:42:00")).toBe("29 Oct, 10:42");
+  });
+});
+
+describe("in Korean (the KR site)", () => {
+  afterEach(() => {
+    setCurrentLang("en");
+    setCurrentLocale("en-GB");
+  });
+
+  it("writes a date with the month as a word, as Korean does", () => {
+    setCurrentLang("ko");
+    setCurrentLocale("ko-KR");
+    expect(formatDay("2026-11-12T00:00:00Z")).toBe("2026년 11월 12일");
+    expect(formatEventDate("2026-11-12T00:00:00Z", "MONTH")).toBe("2026년 11월");
+  });
+
+  it("says how long ago in Korean", () => {
+    setCurrentLang("ko");
+    setCurrentLocale("ko-KR");
+    const now = new Date("2026-11-12T12:00:00Z");
+    expect(timeAgo("2026-11-12T11:55:00Z", now)).toBe("5분 전");
+    expect(timeAgo("2026-11-10T12:00:00Z", now)).toBe("2일 전");
   });
 });

@@ -9,8 +9,15 @@ import { LawyerProfileMobile } from "@/components/lawyers/lawyer-profile.mobile"
 import { ErrorBox } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { useLawyerQuery } from "@/lib/lawyers/marketplace";
+import { useSite } from "@/components/site/site-provider";
+import { ComingSoon } from "@/components/site/coming-soon";
 
 export default function LawyerProfilePage() {
+  if (useSite().clientRequests !== "open") return <ComingSoon feature="lawyers" />;
+  return <LawyerProfile />;
+}
+
+function LawyerProfile() {
   const { id } = useParams<{ id: string }>();
   const { data: lawyer, isLoading, error, refetch } = useLawyerQuery(id);
 
