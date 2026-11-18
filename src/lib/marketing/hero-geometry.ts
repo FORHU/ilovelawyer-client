@@ -24,8 +24,9 @@ export interface Rect {
 
 /** Sizes the photo to cover W×H with the eyes clear of the centre copy, and returns the oval around
  * the face that papers keep out of. */
-export function heroFace(p: { fx: number; fy: number }, W: number, H: number, mob: boolean) {
-  const { width: iw, height: ih } = HERO_IMAGE;
+export function heroFace(p: { fx: number; fy: number; width?: number; height?: number }, W: number, H: number, mob: boolean) {
+  const iw = p.width ?? HERO_IMAGE.width;
+  const ih = p.height ?? HERO_IMAGE.height;
   const s = Math.max(W / iw, H / ih);
   const bw = iw * s;
   const bh = ih * s;
@@ -49,11 +50,8 @@ export function heroFace(p: { fx: number; fy: number }, W: number, H: number, mo
 
 /** Places the closing section's portrait so the eyes land on one side of a frame 28% taller than the
  * screen (the parallax needs the extra), covering it with no gaps. */
-export function portraitPlacement(W: number, H: number, mob: boolean) {
-  const iw = 1920;
-  const ih = 815;
-  const fx = 0.59;
-  const fy = 0.31;
+export function portraitPlacement(W: number, H: number, mob: boolean, face: { fx: number; fy: number; width: number; height: number } = { fx: 0.59, fy: 0.31, width: 1920, height: 815 }) {
+  const { fx, fy, width: iw, height: ih } = face;
   const frameH = H * 1.28;
   const tx = mob ? W * 0.5 : W * 0.75;
   const ty = (mob ? 0.3 : 0.45) * H + 0.14 * H;

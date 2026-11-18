@@ -1,7 +1,9 @@
 "use client";
 
-import { useRef, type CSSProperties, type ReactNode } from "react";
-import { HOW_HEADINGS, HOW_OPENING_D, TERMINAL_CAPTIONS, TERMINAL_IMAGE } from "@/lib/marketing/how-timeline";
+import { useRef, type ReactNode } from "react";
+import { HOW_HEADING_TIMES, HOW_OPENING_D, TERMINAL_IMAGE } from "@/lib/marketing/how-timeline";
+import type { PhotoSlot } from "@/lib/marketing/content/types";
+import { useLandingContent } from "./landing-content";
 import { LaptopMock } from "./laptop-mock";
 import { PhoneMock } from "./phone-mock";
 import type { StoryScroll } from "./story";
@@ -16,20 +18,7 @@ const MONITORS = {
   mobile: [[51.8, 21.5, 35.8, 22.9], [12.1, 46.5, 39.5, 27.5], [51.7, 45.5, 35, 20.8], [12, 18.5, 39.6, 28]],
 };
 
-const CLIENT_PHOTOS: { src: string; alt: string; style?: CSSProperties }[] = [
-  { src: "/landing/people/quotes-client.webp", alt: "Client on the sofa reading her case brief on a tablet" },
-  { src: "/landing/people/pick-client.webp", alt: "Client on a bus checking quotes on his phone" },
-  { src: "/landing/people/msg-split.webp", alt: "Client typing a message at her kitchen table", style: { backgroundSize: "200% 100%", backgroundPosition: "0% 50%" } },
-  { src: "/landing/people/docs-client.webp", alt: "Client at her kitchen table holding a letter and her phone" },
-];
-const SOLICITOR_PHOTOS: { src: string; alt: string; position: string }[] = [
-  { src: "/landing/terminal/sol-james.webp", alt: "Solicitor at a four-screen desk thinking through a case", position: "55% 50%" },
-  { src: "/landing/terminal/sol-sarah.webp", alt: "Solicitor smiling at her four-screen desk", position: "50% 50%" },
-  { src: "/landing/terminal/sol-sarah.webp", alt: "Solicitor replying from her four-screen desk", position: "50% 50%" },
-  { src: "/landing/terminal/sol-letter.webp", alt: "Solicitor at her four-screen desk reading the client's letter", position: "50% 50%" },
-];
-
-function PhotoStack({ name, label, photos, show }: { name: string; label: string; photos: { src: string; alt: string; style?: CSSProperties; position?: string }[]; show: boolean }) {
+function PhotoStack({ name, label, photos, show }: { name: string; label: string; photos: PhotoSlot[]; show: boolean }) {
   return (
     <div data-how={name} className="pointer-events-none absolute left-0 top-0 z-9 size-0 opacity-0">
       {photos.map((p, i) => (
@@ -64,6 +53,7 @@ export function HowFrame({
   headingClass: string;
   overHeadingClass: string;
 }) {
+  const { how } = useLandingContent();
   const section = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   useHowMotion(model, scroll, mob, { section, stage });
@@ -73,20 +63,20 @@ export function HowFrame({
   const terminalSrc = mob ? "/landing/terminal/reveal-m.webp" : "/landing/terminal/reveal.webp";
 
   return (
-    <section ref={section} aria-label="Stop guessing what it means" className="relative min-h-[6400px] text-white" style={{ height: "900svh" }}>
+    <section ref={section} aria-label={how.sectionLabel} className="relative min-h-[6400px] text-white" style={{ height: "900svh" }}>
       {/* The #how target, not the section: at the section's top the opening line hasn't appeared yet. */}
       <div id="how" aria-hidden className="absolute inset-x-0" style={{ top: `calc(max(100svh, 680px) * ${HOW_OPENING_D})` }} />
       <div aria-hidden className="absolute inset-0 z-1 bg-black" />
       {/* Clipped so nothing in the story can ever draw over the sections after it. */}
       <div ref={stage} className="sticky top-0 z-4 h-svh min-h-[680px] overflow-clip">
         {intro}
-        {HOW_HEADINGS.map((h, i) => (
+        {how.headings.map((text, i) => (
           <h2
-            key={h.text}
+            key={text}
             data-hl={i}
-            className={`font-archivo pointer-events-none absolute inset-x-6 z-11 m-0 text-balance text-center font-[250] leading-[1.05] tracking-[-0.04em] text-white opacity-0 ${h.over ? overHeadingClass : headingClass}`}
+            className={`font-archivo pointer-events-none absolute inset-x-6 z-11 m-0 text-balance text-center font-[250] leading-[1.05] tracking-[-0.04em] text-white opacity-0 ${HOW_HEADING_TIMES[i].over ? overHeadingClass : headingClass}`}
           >
-            {h.text}
+            {text}
           </h2>
         ))}
 
@@ -105,7 +95,7 @@ export function HowFrame({
           <div className="absolute inset-x-0 bottom-0 h-[46%]" style={{ background: "linear-gradient(0deg, #000 0%, rgba(0,0,0,.97) 8%, rgba(0,0,0,.9) 18%, rgba(0,0,0,.72) 34%, rgba(0,0,0,.5) 50%, rgba(0,0,0,.28) 66%, rgba(0,0,0,.1) 84%, rgba(0,0,0,0) 100%)" }} />
         </div>
 
-        {TERMINAL_CAPTIONS.map((c, i) => (
+        {how.captions.map((c, i) => (
           <p
             key={c.label}
             data-tc={i}
@@ -117,8 +107,8 @@ export function HowFrame({
           </p>
         ))}
 
-        <PhotoStack name="pl" label="Client" photos={CLIENT_PHOTOS} show={model.imagesWanted} />
-        <PhotoStack name="pr" label="Solicitor" photos={SOLICITOR_PHOTOS} show={model.imagesWanted} />
+        <PhotoStack name="pl" label={how.clientLabel} photos={how.clientPhotos} show={model.imagesWanted} />
+        <PhotoStack name="pr" label={how.solicitorLabel} photos={how.solicitorPhotos} show={model.imagesWanted} />
         <LaptopMock scene={model.scene} chat={model.chat} />
         <PhoneMock chat={model.chat} />
       </div>

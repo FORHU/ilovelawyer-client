@@ -2,7 +2,8 @@
 
 import { forwardRef, type CSSProperties } from "react";
 import { heroFace } from "@/lib/marketing/hero-geometry";
-import { heroImageSrc, PROBLEMS } from "@/lib/marketing/problems";
+import { heroImageSrc } from "@/lib/marketing/problems";
+import { useLandingContent } from "./landing-content";
 import type { HeroModel } from "./use-hero";
 
 type Props = Pick<HeroModel, "selected" | "previous" | "paused" | "size" | "loaded"> & {
@@ -17,9 +18,10 @@ export const HeroBackdrop = forwardRef<HTMLDivElement, Props>(function HeroBackd
   { selected, previous, paused, size, loaded, mob, overlay },
   ref,
 ) {
+  const { problems } = useLandingContent();
   return (
     <div ref={ref} className="absolute inset-0 z-0 overflow-hidden bg-[#2a241d]">
-      {PROBLEMS.map((p, i) => {
+      {problems.map((p, i) => {
         const on = i === selected;
         const was = i === previous && !on;
         const f = size ? heroFace(p, size.W, size.H, mob) : null;

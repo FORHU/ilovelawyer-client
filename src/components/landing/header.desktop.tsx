@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import type { HeaderViewProps } from "./header";
+import { useLandingContent } from "./landing-content";
 
 export function LandingHeaderDesktop({ solid, onAnchor }: HeaderViewProps) {
+  const { nav } = useLandingContent();
   return (
     <header
       data-solid={solid}
@@ -13,10 +17,10 @@ export function LandingHeaderDesktop({ solid, onAnchor }: HeaderViewProps) {
         </a>
         <nav className="flex gap-1">
           <a href="#how" onClick={onAnchor} className="px-2.5 py-2 text-[15px]">
-            How it works
+            {nav.how}
           </a>
           <a href="#faq" onClick={onAnchor} className="px-2.5 py-2 text-[15px]">
-            FAQ
+            {nav.faq}
           </a>
         </nav>
       </div>
@@ -26,14 +30,14 @@ export function LandingHeaderDesktop({ solid, onAnchor }: HeaderViewProps) {
           data-btn
           className="whitespace-nowrap rounded-full border border-(--hbd) px-[19px] py-[11px] text-[15px]"
         >
-          Sign in
+          {nav.signIn}
         </Link>
         <Link
           href="/signup"
           data-btn
           className="landing-cta whitespace-nowrap rounded-full bg-(--hb) px-5 py-3 text-[15px] font-medium transition-opacity duration-160 hover:opacity-85"
         >
-          Start your case
+          {nav.start}
         </Link>
       </div>
     </header>

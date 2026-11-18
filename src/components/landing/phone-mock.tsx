@@ -1,3 +1,4 @@
+import { useLandingContent } from "./landing-content";
 import { MiniPhoneScreen } from "./mini-app";
 import type { HowChat } from "./use-how";
 
@@ -7,11 +8,12 @@ const SCREEN_W = 390;
 const SCALE = 278 / SCREEN_W;
 
 export function PhoneMock({ chat }: { chat: HowChat }) {
+  const { mock } = useLandingContent();
   return (
     <div
       data-how="phone"
       role="img"
-      aria-label={chat.sent ? `The ilovelawyer app on a phone: the case interview, answering "${chat.msg}"` : "The ilovelawyer app on a phone: the new-case chat, asking what's going on"}
+      aria-label={chat.sent ? mock.phoneLabels.sent(chat.msg) : mock.phoneLabels.empty}
       className="pointer-events-none absolute left-1/2 top-1/2 z-10 h-[620px] w-[300px]"
       style={{ transform: "translate(-50%, -50%) translateY(120vh)", transformOrigin: "50% 50%" }}
     >

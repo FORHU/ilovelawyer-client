@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import localFont from "next/font/local";
 import { DeviceProvider } from "@/components/device/device-provider";
 import { deviceFromUserAgent } from "@/lib/device";
+import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 import "./landing.css";
 
 // Only the landing page uses these, so they load here and not in the root layout.

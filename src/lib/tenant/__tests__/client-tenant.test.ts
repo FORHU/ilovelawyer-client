@@ -2,13 +2,15 @@ import { describe, expect, it } from "vitest";
 import { ApiError } from "@/lib/api/fetch";
 import { wrongTenantSite } from "@/lib/auth/errors";
 import { getClientTerms } from "@/lib/auth/terms";
-import { hostForClientTenant, resolveClientTenantCode } from "../client-tenant";
+import { CLIENT_HOSTS, hostForClientTenant, resolveClientTenantCode } from "../client-tenant";
 
 describe("resolveClientTenantCode", () => {
   it("maps each client site to its region, port ignored", () => {
     expect(resolveClientTenantCode("kr.ilovelawyer.com")).toBe("KR");
     expect(resolveClientTenantCode("kr-app.ilovelawyer.com")).toBe("KR");
     expect(resolveClientTenantCode("kr-client-local.ilovelawyer.com:3004")).toBe("KR");
+    expect(resolveClientTenantCode("uk-client-local.ilovelawyer.com:3004")).toBe("UK");
+    expect(resolveClientTenantCode("client-local.ilovelawyer.com:3004")).toBe("UK");
     expect(resolveClientTenantCode("ilovelawyer.com")).toBe("UK");
     expect(resolveClientTenantCode("app.ilovelawyer.com")).toBe("UK");
     expect(resolveClientTenantCode("localhost:3004")).toBe("UK");
@@ -23,14 +25,22 @@ describe("resolveClientTenantCode", () => {
   });
 });
 
+describe("CLIENT_HOSTS", () => {
+  it("lists every host the dev server and the dev origins need, one tenant per host", () => {
+    expect(CLIENT_HOSTS).toEqual(expect.arrayContaining(["uk-client-local.ilovelawyer.com", "kr-client-local.ilovelawyer.com", "ilovelawyer.com", "kr.ilovelawyer.com"]));
+    expect(new Set(CLIENT_HOSTS).size).toBe(CLIENT_HOSTS.length);
+  });
+});
+
 describe("hostForClientTenant", () => {
   it("keeps the hosting flavour and the port", () => {
     expect(hostForClientTenant("KR", "ilovelawyer.com")).toBe("kr.ilovelawyer.com");
     expect(hostForClientTenant("UK", "kr.ilovelawyer.com")).toBe("ilovelawyer.com");
     expect(hostForClientTenant("KR", "app.ilovelawyer.com")).toBe("kr-app.ilovelawyer.com");
     expect(hostForClientTenant("UK", "kr-app.ilovelawyer.com")).toBe("app.ilovelawyer.com");
+    expect(hostForClientTenant("KR", "uk-client-local.ilovelawyer.com:3004")).toBe("kr-client-local.ilovelawyer.com:3004");
     expect(hostForClientTenant("KR", "client-local.ilovelawyer.com:3004")).toBe("kr-client-local.ilovelawyer.com:3004");
-    expect(hostForClientTenant("UK", "kr-client-local.ilovelawyer.com:3004")).toBe("client-local.ilovelawyer.com:3004");
+    expect(hostForClientTenant("UK", "kr-client-local.ilovelawyer.com:3004")).toBe("uk-client-local.ilovelawyer.com:3004");
   });
 
   it("gives null for an unknown host or a region with no site", () => {

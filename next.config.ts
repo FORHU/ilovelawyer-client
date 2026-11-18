@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { NextConfig } from "next";
 import { COOKIE_PATHS } from "./src/lib/api/config";
+import { CLIENT_HOSTS } from "./src/lib/tenant/client-tenant";
 
 // next build doesn't auto-load .env.staging (only recognizes standard names), so load it
 // explicitly — it's the one file deploy-dev.yml writes NEXT_PUBLIC_* into from the `staging`
@@ -17,10 +18,10 @@ const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001").rep
 
 const nextConfig: NextConfig = {
   /* config options here */
-  // Hosts other than localhost that open the dev server (ilovelawyer.local, or the https
-  // client-local.ilovelawyer.com that Google sign-in accepts, both from the hosts
-  // file). Without this Next blocks their /_next/hmr connection. Dev only; ignored in production.
-  allowedDevOrigins: ["ilovelawyer.local", "client-local.ilovelawyer.com", "kr.ilovelawyer.local", "kr-client-local.ilovelawyer.com"],
+  // Every client site's host (src/lib/tenant/client-tenant.ts): the https dev server (pnpm dev:https)
+  // answers on all of the *-client-local ones, and without this Next blocks their /_next/hmr
+  // connection. Dev only; ignored in production.
+  allowedDevOrigins: CLIENT_HOSTS,
   cacheComponents: true,
   partialPrefetching: true,
   experimental: {

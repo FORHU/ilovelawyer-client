@@ -1,10 +1,19 @@
 // The legal problems the landing page's hero cycles through. Each hero photo is 3168×1344 at
-// source, and fx/fy is where the person's eyes are in it (0-1), which placing the photo depends on.
+// source unless it says otherwise, and fx/fy is where the person's eyes are in it (0-1), which placing
+// the photo depends on. PROBLEMS below is the UK site's list; other tenants' lists live in
+// lib/marketing/content.
 
 export interface Problem {
   label: string;
-  /** The photo at /landing/hero/<slug>.webp. */
+  /** The photo at /landing/<imageDir>/<slug>.webp. */
   slug: string;
+  /** Where the photo lives under /landing (default "hero"). */
+  imageDir?: string;
+  /** The photo's size in pixels, where it isn't HERO_IMAGE's. */
+  width?: number;
+  height?: number;
+  /** The one line the new-case chat repeats back, where it can't be cut out of `help`. */
+  brief?: string;
   tag: string;
   /** The headline shown while this problem is selected. */
   h: string;
@@ -19,7 +28,7 @@ export interface Problem {
 
 export const HERO_IMAGE = { width: 3168, height: 1344 };
 
-export const heroImageSrc = (p: Pick<Problem, "slug">) => `/landing/hero/${p.slug}.webp`;
+export const heroImageSrc = (p: Pick<Problem, "slug" | "imageDir">) => `/landing/${p.imageDir ?? "hero"}/${p.slug}.webp`;
 
 // "Insurance claim" is in the design but its photo isn't in the bundle. It comes back once supplied.
 export const PROBLEMS: Problem[] = [
@@ -295,15 +304,18 @@ export const START_PROBLEM = PROBLEMS.findIndex((p) => p.label === "Employment c
 /** The headline when no problem is selected. */
 export const DEFAULT_HEADLINE = "Legal trouble, made clear.";
 
+const HANGUL = /[가-힣]/;
+
 /** The index of the problem a search best matches, or -1. */
 export function matchProblem(query: string, problems: Problem[] = PROBLEMS) {
-  const q = ` ${query.toLowerCase().replace(/[^a-z0-9' -]/g, " ").replace(/\s+/g, " ")} `;
+  const q = ` ${query.toLowerCase().replace(/[^a-z0-9가-힣' -]/g, " ").replace(/\s+/g, " ")} `;
   let best = -1;
   let bestScore = 0;
   problems.forEach((p, i) => {
-    const words = [...p.keywords, ...p.label.toLowerCase().split(" ").filter((w) => w.length > 3), p.tag.toLowerCase()];
+    const words = [...p.keywords, ...p.label.toLowerCase().split(/[ ·]+/).filter((w) => w.length > (HANGUL.test(w) ? 1 : 3)), p.tag.toLowerCase()];
     let score = 0;
-    for (const w of words) if (q.includes(w)) score += w.length + (q.includes(` ${w}`) ? 2 : 0);
+    // A Korean word carries more in each letter than an English one, so it counts for three.
+    for (const w of words) if (q.includes(w)) score += w.length * (HANGUL.test(w) ? 3 : 1) + (q.includes(` ${w}`) ? 2 : 0);
     if (score > bestScore) {
       bestScore = score;
       best = i;

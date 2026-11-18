@@ -28,15 +28,27 @@
   outline-offset: 3px;
 }
 
+/* Korean text. Pretendard comes after each Latin face, so Latin text keeps its own font and only the
+   Hangul falls through to it (its subsets download only when a page shows some). */
+.landing-root {
+  font-family: var(--font-inter-extended), var(--font-inter), "Pretendard Variable", Pretendard, ui-sans-serif, system-ui, sans-serif;
+}
+.landing-root .font-display {
+  font-family: var(--font-caslon), "Pretendard Variable", Pretendard, Georgia, serif;
+}
 .font-archivo {
-  font-family: var(--font-archivo), system-ui, sans-serif;
+  font-family: var(--font-archivo), "Pretendard Variable", Pretendard, system-ui, sans-serif;
 }
 .font-landing-mono {
-  font-family: var(--font-mono), ui-monospace, monospace;
+  font-family: var(--font-mono), "Pretendard Variable", Pretendard, ui-monospace, monospace;
 }
 .font-caslon-italic {
-  font-family: var(--font-caslon-italic), Georgia, serif;
+  font-family: var(--font-caslon-italic), "Pretendard Variable", Pretendard, Georgia, serif;
   font-style: italic;
+}
+/* Korean breaks between words, not inside them. */
+.landing-root :lang(ko) {
+  word-break: keep-all;
 }
 
 /* The header reads white over the hero and takes the page's colours once it is solid. */
