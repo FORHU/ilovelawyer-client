@@ -18,7 +18,8 @@ export const DEFAULT_SITE: TenantCode = "UK";
 
 /**
  * The lawyer app (ilovelawyer-app) for each site, for a lawyer account that tried to use the client
- * app. NEXT_PUBLIC_LAWYER_APP_URL is the UK one, as it was before there were three. Each variable
+ * app: NEXT_PUBLIC_LAWYER_APP_URL_UK/_PH/_KR. NEXT_PUBLIC_LAWYER_APP_URL, the name from before there
+ * were three, still counts as the UK one (deploy-uk.yml passes it). Each variable
  * is named in full so Next inlines it in the browser bundle.
  */
 const LAWYER_APP_URLS: Record<TenantCode, string> = {

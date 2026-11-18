@@ -33,9 +33,17 @@ name: Deploy Dev
 #   3. HOST_PORT 4036 is free in ilovelawyer's 4030-4039 band (4030-4032 dev,
 #      4033-4035 production). Confirm against /etc/caddy/sites/00-PORTS.md
 #      before the first run and add it there after.
-#   4. `staging` environment secrets, the names src/ reads: NEXT_PUBLIC_API_URL,
-#      NEXT_PUBLIC_LAWYER_APP_URL and NEXT_PUBLIC_GOOGLE_CLIENT_ID. The deploy
-#      stops if any is empty.
+#   4. In the `staging` environment, the names src/ reads. Secrets:
+#      NEXT_PUBLIC_API_URL and NEXT_PUBLIC_GOOGLE_CLIENT_ID. Variables (plain
+#      URLs, nothing to hide): NEXT_PUBLIC_LAWYER_APP_URL_UK
+#      (https://uk-dev.ilovelawyer.com), NEXT_PUBLIC_LAWYER_APP_URL_PH
+#      (https://ph-dev.ilovelawyer.com) and NEXT_PUBLIC_LAWYER_APP_URL_KR
+#      (https://kr-dev.ilovelawyer.com). The deploy stops if any is empty.
+#      Optional secret: NEXT_PUBLIC_TURNSTILE_SITE_KEY, Cloudflare Turnstile's
+#      public site key for the signed-out support form. Without it the form shows
+#      no check and the API (NODE_ENV=production) refuses those tickets, so the
+#      deploy warns. The widget's hostnames in Cloudflare must include the three
+#      *-client-dev.ilovelawyer.com hosts.
 #   5. The deploy role may write, and the host's instance role read, ENV_PARAM
 #      — as they do /forhu-dev/ilovelawyer-api/env and /forhu-dev/ilovelawyer-app/env.
 
@@ -121,17 +129,21 @@ jobs:
       - name: Write web env file
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
-          NEXT_PUBLIC_LAWYER_APP_URL: ${{ secrets.NEXT_PUBLIC_LAWYER_APP_URL }}
+          NEXT_PUBLIC_LAWYER_APP_URL_UK: ${{ vars.NEXT_PUBLIC_LAWYER_APP_URL_UK }}
+          NEXT_PUBLIC_LAWYER_APP_URL_PH: ${{ vars.NEXT_PUBLIC_LAWYER_APP_URL_PH }}
+          NEXT_PUBLIC_LAWYER_APP_URL_KR: ${{ vars.NEXT_PUBLIC_LAWYER_APP_URL_KR }}
           NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
         run: |
           set -euo pipefail
           # Each of these compiles and deploys when empty, then fails with nothing
           # in any log. Fail here instead, as ilovelawyer-app does for the client ID.
           # An empty NEXT_PUBLIC_API_URL left /files/<token> — which calls the API
           # from the server, where a relative URL can't be fetched — unable to
-          # open any document; an empty NEXT_PUBLIC_LAWYER_APP_URL sends lawyers
-          # to the local default, http://uk.ilovelawyer.local:3002.
-          for name in NEXT_PUBLIC_API_URL NEXT_PUBLIC_LAWYER_APP_URL NEXT_PUBLIC_GOOGLE_CLIENT_ID; do
+          # open any document; an empty NEXT_PUBLIC_LAWYER_APP_URL_UK/_PH/_KR sends
+          # that site's lawyers to the local default, e.g. http://kr.ilovelawyer.local:3002
+          # (src/lib/tenant/client-tenant.ts: one lawyer app per site).
+          for name in NEXT_PUBLIC_API_URL NEXT_PUBLIC_LAWYER_APP_URL_UK NEXT_PUBLIC_LAWYER_APP_URL_PH NEXT_PUBLIC_LAWYER_APP_URL_KR NEXT_PUBLIC_GOOGLE_CLIENT_ID; do
             if [ -z "${!name:-}" ]; then
               echo "::error::${name} is empty. Add it to the 'staging' environment."
               exit 1
@@ -139,9 +151,17 @@ jobs:
           done
           cat > "${{ github.workspace }}/.env.staging" << EOF
           NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-          NEXT_PUBLIC_LAWYER_APP_URL=${NEXT_PUBLIC_LAWYER_APP_URL}
+          NEXT_PUBLIC_LAWYER_APP_URL_UK=${NEXT_PUBLIC_LAWYER_APP_URL_UK}
+          NEXT_PUBLIC_LAWYER_APP_URL_PH=${NEXT_PUBLIC_LAWYER_APP_URL_PH}
+          NEXT_PUBLIC_LAWYER_APP_URL_KR=${NEXT_PUBLIC_LAWYER_APP_URL_KR}
           NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
           EOF
+          # Optional: written only when set, since an empty value would still read as configured.
+          if [ -n "${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}" ]; then
+            echo "NEXT_PUBLIC_TURNSTILE_SITE_KEY=${NEXT_PUBLIC_TURNSTILE_SITE_KEY}" >> "${{ github.workspace }}/.env.staging"
+          else
+            echo "::warning::NEXT_PUBLIC_TURNSTILE_SITE_KEY is not set: signed-out support tickets will be refused. Add it as a 'staging' environment secret."
+          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -163,8 +183,11 @@ jobs:
       - name: Publish project env to Parameter Store
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
-          NEXT_PUBLIC_LAWYER_APP_URL: ${{ secrets.NEXT_PUBLIC_LAWYER_APP_URL }}
+          NEXT_PUBLIC_LAWYER_APP_URL_UK: ${{ vars.NEXT_PUBLIC_LAWYER_APP_URL_UK }}
+          NEXT_PUBLIC_LAWYER_APP_URL_PH: ${{ vars.NEXT_PUBLIC_LAWYER_APP_URL_PH }}
+          NEXT_PUBLIC_LAWYER_APP_URL_KR: ${{ vars.NEXT_PUBLIC_LAWYER_APP_URL_KR }}
           NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
         run: |
           set -euo pipefail
           umask 077
@@ -177,7 +200,7 @@ jobs:
           # from the Dockerfile.
           {
             printf 'NODE_ENV=production\n'
-            for name in NEXT_PUBLIC_API_URL NEXT_PUBLIC_LAWYER_APP_URL NEXT_PUBLIC_GOOGLE_CLIENT_ID; do
+            for name in NEXT_PUBLIC_API_URL NEXT_PUBLIC_LAWYER_APP_URL_UK NEXT_PUBLIC_LAWYER_APP_URL_PH NEXT_PUBLIC_LAWYER_APP_URL_KR NEXT_PUBLIC_GOOGLE_CLIENT_ID NEXT_PUBLIC_TURNSTILE_SITE_KEY; do
               if [ -n "${!name:-}" ]; then printf '%s=%s\n' "$name" "${!name}"; fi
             done
           } > env.tmp
