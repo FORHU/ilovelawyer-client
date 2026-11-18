@@ -25,7 +25,9 @@ export interface ClientTerms {
 
 const EFFECTIVE = "Effective Date: October 20, 2026.";
 
-const GOVERNING_LAW: Record<TenantCode, { label: string; paragraphs: string[] }> = {
+// No KR entry yet: a Korean client sees the generic governing-law paragraph until the Korean Terms
+// are written (and CLIENT_TERMS_VERSION in the API is bumped with them).
+const GOVERNING_LAW: Partial<Record<TenantCode, { label: string; paragraphs: string[] }>> = {
   PH: {
     label: "Republic of the Philippines",
     paragraphs: [
@@ -148,7 +150,7 @@ export function getClientTerms(tenant: TenantCode | null, lang: Lang = "en"): Cl
       sections: [...KO_BASE_SECTIONS, { number: "제10조", title: KO_GOVERNING_LAW.title, paragraphs: KO_GOVERNING_LAW.paragraphs }],
     };
   }
-  const law = tenant ? GOVERNING_LAW[tenant] : null;
+  const law = (tenant && GOVERNING_LAW[tenant]) || null;
   return {
     title: "Terms of Service",
     effectiveDate: law ? `${EFFECTIVE} Governing law: ${law.label}.` : EFFECTIVE,

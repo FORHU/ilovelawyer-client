@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type RefObject } from "react";
 import Link from "next/link";
-import { DISCLAIMER, FAQS, SUPPORT_EMAIL, TRUST_CARDS } from "@/lib/marketing/copy";
 import { portraitPlacement } from "@/lib/marketing/hero-geometry";
 import { CopyText } from "./copy-text";
+import { useLandingContent } from "./landing-content";
 import { gsap, ScrollTrigger, useGSAP } from "./use-gsap-setup";
 import { useReducedMotion } from "./use-reduced-motion";
 
@@ -68,6 +68,7 @@ export function useReveals(root: RefObject<HTMLElement | null>) {
 }
 
 export function TrustSection({ sidePad }: { sidePad: string }) {
+  const { trust } = useLandingContent();
   const section = useRef<HTMLElement>(null);
   useGoldDrift(section);
   return (
@@ -76,11 +77,11 @@ export function TrustSection({ sidePad }: { sidePad: string }) {
       <div aria-hidden className="pointer-events-none absolute inset-x-0 -bottom-px h-80" style={{ background: `linear-gradient(0deg, ${FADE_STOPS})` }} />
       <div className="relative mx-auto flex max-w-[1180px] flex-col gap-14">
         <div data-reveal className="flex max-w-[640px] flex-col gap-[18px]">
-          <span className="font-landing-mono text-[11px] uppercase tracking-widest text-[#f5f3ef]/74">Trust</span>
-          <h2 className={`${SECTION_TITLE} text-balance`}>What to know before you start</h2>
+          <span className="font-landing-mono text-[11px] uppercase tracking-widest text-[#f5f3ef]/74">{trust.eyebrow}</span>
+          <h2 className={`${SECTION_TITLE} text-balance`}>{trust.title}</h2>
         </div>
         <div data-reveal className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-4">
-          {TRUST_CARDS.map((c) => (
+          {trust.cards.map((c) => (
             <article key={c.title} className="flex flex-col gap-4 rounded-3xl border border-white/14 bg-white/[0.045] px-[26px] py-7">
               <h3 className="font-archivo m-0 text-balance text-[26px] font-normal leading-[1.1] tracking-[-0.02em]">{c.title}</h3>
               <p className="m-0 text-pretty text-[16px] leading-[1.6] text-[#f5f3ef]/84">
@@ -94,7 +95,36 @@ export function TrustSection({ sidePad }: { sidePad: string }) {
   );
 }
 
+/** Where a site spells out what everything costs on a section of its own (content.fees). */
+export function FeesSection({ sidePad }: { sidePad: string }) {
+  const { fees } = useLandingContent();
+  if (!fees) return null;
+  return (
+    <section id="fees" className={`relative z-1 bg-[#050403] pb-24 pt-12 text-[#f5f3ef] ${sidePad}`}>
+      <div className="relative mx-auto flex max-w-[1180px] flex-col gap-14">
+        <div data-reveal className="flex max-w-[640px] flex-col gap-[18px]">
+          <span className="font-landing-mono text-[11px] uppercase tracking-widest text-[#f5f3ef]/74">{fees.eyebrow}</span>
+          <h2 className={`${SECTION_TITLE} text-balance`}>{fees.title}</h2>
+          <p className="m-0 max-w-[56ch] text-pretty text-[17px] leading-[1.6] text-[#f5f3ef]/84">{fees.lede}</p>
+        </div>
+        <div data-reveal className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-4">
+          {fees.cards.map((card, i) => (
+            <article key={card.title} className="flex flex-col gap-4 rounded-3xl border border-white/14 bg-white/[0.045] px-[26px] py-7">
+              <span className="font-landing-mono text-[11px] tracking-widest text-[#e0bd6d]">{String(i + 1).padStart(2, "0")}</span>
+              <h3 className="font-archivo m-0 text-balance text-[26px] font-normal leading-[1.1] tracking-[-0.02em]">{card.title}</h3>
+              <p className="m-0 text-pretty text-[16px] leading-[1.6] text-[#f5f3ef]/84">
+                <CopyText text={card.body} />
+              </p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function FaqSection({ sidePad, grid }: { sidePad: string; grid: string }) {
+  const { faq } = useLandingContent();
   const [open, setOpen] = useState(0);
   // An answer opening or closing moves everything below it, so triggers there must re-measure.
   useEffect(() => {
@@ -103,9 +133,9 @@ export function FaqSection({ sidePad, grid }: { sidePad: string; grid: string })
   return (
     <section id="faq" className={`relative z-1 bg-[#050403] pb-40 pt-12 text-[#f5f3ef] ${sidePad}`}>
       <div className={`mx-auto grid max-w-[1180px] items-start ${grid}`}>
-        <h2 className={SECTION_TITLE}>Questions</h2>
+        <h2 className={SECTION_TITLE}>{faq.title}</h2>
         <div className="flex flex-col border-t border-white/16">
-          {FAQS.map((f, i) => {
+          {faq.items.map((f, i) => {
             const isOpen = open === i;
             return (
               <div key={f.q} className="border-b border-white/16">
@@ -143,6 +173,7 @@ export function FaqSection({ sidePad, grid }: { sidePad: string; grid: string })
 }
 
 export function ClosingCta({ mob, shade, copyClass, copyStyle }: { mob: boolean; shade: string; copyClass: string; copyStyle: CSSProperties }) {
+  const { closing } = useLandingContent();
   const section = useRef<HTMLElement>(null);
   const image = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
@@ -173,28 +204,28 @@ export function ClosingCta({ mob, shade, copyClass, copyStyle }: { mob: boolean;
     { scope: section, dependencies: [reduced], revertOnUpdate: true },
   );
 
-  const place = size ? portraitPlacement(size.W, size.H, mob) : null;
+  const place = size ? portraitPlacement(size.W, size.H, mob, closing.imageFace) : null;
   const portrait: CSSProperties = place
     ? { left: place.left, top: place.top, width: place.width, height: place.height, backgroundSize: "100% 100%" }
     : { inset: 0, backgroundSize: "cover", backgroundPosition: "59% 31%" };
 
   return (
     <section ref={section} className="relative z-1 h-screen min-h-[600px] w-full overflow-hidden bg-[#2a241d]">
-      <div ref={image} role="img" aria-label="A woman smiles as she reads a letter at her kitchen table, moving boxes stacked behind her" className="absolute inset-x-0 -bottom-[14%] -top-[14%] will-change-transform">
-        <div className="absolute" style={{ ...portrait, backgroundImage: 'url("/landing/portrait-cta.webp")' }} />
+      <div ref={image} role="img" aria-label={closing.imageLabel} className="absolute inset-x-0 -bottom-[14%] -top-[14%] will-change-transform">
+        <div className="absolute" style={{ ...portrait, backgroundImage: `url("${closing.imageSrc}")` }} />
       </div>
       <div className="pointer-events-none absolute inset-0" style={{ background: shade }} />
       <div className="pointer-events-none absolute inset-x-0 -top-px h-[38%]" style={{ background: `linear-gradient(180deg, ${FADE_STOPS})` }} />
       <div className="pointer-events-none absolute inset-x-0 -bottom-px h-[42%]" style={{ background: `linear-gradient(0deg, ${FADE_STOPS})` }} />
       <div data-reveal className={`pointer-events-none absolute inset-0 flex flex-col gap-7 text-white ${copyClass}`} style={copyStyle}>
-        <h2 className="font-archivo m-0 max-w-[9ch] text-balance text-[clamp(48px,7.5vw,132px)] font-[250] leading-[0.92] tracking-[-0.045em]">Ready when you are.</h2>
-        <p className="m-0 max-w-[400px] text-[17px] leading-normal">About ten minutes to describe your situation. Save and come back any time.</p>
+        <h2 className="font-archivo m-0 max-w-[9ch] text-balance text-[clamp(48px,7.5vw,132px)] font-[250] leading-[0.92] tracking-[-0.045em]">{closing.title}</h2>
+        <p className="m-0 max-w-[400px] text-[17px] leading-normal">{closing.body}</p>
         <Link
           href="/signup"
           data-btn
           className="pointer-events-auto inline-flex min-h-[52px] items-center rounded-full bg-white px-[30px] py-[15px] text-[17px] font-medium text-[#0c0c0e]! transition-opacity duration-160 hover:opacity-85"
         >
-          Start your case
+          {closing.cta}
         </Link>
       </div>
     </section>
@@ -212,6 +243,7 @@ export function LandingFooterView({
   grid: string;
   brandClass: string;
 }) {
+  const { footer: text, nav } = useLandingContent();
   const footer = useRef<HTMLElement>(null);
   useGoldDrift(footer);
   const heading = "text-[14px] text-[#f3f1ee]/60";
@@ -221,25 +253,30 @@ export function LandingFooterView({
         <div className={`grid text-[16px] leading-[1.4] ${grid}`}>
           <div className={`flex flex-col gap-3.5 ${brandClass}`}>
             <span className="font-display text-[24px] tracking-[-0.02em]">ilovelawyer</span>
-            <span className="max-w-[300px] text-[15px] leading-normal text-[#f3f1ee]/74">{DISCLAIMER}</span>
+            <span className="max-w-[300px] text-[15px] leading-normal text-[#f3f1ee]/74">{text.disclaimer}</span>
           </div>
           <nav aria-label="Product" className="flex flex-col gap-3">
-            <span className={heading}>Product</span>
-            <a href="#how" onClick={onAnchor}>How it works</a>
-            <a href="#faq" onClick={onAnchor}>FAQ</a>
+            <span className={heading}>{text.product}</span>
+            <a href="#how" onClick={onAnchor}>{nav.how}</a>
+            <a href="#faq" onClick={onAnchor}>{nav.faq}</a>
           </nav>
           <nav aria-label="Legal" className="flex flex-col gap-3">
-            <span className={heading}>Legal</span>
-            <Link href="/terms">Terms</Link>
-            <Link href="/privacy">Privacy</Link>
-            <Link href="/refunds">Refunds</Link>
+            <span className={heading}>{text.legal}</span>
+            <Link href="/terms">{text.terms}</Link>
+            <Link href="/privacy">{text.privacy}</Link>
+            <Link href="/refunds">{text.refunds}</Link>
           </nav>
           <div className="flex flex-col gap-3">
-            <span className={heading}>Contact</span>
-            <a href={`mailto:${SUPPORT_EMAIL}`} className="break-all">{SUPPORT_EMAIL}</a>
+            <span className={heading}>{text.contact}</span>
+            <a href={`mailto:${text.supportEmail}`} className="break-all">{text.supportEmail}</a>
           </div>
         </div>
         <div className="flex flex-col gap-5 border-t border-white/12 pt-6">
+          {text.legalNote && (
+            <p className="m-0 max-w-[900px] text-pretty text-[13px] leading-[1.6] text-[#f3f1ee]/60">
+              <CopyText text={text.legalNote} />
+            </p>
+          )}
           <span className="self-end text-[14px]">© ilovelawyer</span>
         </div>
       </div>

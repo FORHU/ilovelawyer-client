@@ -1,4 +1,5 @@
-// The landing page's legal and trust wording. DRAFT: a UK solicitor must review all of it before
+// The landing page's legal and trust wording, in English for the UK site (the Korean site's is in
+// lib/marketing/content/kr.ts). DRAFT: a UK solicitor must review all of it before
 // launch (FORHU/ilovelawyer-app#798, #846). [Square brackets] are facts or decisions still to come;
 // they show as dashed chips and must all be gone before the page goes public.
 //
@@ -9,12 +10,12 @@
 
 export type CopyPart = { kind: "text" | "placeholder"; text: string } | { kind: "link"; text: string; href: string };
 
-const LINKS: Record<string, string> = { "Privacy Policy": "/privacy", "Refunds Policy": "/refunds" };
+const LINKS: Record<string, string> = { "Privacy Policy": "/privacy", "Refunds Policy": "/refunds", "개인정보처리방침": "/privacy", "환불 정책": "/refunds" };
 
 /** Splits wording into plain text, [placeholders] and links to the policies it names. */
 export function copyParts(text: string): CopyPart[] {
   return text
-    .split(/(\[[^\]]*\]|Privacy Policy|Refunds Policy)/)
+    .split(/(\[[^\]]*\]|Privacy Policy|Refunds Policy|개인정보처리방침|환불 정책)/)
     .filter(Boolean)
     .map((t) => {
       if (t[0] === "[") return { kind: "placeholder", text: t };

@@ -18,7 +18,9 @@ export interface HowLayout {
 /** Where "How it works" links land, in d: the opening line is fully in and not yet leaving. */
 export const HOW_OPENING_D = 0.7;
 
-/** Each heading's [start fading in, fully in, start fading out, gone], in d. */
+/** The UK site's headings, with when each shows. Every site's headings share these timings
+ * (HOW_HEADING_TIMES); only the words change (lib/marketing/content). Each timing is [start fading
+ * in, fully in, start fading out, gone], in d. */
 export const HOW_HEADINGS: { text: string; at: [number, number, number, number]; over?: boolean }[] = [
   { text: "Start on your phone. Pick up on your desktop.", at: [1.42, 1.72, 1.95, 2.1] },
   { text: "Your case, briefed. Solicitors, ready.", at: [2.1, 2.3, 2.75, 2.9] },
@@ -30,6 +32,12 @@ export const HOW_HEADINGS: { text: string; at: [number, number, number, number];
   { text: "Behind every answer, a solicitor with serious tools.", at: [6.3, 6.5, 98, 99], over: true },
 ];
 
+export const HOW_HEADING_TIMES: { at: [number, number, number, number]; over?: boolean }[] = HOW_HEADINGS.map(({ at, over }) => ({ at, over }));
+
+/** How many captions the terminal shows, one per monitor. */
+export const TERMINAL_CAPTION_COUNT = 4;
+
+/** The UK site's captions. */
 export const TERMINAL_CAPTIONS = [
   { label: "01 / 04 · Client brief", text: "Your brief arrives with the facts, dates and what you want, already in order." },
   { label: "02 / 04 · Evidence index", text: "Every letter, email and photo you share is tagged and easy to find." },
@@ -192,7 +200,7 @@ export function howPose(d: number, { W, H, mob, headingH, leftW, rightW }: HowLa
     y: Math.min(0, Math.max(H - imageH, H * 0.42 - imageH * image.fy)),
     scale: imageS,
     monitor: d >= 6.6 && d < 7.92 ? Math.min(3, Math.floor((d - 6.6) / 0.33)) : -1,
-    captions: TERMINAL_CAPTIONS.map((_, i) => {
+    captions: Array.from({ length: TERMINAL_CAPTION_COUNT }, (_, i) => {
       const from = 6.6 + i * 0.33;
       return clamp01((d - from) / 0.06) * (1 - clamp01((d - from - 0.27) / 0.06));
     }),
@@ -222,6 +230,6 @@ export function howPose(d: number, { W, H, mob, headingH, leftW, rightW }: HowLa
     terminal,
     intro,
     headingTop: Math.max(76, cy - 310 * deskS - headingH - 36),
-    headings: HOW_HEADINGS.map((h) => headingOpacity(d, h.at)),
+    headings: HOW_HEADING_TIMES.map((h) => headingOpacity(d, h.at)),
   };
 }

@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import { DeviceProvider } from "@/components/device/device-provider";
 import { ServerSite } from "@/components/site/server-site";
 import { deviceFromUserAgent } from "@/lib/device";
+import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 import "./landing.css";
 
 // Only the landing page uses these, so they load here and not in the root layout.

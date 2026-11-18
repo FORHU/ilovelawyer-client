@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { preload } from "react-dom";
 import { useRouter } from "next/navigation";
-import { heroImageSrc, matchProblem, PROBLEMS, START_PROBLEM } from "@/lib/marketing/problems";
+import { heroImageSrc, matchProblem } from "@/lib/marketing/problems";
 import { saveSearchText } from "@/lib/marketing/search-prefill";
+import { useLandingContent } from "./landing-content";
 import { useReducedMotion } from "./use-reduced-motion";
 
 const NO_HEADLINE = -1;
@@ -27,17 +28,18 @@ export interface HeroLive {
 export function useHero() {
   const router = useRouter();
   const reduced = useReducedMotion();
+  const { hero, problems, startProblem } = useLandingContent();
 
-  const [selected, setSelected] = useState(START_PROBLEM);
+  const [selected, setSelected] = useState(startProblem);
   const [previous, setPrevious] = useState(-1);
-  const [headline, setHeadline] = useState(START_PROBLEM);
+  const [headline, setHeadline] = useState(startProblem);
   const [query, setQuery] = useState("");
   const [pausedByUser, setPausedByUser] = useState<boolean | null>(null);
   const [size, setSize] = useState<{ W: number; H: number } | null>(null);
-  const [loaded, setLoaded] = useState<ReadonlySet<number>>(() => new Set([START_PROBLEM]));
+  const [loaded, setLoaded] = useState<ReadonlySet<number>>(() => new Set([startProblem]));
 
   const paused = pausedByUser ?? reduced;
-  preload(heroImageSrc(PROBLEMS[START_PROBLEM]), { as: "image", fetchPriority: "high" });
+  preload(heroImageSrc(problems[startProblem]), { as: "image", fetchPriority: "high" });
 
   const input = useRef<HTMLInputElement>(null);
   const focused = useRef(false);
@@ -45,7 +47,7 @@ export function useHero() {
   const typing = useRef<{ n: number; dir: 1 | -1; key?: number; text: string }>({ n: 0, dir: 1, text: "" });
   const pick = useRef(0);
   const images = useRef(new Map<number, Promise<void>>());
-  const live = useRef<HeroLive>({ selected: START_PROBLEM, pending: null, selectedAt: 0, userAt: -Infinity, busy: false, paused });
+  const live = useRef<HeroLive>({ selected: startProblem, pending: null, selectedAt: 0, userAt: -Infinity, busy: false, paused });
 
   useEffect(() => {
     live.current.paused = paused;
@@ -56,14 +58,14 @@ export function useHero() {
     const known = images.current.get(i);
     if (known) return known;
     const img = new Image();
-    img.src = heroImageSrc(PROBLEMS[i]);
+    img.src = heroImageSrc(problems[i]);
     const ready = img
       .decode()
       .catch(() => {})
       .then(() => setLoaded((s) => new Set(s).add(i)));
     images.current.set(i, ready);
     return ready;
-  }, []);
+  }, [problems]);
 
   const holdHeadline = useCallback((ms: number) => {
     clearTimeout(headlineTimer.current);
@@ -80,7 +82,7 @@ export function useHero() {
       if (byUser) {
         live.current.userAt = now;
         live.current.pending = null;
-        typing.current = { n: PROBLEMS[k].say.length, dir: 1, key: k, text: PROBLEMS[k].say };
+        typing.current = { n: problems[k].say.length, dir: 1, key: k, text: problems[k].say };
       }
       const id = ++pick.current;
       void loadImage(k).then(() => {
@@ -93,7 +95,7 @@ export function useHero() {
         holdHeadline(HOLD_MS);
       });
     },
-    [holdHeadline, loadImage],
+    [holdHeadline, loadImage, problems],
   );
 
   // The search box's placeholder types out how someone might say the selected problem. It is
@@ -108,7 +110,7 @@ export function useHero() {
       const T = typing.current;
       const { pending, selected: current, busy } = live.current;
       const showing = pending ?? current;
-      const want = PROBLEMS[showing].say;
+      const want = problems[showing].say;
       if (T.key === undefined) {
         T.key = showing;
         T.text = want;
@@ -145,11 +147,11 @@ export function useHero() {
       clearTimeout(timer);
       clearTimeout(clearHeadline.current);
     };
-  }, [holdHeadline, reduced, select]);
+  }, [holdHeadline, problems, reduced, select]);
 
   // The other photos load one by one once the page is idle, unless the visitor is saving data.
   useEffect(() => {
-    void loadImage(START_PROBLEM);
+    void loadImage(startProblem);
     const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
     if (connection?.saveData) return;
     let stopped = false;
@@ -158,7 +160,7 @@ export function useHero() {
     const later: (fn: () => void) => number = window.requestIdleCallback ?? ((fn) => window.setTimeout(fn, 400));
     const cancel: (id: number) => void = window.cancelIdleCallback ?? window.clearTimeout;
     const next = (i: number) => {
-      if (stopped || i >= PROBLEMS.length) return;
+      if (stopped || i >= problems.length) return;
       handle = later(() => void loadImage(i).then(() => next(i + 1)));
     };
     const onLoad = () => next(0);
@@ -169,22 +171,22 @@ export function useHero() {
       window.removeEventListener("load", onLoad);
       cancel(handle);
     };
-  }, [loadImage]);
+  }, [loadImage, problems.length, startProblem]);
 
   const hasQuery = query.trim().length >= 3;
-  const noMatch = useMemo(() => hasQuery && matchProblem(query) < 0, [hasQuery, query]);
+  const noMatch = useMemo(() => hasQuery && matchProblem(query, problems) < 0, [hasQuery, query, problems]);
 
   const search = {
     input,
     query,
     noMatch,
     /** Painted first, before the typewriter takes over. */
-    initialPlaceholder: PROBLEMS[START_PROBLEM].say,
+    initialPlaceholder: problems[startProblem].say,
     onInput: (value: string) => {
       setQuery(value);
       live.current.userAt = performance.now();
       if (value.trim().length >= 3) {
-        const match = matchProblem(value);
+        const match = matchProblem(value, problems);
         if (match >= 0) select(match, true);
       } else if (!value.trim()) {
         holdHeadline(HOLD_MS);
@@ -193,12 +195,12 @@ export function useHero() {
     onFocus: () => {
       focused.current = true;
       live.current.busy = true;
-      if (input.current) input.current.placeholder = "Describe your legal problem";
+      if (input.current) input.current.placeholder = hero.searchFocusPlaceholder;
     },
     onBlur: () => {
       focused.current = false;
       live.current.busy = query !== "";
-      if (input.current && reduced) input.current.placeholder = PROBLEMS[live.current.selected].say;
+      if (input.current && reduced) input.current.placeholder = problems[live.current.selected].say;
     },
     /** Keeps what they typed for the new-case chat, for any way into sign-up from here. */
     carryOver: () => saveSearchText(query),

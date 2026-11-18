@@ -1,7 +1,7 @@
 "use client";
 
 import type { RefObject } from "react";
-import { heroExit, howPose, HOW_HEADINGS, type HowLayout } from "@/lib/marketing/how-timeline";
+import { heroExit, howPose, HOW_HEADING_TIMES, type HowLayout } from "@/lib/marketing/how-timeline";
 import { easeOutCubic } from "@/lib/marketing/hero-geometry";
 import { gsap, useGSAP } from "./use-gsap-setup";
 import type { HowModel } from "./use-how";
@@ -108,7 +108,7 @@ export function useHowMotion(
           const v = p.headings[i];
           el.style.opacity = v.toFixed(3);
           el.style.translate = `0 ${((1 - easeOutCubic(v)) * 24).toFixed(1)}px`;
-          if (!mob && !HOW_HEADINGS[i].over) el.style.top = `${p.headingTop.toFixed(0)}px`;
+          if (!mob && !HOW_HEADING_TIMES[i].over) el.style.top = `${p.headingTop.toFixed(0)}px`;
         });
 
         if (terminal) terminal.style.opacity = p.terminal.opacity.toFixed(3);

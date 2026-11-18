@@ -14,8 +14,8 @@ import {
   type Rect,
 } from "@/lib/marketing/hero-geometry";
 import { heroExit, paperFlight, phoneTarget } from "@/lib/marketing/how-timeline";
-import { PROBLEMS } from "@/lib/marketing/problems";
 import type { StoryScroll } from "./story";
+import { useLandingContent } from "./landing-content";
 import { gsap, useGSAP } from "./use-gsap-setup";
 import type { HeroModel } from "./use-hero";
 
@@ -54,6 +54,7 @@ export function useHeroMotion(
   papersMounted: boolean,
 ) {
   const { live, setSize, reduced } = model;
+  const { problems } = useLandingContent();
 
   useGSAP(
     () => {
@@ -198,7 +199,7 @@ export function useHeroMotion(
           lastSelected = state.selected;
         }
 
-        const face = heroFace(PROBLEMS[state.selected], W, H, mob).oval;
+        const face = heroFace(problems[state.selected], W, H, mob).oval;
         const rect = mx === null ? null : section.getBoundingClientRect();
         const px = rect && mx !== null ? mx - rect.left : null;
         const py = rect && my !== null ? my - rect.top : null;

@@ -1,9 +1,9 @@
 "use client";
 
 import { useRef, useSyncExternalStore, type CSSProperties } from "react";
-import { PROBLEMS } from "@/lib/marketing/problems";
 import { HeroBackdrop } from "./hero-backdrop";
 import { HeroCopy } from "./hero-copy";
+import { useLandingContent } from "./landing-content";
 import { Paper } from "./paper";
 import type { StoryScroll } from "./story";
 import type { HeroModel } from "./use-hero";
@@ -28,6 +28,7 @@ export function HeroFrame({
   copyStyle: CSSProperties;
   selectedWidth: number;
 }) {
+  const { hero, problems } = useLandingContent();
   const section = useRef<HTMLElement>(null);
   const copy = useRef<HTMLDivElement>(null);
   const backdrop = useRef<HTMLDivElement>(null);
@@ -42,7 +43,7 @@ export function HeroFrame({
     <section
       ref={section}
       id="top"
-      aria-label="Legal trouble, made clear"
+      aria-label={hero.sectionLabel}
       className="relative z-3 h-svh min-h-[680px] w-full overflow-x-clip overflow-y-visible bg-black text-white"
     >
       <HeroBackdrop
@@ -60,9 +61,9 @@ export function HeroFrame({
         className="pointer-events-none absolute inset-x-0 bottom-[-2px] z-0 h-[420px]"
         style={{ background: "linear-gradient(0deg, #000 0%, #000 12%, rgba(0,0,0,.86) 30%, rgba(0,0,0,.62) 48%, rgba(0,0,0,.36) 66%, rgba(0,0,0,.14) 84%, rgba(0,0,0,0) 100%)" }}
       />
-      <div role="group" aria-label="Choose a legal problem" className="pointer-events-none absolute inset-0">
+      <div role="group" aria-label={hero.groupLabel} className="pointer-events-none absolute inset-0">
         {inBrowser &&
-          PROBLEMS.map((p, k) => (
+          problems.map((p, k) => (
             <Paper
               key={p.slug}
               problem={p}
@@ -84,7 +85,7 @@ export function HeroFrame({
         <button
           type="button"
           onClick={model.togglePaused}
-          aria-label={model.paused ? "Play motion" : "Pause motion"}
+          aria-label={model.paused ? hero.play : hero.pause}
           aria-pressed={model.paused}
           className="absolute bottom-5 right-5 z-600 flex size-11 items-center justify-center gap-1 rounded-full border border-white/60 bg-[rgb(5_4_3/0.55)] p-0 text-white hover:bg-[rgb(5_4_3/0.8)]"
         >

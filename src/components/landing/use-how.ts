@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { matchProblem, PROBLEMS } from "@/lib/marketing/problems";
+import { matchProblem } from "@/lib/marketing/problems";
+import { useLandingContent } from "./landing-content";
 import type { HeroModel } from "./use-hero";
 
 export interface HowChat {
@@ -18,23 +19,13 @@ export interface HowChat {
   help: string;
 }
 
-const QUESTION = "When did this start, and do you have any letters or messages about it?";
-const QUIET: HowChat = {
-  msg: "I've been told to move out",
-  n: 0,
-  sent: false,
-  reply: 0,
-  question: QUESTION,
-  label: "Eviction notice",
-  area: "Housing",
-  help: "We explain what your notice means and how long you have.",
-};
 
 /** What the story's two views share: which screen the laptop shows, and the phone's chat, which
  * replays the problem the visitor typed or has selected in the hero. */
 export function useHow(hero: Pick<HeroModel, "live" | "search">) {
+  const { mock, problems } = useLandingContent();
   const [scene, setScene] = useState(0);
-  const [chat, setChat] = useState<HowChat>(QUIET);
+  const [chat, setChat] = useState<HowChat>(() => ({ ...mock.quietChat, n: 0, sent: false, reply: 0 }));
   const [imagesWanted, setImagesWanted] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const { live, search } = hero;
@@ -43,11 +34,11 @@ export function useHow(hero: Pick<HeroModel, "live" | "search">) {
     clearTimeout(timer.current);
     const q = (search.input.current?.value ?? "").trim();
     const typedEnough = q.length >= 3;
-    const match = typedEnough ? matchProblem(q) : -1;
-    const problem = PROBLEMS[match >= 0 ? match : live.current.selected];
+    const match = typedEnough ? matchProblem(q, problems) : -1;
+    const problem = problems[match >= 0 ? match : live.current.selected];
     const msg = typedEnough ? q : problem.say;
-    const help = `${problem.help.split(", then")[0].replace(/\.$/, "")}.`;
-    setChat({ msg, n: 0, sent: false, reply: 0, question: QUESTION, label: problem.label, area: problem.tag, help });
+    const help = problem.brief ?? `${problem.help.split(", then")[0].replace(/\.$/, "")}.`;
+    setChat({ msg, n: 0, sent: false, reply: 0, question: mock.quietChat.question, label: problem.label, area: problem.tag, help });
     let n = 0;
     const type = () => {
       n++;
@@ -62,7 +53,7 @@ export function useHow(hero: Pick<HeroModel, "live" | "search">) {
       }, 550);
     };
     timer.current = setTimeout(type, 300);
-  }, [live, search.input]);
+  }, [live, search.input, mock.quietChat.question, problems]);
 
   const resetChat = useCallback(() => {
     clearTimeout(timer.current);
