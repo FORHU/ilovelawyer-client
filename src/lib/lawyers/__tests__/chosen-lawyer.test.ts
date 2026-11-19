@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { setCurrentSite } from "@/lib/tenant/current-site";
 import type { CaseArea, UkJurisdiction } from "@/lib/types";
 import { chosenLawyerFit, useChosenLawyer, type ChosenLawyer } from "../chosen-lawyer";
 
@@ -19,6 +20,21 @@ describe("chosenLawyerFit", () => {
   it("is unknown until the case has an area and a part of the UK", () => {
     expect(chosenLawyerFit(JANE, theCase([], "England and Wales"))).toBe("unknown");
     expect(chosenLawyerFit(JANE, theCase(["EMPLOYMENT"], null))).toBe("unknown");
+  });
+});
+
+describe("chosenLawyerFit on the Korean site", () => {
+  const SEO: ChosenLawyer = { id: "l2", name: "Kim Minjun", caseAreas: ["EMPLOYMENT"], qualifiedJurisdictions: [] };
+  beforeEach(() => setCurrentSite("KR"));
+  afterEach(() => setCurrentSite("UK"));
+
+  it("goes by the area alone: Korea has no parts with their own law", () => {
+    expect(chosenLawyerFit(SEO, theCase(["EMPLOYMENT"], null))).toBe("fits");
+    expect(chosenLawyerFit(SEO, theCase(["HOUSING"], null))).toBe("mismatch");
+  });
+
+  it("is unknown until the case has an area", () => {
+    expect(chosenLawyerFit(SEO, theCase([], null))).toBe("unknown");
   });
 });
 

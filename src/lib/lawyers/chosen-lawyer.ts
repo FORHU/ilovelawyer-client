@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { currentSite } from "@/lib/tenant/current-site";
 import type { Case } from "@/lib/types";
 import { takesCase, type ClientLawyer } from "./marketplace";
 
@@ -57,9 +58,9 @@ export function usePendingLawyer(ownerId: string | undefined) {
   return useChosenLawyer((s) => (ownerId && s.pending?.ownerId === ownerId ? s.pending : null));
 }
 
-/** Whether the chosen lawyer takes the case: "unknown" until the case has its area and part of the
- * UK, then "fits" or "mismatch". */
+/** Whether the chosen lawyer takes the case: "unknown" until the case has its area (and, on the UK,
+ * its part of the UK), then "fits" or "mismatch". Another site (KR) has no parts: area alone. */
 export function chosenLawyerFit(lawyer: ChosenLawyer, c: Pick<Case, "areas" | "ukJurisdiction">): "unknown" | "fits" | "mismatch" {
-  if (!c.ukJurisdiction || c.areas.length === 0) return "unknown";
+  if (c.areas.length === 0 || (currentSite() === "UK" && !c.ukJurisdiction)) return "unknown";
   return takesCase(lawyer, c) ? "fits" : "mismatch";
 }

@@ -14,6 +14,7 @@ import { useMarketplaceCase } from "@/lib/lawyers/marketplace";
 import { areasLabel } from "@/lib/types";
 
 import { useT } from "@/components/site/language-provider";
+import { useSite } from "@/components/site/site-provider";
 /**
  * Under the chat, after the AI's latest answer: suggests a lawyer once the case has what a lawyer
  * needs (checked by the API, see lib/cases/readiness.ts), and until then shows what's still
@@ -26,6 +27,7 @@ import { useT } from "@/components/site/language-provider";
  */
 export function LawyerSuggestion({ caseId, latestAnswerId }: { caseId: string; latestAnswerId: string }) {
   const t = useT();
+  const { regionQuestion } = useSite();
   const mobile = useDevice() === "mobile";
   const openForm = () => useLawyerRequestForm.getState().openFor(caseId);
   const { data: r } = useLawyerReadinessQuery(caseId, latestAnswerId);
@@ -63,11 +65,17 @@ export function LawyerSuggestion({ caseId, latestAnswerId }: { caseId: string; l
           <div className={mobile ? undefined : "min-w-[200px] flex-1"}>
             <div className="text-sm font-semibold">{t("{name} doesn't take cases like this one", { name: chosenName })}</div>
             <div className="text-[13px] leading-[1.45] text-ink-2">
-              {t("Your case is about {area} in {place}, which {name} doesn't handle. We can match you with verified lawyers who do, or you can pick someone else.", {
-                area: areasLabel(theCase.areas) || t("this type of issue"),
-                place: theCase.ukJurisdiction ?? "",
-                name: chosenName,
-              })}
+              {/* The UK's parts of the UK only on the UK: another site's lawyers take its whole country. */}
+              {regionQuestion
+                ? t("Your case is about {area} in {place}, which {name} doesn't handle. We can match you with verified lawyers who do, or you can pick someone else.", {
+                    area: areasLabel(theCase.areas) || t("this type of issue"),
+                    place: theCase.ukJurisdiction ?? "",
+                    name: chosenName,
+                  })
+                : t("Your case is about {area}, which {name} doesn't handle. We can match you with verified lawyers who do, or you can pick someone else.", {
+                    area: areasLabel(theCase.areas) || t("this type of issue"),
+                    name: chosenName,
+                  })}
             </div>
           </div>
           <div className={cn("flex gap-2", mobile && "flex-col")}>
