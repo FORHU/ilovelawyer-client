@@ -18,10 +18,10 @@ const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001").rep
 const nextConfig: NextConfig = {
   /* config options here */
   // Hosts other than localhost that open the dev server: each site's own (uk-client / ph-client /
-  // kr-client .ilovelawyer, mapped to 127.0.0.1 in the hosts file; see lib/tenant/resolve-host.ts),
+  // kr-client .ilovelawyer.localhost, which need no hosts-file entry; see lib/tenant/resolve-host.ts),
   // ilovelawyer.local, and the https *client-local.ilovelawyer.com hosts that Google sign-in accepts.
   // Without this Next blocks their /_next/hmr connection. Dev only; ignored in production.
-  allowedDevOrigins: ["uk-client.ilovelawyer", "ph-client.ilovelawyer", "kr-client.ilovelawyer", "ilovelawyer.local", "client-local.ilovelawyer.com", "*.ilovelawyer.com"],
+  allowedDevOrigins: ["*.ilovelawyer.localhost", "ilovelawyer.local", "client-local.ilovelawyer.com", "*.ilovelawyer.com"],
   cacheComponents: true,
   partialPrefetching: true,
   experimental: {
