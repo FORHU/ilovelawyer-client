@@ -5,8 +5,8 @@
 
 import type { Problem } from "../problems";
 
-/** What the "how we help" line ends with: lawyers in this area send their quotes. */
-const QUOTE_TAIL = " 이후 해당 분야 변호사가 견적을 보냅니다.";
+/** What the "how we help" line ends with: the client can ask a lawyer they choose to review it. */
+const QUOTE_TAIL = " 이후 직접 고른 변호사에게 검토를 요청할 수 있습니다.";
 
 interface Row {
   /** The photo's name, at /landing/kr/hero/<slug>.webp. */

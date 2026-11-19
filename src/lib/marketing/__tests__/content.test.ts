@@ -37,7 +37,8 @@ describe.each(sites)("the %s page's shape", (_site, content) => {
     expect(content.paper.fill).toHaveLength(2);
     expect(content.paper.senders.length).toBeGreaterThanOrEqual(6);
     expect(content.paper.formCodes.length).toBeGreaterThanOrEqual(6);
-    expect(content.mock.lawyers).toHaveLength(3);
+    // Three quotes to compare, or the one lawyer the client chose where the fee is agreed directly.
+    expect(content.mock.lawyers).toHaveLength(content.mock.quotes.directFee ? 1 : 3);
     expect(content.mock.frame.labels).toHaveLength(6);
     expect(content.mock.frame.paths).toHaveLength(6);
     expect(content.mock.starters).toHaveLength(3);
@@ -48,9 +49,13 @@ describe.each(sites)("the %s page's shape", (_site, content) => {
     expect(content.problems[content.startProblem]).toBeDefined();
   });
 
-  it("adds up each sample quote", () => {
-    const money = (s: string) => Number(s.replace(/[^0-9.]/g, ""));
-    for (const l of content.mock.lawyers) expect(money(l.fee) + money(l.platform)).toBe(money(l.total));
+  it("adds up each sample quote, where it shows amounts", () => {
+    const money = (s?: string) => Number((s ?? "").replace(/[^0-9.]/g, ""));
+    if (content.mock.quotes.directFee) return;
+    for (const l of content.mock.lawyers) {
+      expect(l.total, l.name).toBeTruthy();
+      expect(money(l.fee) + money(l.platform)).toBe(money(l.total));
+    }
   });
 
   it("has a photo on disk for everything it shows", () => {
@@ -91,22 +96,26 @@ describe("the Korean page", () => {
     expect(bySlug["unfair-dismissal"]).toMatchObject({ width: 2752, height: 1536 });
   });
 
-  it("has a section for fees, and it follows the app: free cases, a platform fee on the quote", () => {
+  it("has a section for fees: free cases, the lawyer's fee agreed directly with the lawyer", () => {
     const fees = KR_CONTENT.fees!;
     expect(fees.cards).toHaveLength(3);
     const text = fees.cards.map((c) => `${c.title}\n${c.body}`).join("\n");
     expect(text).toContain("무료");
-    expect(text).toContain("플랫폼 수수료");
+    expect(text).toContain("직접");
+    expect(text).not.toContain("플랫폼 수수료");
     expect(UK_CONTENT.fees).toBeUndefined();
   });
 
-  it("does not claim ilovelawyer takes no share, which the app's platform fee contradicts", () => {
-    const everything = JSON.stringify([KR_CONTENT.trust, KR_CONTENT.fees, KR_CONTENT.faq, KR_CONTENT.mock.lawyers]);
-    for (const claim of ["나누어 받지 않", "받지 않으며, 변호사 보수를"]) expect(everything).not.toContain(claim);
+  it("takes no platform fee anywhere, and shows one chosen lawyer with no amounts", () => {
+    const everything = JSON.stringify([KR_CONTENT.trust, KR_CONTENT.fees, KR_CONTENT.faq, KR_CONTENT.mock]);
+    for (const claim of ["플랫폼 수수료", "ilovelawyer로 결제", "결제한 변호사", "최대 3명"]) expect(everything).not.toContain(claim);
+    expect(KR_CONTENT.mock.lawyers).toHaveLength(1);
+    expect(KR_CONTENT.mock.lawyers[0].total).toBeUndefined();
+    expect(KR_CONTENT.mock.quotes.directFee).toBeTruthy();
   });
 
   it("leaves its open decisions as placeholders that show as chips", () => {
-    const placeholders = copyParts(KR_CONTENT.trust.cards[2].body).filter((p) => p.kind === "placeholder");
+    const placeholders = copyParts(KR_CONTENT.trust.cards[0].body).filter((p) => p.kind === "placeholder");
     expect(placeholders.length).toBeGreaterThan(0);
     expect(copyParts(KR_CONTENT.footer.legalNote ?? "").some((p) => p.kind === "placeholder")).toBe(true);
   });
