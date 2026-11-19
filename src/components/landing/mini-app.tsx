@@ -11,7 +11,8 @@ import type { HowChat } from "./use-how";
 // queries, sockets or stores, which a signed-out public page mustn't run). When one of those screens
 // changes, change its mini version here. The words, lawyers and fees are the site's (lib/marketing/
 // content): the lawyers are invented and the fees are placeholders, which is why the laptop's frame
-// says "Sample case".
+// says "Sample case". Where the client agrees the fee with the lawyer directly (KR, quotes.directFee),
+// there is one chosen lawyer and no amounts at all.
 
 const CARD = "flex flex-col gap-4 rounded-modal border border-line bg-white p-6";
 
@@ -141,24 +142,33 @@ function QuoteCard({ lawyer }: { lawyer: MockLawyer }) {
       <p className="px-1 text-[13px] leading-[1.6] text-ink-2">{lawyer.bio}</p>
       <section className={CARD}>
         <Eyebrow muted>{quotes.quoteEyebrow}</Eyebrow>
-        <span className="font-display text-[34px] leading-none tracking-[-0.02em]">{lawyer.total}</span>
-        <p className="text-[14px] text-[#4a4a4a]">{lawyer.message}</p>
-        <div className="flex flex-col gap-1.5 rounded-input border border-line bg-subtle px-4 py-3.5 text-[13px]">
-          <div className="flex justify-between gap-2">
-            <span>{quotes.feeLine(lawyer.first)}</span>
-            <span>{lawyer.fee}</span>
-          </div>
-          <div className="flex justify-between gap-2 text-ink-2">
-            <span>{quotes.platformFee}</span>
-            <span>{lawyer.platform}</span>
-          </div>
-          <div className="flex justify-between gap-2 border-t border-line pt-2 text-[15px] font-semibold">
-            <span>{quotes.youPay}</span>
-            <span>{lawyer.total}</span>
-          </div>
-        </div>
+        {quotes.directFee ? (
+          <>
+            <p className="text-[14px] text-[#4a4a4a]">{lawyer.message}</p>
+            <div className="rounded-input border border-line bg-subtle px-4 py-3.5 text-[13px]">{quotes.directFee}</div>
+          </>
+        ) : (
+          <>
+            <span className="font-display text-[34px] leading-none tracking-[-0.02em]">{lawyer.total}</span>
+            <p className="text-[14px] text-[#4a4a4a]">{lawyer.message}</p>
+            <div className="flex flex-col gap-1.5 rounded-input border border-line bg-subtle px-4 py-3.5 text-[13px]">
+              <div className="flex justify-between gap-2">
+                <span>{quotes.feeLine?.(lawyer.first)}</span>
+                <span>{lawyer.fee}</span>
+              </div>
+              <div className="flex justify-between gap-2 text-ink-2">
+                <span>{quotes.platformFee}</span>
+                <span>{lawyer.platform}</span>
+              </div>
+              <div className="flex justify-between gap-2 border-t border-line pt-2 text-[15px] font-semibold">
+                <span>{quotes.youPay}</span>
+                <span>{lawyer.total}</span>
+              </div>
+            </div>
+          </>
+        )}
         <div className="flex gap-2.5">
-          <span className="flex h-[46px] flex-1 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white">{quotes.accept(lawyer.total)}</span>
+          <span className="flex h-[46px] flex-1 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white">{quotes.accept(lawyer.total ?? "")}</span>
           <span className="flex h-[46px] flex-1 items-center justify-center rounded-full border border-line-input text-sm">{quotes.decline}</span>
         </div>
       </section>
@@ -297,10 +307,11 @@ function OverviewDesktop({ chat }: { chat: HowChat }) {
 }
 
 /** components/case/lawyer-tab.desktop.tsx with lawyer-stages.tsx's QuoteStage. `comparing` scrolls down
- * the column to the second quote. */
-function QuotesDesktop({ chat, comparing }: { chat: HowChat; comparing?: boolean }) {
+ * the column to the second quote, where there is one: with a single chosen lawyer (KR) it stays put. */
+function QuotesDesktop({ chat, comparing: comparingScene }: { chat: HowChat; comparing?: boolean }) {
   const { mock } = useLandingContent();
   const { quotes } = mock;
+  const comparing = comparingScene && mock.lawyers.length > 1;
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <CaseHeaderMini chat={chat} hasLawyer />

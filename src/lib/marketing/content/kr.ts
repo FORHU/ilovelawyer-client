@@ -3,12 +3,12 @@
 // decisions still to come; they show as dashed chips and must all be gone before the page goes
 // public.
 //
-// Pricing follows the app and API, not the design's draft, as the UK page does (lib/marketing/
-// copy.ts): creating a case is free, credits are paid, and hiring a lawyer means paying their fee
-// plus a platform fee through ilovelawyer, both shown on the quote. The design said ilovelawyer takes
-// no share of a lawyer's fees. Whether a platform fee is allowed under Korean law (the Attorney-at-Law
-// Act bars paid referrals and fee sharing) is the first thing the reviewing lawyer must settle, which
-// is why the trust card carries a placeholder for it.
+// Pricing follows the Korean model (copy review, 19 Nov 2026): creating a case is free and credits
+// are paid, but ilovelawyer takes no fee for introducing or hiring a lawyer. The client picks one
+// lawyer and agrees and pays that lawyer's fee directly with them; ilovelawyer earns from credits and
+// lawyers' software subscriptions. The Attorney-at-Law Act bars paid referrals and fee sharing. This
+// copy is only true once the app and API drop the platform fee and multi-lawyer quotes, so it ships in
+// the same release as that change.
 
 import { SUPPORT_EMAIL } from "../copy";
 import { KR_PROBLEMS, KR_START_PROBLEM } from "./kr-problems";
@@ -16,7 +16,7 @@ import type { LandingContent } from "./types";
 
 const TITLE = "ilovelawyer: 법률 문제, 명확하게";
 const DESCRIPTION =
-  "내 법률 문제를 먼저 이해하고, 대한변협에 등록된 변호사에게 견적을 받아 보세요. 사건 생성은 무료, 사용한 채팅 크레딧만 결제합니다. AI 안내는 법률 자문이 아닙니다.";
+  "내 법률 문제를 먼저 이해하고, 대한변협에 등록된 변호사에게 견적을 받아 보세요. 사건 생성은 무료이며, 모든 비용은 결제 전에 표시됩니다. AI 안내는 법률 자문이 아닙니다.";
 const DISCLAIMER = "AI 안내는 일반 법률 정보이며 법률 자문이 아닙니다. 자문은 직접 선택한 변호사가 제공합니다.";
 
 export const KR_CONTENT: LandingContent = {
@@ -45,7 +45,7 @@ export const KR_CONTENT: LandingContent = {
     intro: {
       left: "혼자 짐작하지",
       right: "마세요.",
-      sub: "지금 겪는 일을 편하게 말해 주세요. 쉬운 말로 설명해 드리고, 대한변협에 등록된 변호사가 견적을 보냅니다.",
+      sub: "지금 겪는 일을 편하게 말해 주세요. 쉬운 말로 정리해 드리고, 대한변협에 등록된 변호사가 견적을 보냅니다.",
     },
     cta: "사건 시작하기",
     headings: [
@@ -54,8 +54,8 @@ export const KR_CONTENT: LandingContent = {
       "대한변협 등록 변호사에게 견적을 받으세요.",
       "믿을 수 있는 변호사를 직접 고르세요. 모든 변호사의 대한변협 등록을 확인합니다.",
       "변호사와 한곳에서 대화하세요.",
-      "서류를 올리면, 무슨 뜻인지 알려 드립니다.",
-      "모든 답변 뒤에는, 제대로 된 도구를 갖춘 변호사가 있습니다.",
+      "서류를 올리면, 날짜와 요청 사항을 정리해 드립니다.",
+      "정리된 사건은, 직접 고른 변호사가 이어받습니다.",
     ],
     captions: [
       { label: "01 / 04 · 의뢰인 요약", text: "사실관계, 날짜, 수사·소송 단계, 합의 상태가 정리된 채로 전달됩니다." },
@@ -99,13 +99,11 @@ export const KR_CONTENT: LandingContent = {
   },
   mock: {
     lawyers: [
-      { name: "김서연 변호사", first: "김서연 변호사", initials: "김", firm: "법률사무소 서연", bio: "임대차·부동산 사건을 주로 맡고 있습니다.", fee: "₩400,000", platform: "₩60,000", total: "₩460,000", message: "요약을 읽었습니다. 서류를 검토하고 선택지를 안내해 드리며, 필요하면 회신 서면도 대신 작성하겠습니다." },
-      { name: "박준호 변호사", first: "박준호 변호사", initials: "박", firm: "법률사무소 한결", bio: "민사·형사 사건을 맡고 있습니다.", fee: "₩480,000", platform: "₩72,000", total: "₩552,000", message: "서류를 검토하고 다음 단계를 안내해 드리며, 후속 서면 한 통을 포함합니다." },
-      { name: "이지은 변호사", first: "이지은 변호사", initials: "이", firm: "법률사무소 지은", bio: "노동·가사 사건을 맡고 있습니다.", fee: "₩600,000", platform: "₩90,000", total: "₩690,000", message: "전체 검토와 상담, 그리고 앞으로의 계획까지 안내해 드립니다." },
+      { name: "김서연 변호사", first: "김서연 변호사", initials: "김", firm: "법률사무소 서연", bio: "임대차·부동산 사건을 주로 맡고 있습니다.", message: "요약을 읽었습니다. 서류를 검토하고 선택지를 안내해 드리며, 필요하면 회신 서면도 대신 작성하겠습니다." },
     ],
     starters: ["회사에서 해고됐어요", "집주인이 보증금을 안 줘요", "경찰 출석요구서를 받았어요"],
     disclosure:
-      "ilovelawyer를 통해 변호사 보수와 견적에 표시된 ilovelawyer 플랫폼 수수료를 결제합니다. 변호사는 보수 전액을 받으며, 플랫폼 수수료는 변호사가 청구하는 금액을 바꾸지 않습니다.",
+      "변호사 보수는 의뢰인과 변호사가 직접 약정하고 결제합니다. ilovelawyer는 변호사 소개나 선임의 대가로 수수료를 받지 않습니다.",
     aiNote: "저는 변호사에게 전달할 정보를 모으고 정리합니다. 법률 자문은 할 수 없습니다.",
     city: "서울",
     clientName: "김지민",
@@ -142,32 +140,30 @@ export const KR_CONTENT: LandingContent = {
       stillAnswer: "인터뷰에서 답하기 →",
     },
     request: {
-      eyebrow: "맞춤 매칭",
+      eyebrow: "요청 진행 상황",
       title: "변호사 요청",
-      sent: { label: "요청 전송", sub: "개요를 익명으로 요약해 전달" },
-      finding: { label: "변호사 찾는 중", sub: "조건에 맞는 변호사에게 전달" },
-      reviewingSub: "이해충돌 확인 후 견적",
-      quoteSub: "하나를 수락해 ilovelawyer로 결제하거나 거절",
+      sent: { label: "요청 전송", sub: "직접 고른 변호사에게 익명 요약 전달" },
+      finding: { label: "이해충돌 확인", sub: "사건에 등장하는 이름 확인" },
+      reviewingSub: "요약을 읽고 답변 작성",
+      quoteSub: "수락하면 변호사와 바로 대화를 시작합니다",
       working: { label: "변호사와 진행 중", sub: "메시지, 사건 읽기 전용 열람" },
     },
     quotes: {
       verified: "대한변협 등록 확인",
-      status: "검토할 견적",
-      reviewing: "변호사 3명이 검토 중",
-      compare: "견적 비교",
-      heading: "견적 3건이 도착했습니다",
-      deadline: "11월 20일 금요일 오전 9시까지 변호사를 선택하세요. 선택하지 않으면 요청이 종료되며 다시 요청할 수 있습니다.",
-      quoteEyebrow: "고정 보수 견적",
-      feeLine: (first) => `${first} 보수 (전액 지급)`,
-      platformFee: "ilovelawyer 플랫폼 수수료",
-      youPay: "결제 금액",
-      accept: (total) => `${total} 수락 및 결제`,
-      decline: "견적 거절",
+      status: "답변 도착",
+      reviewing: "변호사가 검토 중",
+      compare: "답변 확인",
+      heading: "선택한 변호사의 답변",
+      deadline: "11월 20일 금요일 오전 9시까지 수락하거나 거절하세요. 응답하지 않으면 요청이 종료되며 다시 요청할 수 있습니다.",
+      quoteEyebrow: "변호사 답변",
+      directFee: "보수는 변호사와 직접 약정",
+      accept: () => "수락하고 대화 시작",
+      decline: "거절",
     },
     messages: {
       workingWith: (first) => `${first}와 진행 중`,
       reviewingOne: "변호사가 검토 중",
-      reviewQuote: "견적 검토",
+      reviewQuote: "답변 확인",
       workingBanner: (name) => `${name}와 함께 진행 중입니다`,
       heading: (name) => `${name}와의 메시지`,
       intro: "이미 사건과 서류를 볼 수 있습니다. 궁금한 점을 여기서 물어보세요.",
@@ -200,8 +196,8 @@ export const KR_CONTENT: LandingContent = {
       labels: [
         "무슨 일인지 묻는 새 사건 대화",
         "사건 개요: 변호사에게 필요한 정보, AI 요약, 출처가 달린 타임라인",
-        "받은 견적 3건: 변호사 보수, 플랫폼 수수료, 총액",
-        "두 번째 변호사의 견적을 비교하는 화면, 수락과 거절 선택",
+        "선택한 변호사의 답변: 보수는 변호사와 직접 약정",
+        "변호사의 답변을 확인하는 화면, 수락과 거절 선택",
         "선택한 변호사와의 메시지, 공유된 서류",
         "AI가 서류를 읽은 사건 인터뷰",
       ],
@@ -210,7 +206,7 @@ export const KR_CONTENT: LandingContent = {
       msg: "계약이 끝났는데 집주인이 보증금을 안 돌려줘요",
       label: "전세보증금 반환",
       area: "주거",
-      help: "임차권등기명령, 지급명령, 보증금반환소송 중 무엇이 맞는지 기한과 함께 설명해 드립니다.",
+      help: "임차권등기명령, 지급명령, 보증금반환소송이 각각 어떤 절차인지와 일반적인 기한을 안내해 드립니다.",
       question: "언제부터 시작됐나요? 경찰 출석요구서, 검찰 통지서, 법원 지급명령 같은 서류를 받으셨나요?",
     },
     phoneLabels: {
@@ -228,11 +224,11 @@ export const KR_CONTENT: LandingContent = {
       },
       {
         title: "변호사가 볼 수 있는 정보",
-        body: "변호사는 먼저 이름과 서류를 뺀 익명 요약만 봅니다. 요청을 맡으려는 변호사(최대 3명)는 이해충돌 여부를 확인하기 위해 사건에 등장하는 사람과 기관의 이름도 볼 수 있습니다. 직접 선택해 결제한 변호사만 사건, 서류, AI와의 대화를 열람할 수 있습니다.",
+        body: "변호사는 먼저 이름과 서류를 뺀 익명 요약만 봅니다. 의뢰인이 직접 고른 변호사는 이해충돌 여부를 확인하기 위해 사건에 등장하는 사람과 기관의 이름도 볼 수 있습니다. 그 변호사가 의뢰를 수락한 뒤에만 사건, 서류, AI와의 대화를 열람할 수 있습니다.",
       },
       {
         title: "ilovelawyer 수익 구조",
-        body: "사건에 쓸 채팅 크레딧을 구매할 수 있습니다. 변호사를 선택하면 ilovelawyer를 통해 변호사 보수와 ilovelawyer 플랫폼 수수료를 결제하며, 둘 다 동의하기 전에 견적에 표시됩니다. 변호사는 보수 전액을 받고, 플랫폼 수수료는 변호사가 청구하는 금액을 바꾸지 않습니다. [변호사법상 수수료 구조 검토: 확정 후 기재]",
+        body: "ilovelawyer는 의뢰인이 구매하는 채팅 크레딧과 변호사가 이용하는 업무용 소프트웨어 구독으로 수익을 얻습니다. 변호사 소개나 선임의 대가로 수수료를 받지 않으며, 변호사 보수는 의뢰인과 변호사가 직접 약정하고 결제합니다.",
       },
       {
         title: "AI와 개인정보",
@@ -243,7 +239,7 @@ export const KR_CONTENT: LandingContent = {
   fees: {
     eyebrow: "비용",
     title: "수락하기 전에 모든 비용을 확인하세요",
-    lede: "모든 금액은 결제 전에 표시되며, 동의하기 전에는 아무것도 청구되지 않습니다.",
+    lede: "ilovelawyer에서 결제하는 금액은 결제 전에 모두 표시되며, 동의하기 전에는 아무것도 청구되지 않습니다.",
     cards: [
       {
         title: "사건 생성은 무료",
@@ -251,11 +247,11 @@ export const KR_CONTENT: LandingContent = {
       },
       {
         title: "변호사 견적",
-        body: "변호사를 선택하면 변호사 보수와 ilovelawyer 플랫폼 수수료를 ilovelawyer를 통해 결제합니다. 견적에 두 금액과 총액이 표시되며, 결제 시 추가되는 금액은 없습니다. 변호사는 보수 전액을 받습니다.",
+        body: "변호사를 직접 고르고, 보수는 그 변호사와 직접 약정하고 결제합니다. ilovelawyer는 변호사 보수에서 어떤 수수료도 받지 않습니다.",
       },
       {
         title: "결제와 환불",
-        body: "결제한 뒤 환불이 필요하면 환불 정책에 따릅니다. 변호사를 선택할 때 ilovelawyer로 결제한 금액도 같습니다. [청약철회 기간: 확정 후 기재]",
+        body: "결제한 뒤 환불이 필요하면 환불 정책에 따릅니다. [청약철회 기간: 확정 후 기재]",
       },
     ],
   },
@@ -280,7 +276,7 @@ export const KR_CONTENT: LandingContent = {
       },
       {
         q: "경찰 출석요구서를 받았어요. 빨리 도움을 받을 수 있나요?",
-        a: "출석일을 입력하면 사건 요약 맨 위에 표시되고 형사 사건을 맡는 변호사에게 먼저 전달됩니다. 경찰 조사 단계부터 변호인의 도움을 받을 수 있습니다.",
+        a: "출석일을 입력하면 사건 요약 맨 위에 표시되어 변호사가 바로 확인할 수 있습니다. 경찰 조사 단계부터 변호인의 도움을 받을 수 있습니다.",
       },
       {
         q: "합의 상태는 왜 묻나요?",
@@ -288,23 +284,23 @@ export const KR_CONTENT: LandingContent = {
       },
       {
         q: "변호사가 내 이름을 보나요?",
-        a: "처음에는 보지 않습니다. 익명 처리된 요약만 봅니다. 요청을 맡으려는 변호사는 이해충돌을 확인하기 위해 사건에 등장하는 사람과 기관의 이름을 볼 수 있습니다. 직접 선택해 결제한 변호사는 사건, 서류, AI와의 대화를 열람할 수 있고, 변호사의 기록 보관 의무에 따라 사본을 보관할 수 있습니다.",
+        a: "처음에는 보지 않습니다. 익명 처리된 요약만 봅니다. 의뢰인이 직접 고른 변호사는 이해충돌을 확인하기 위해 사건에 등장하는 사람과 기관의 이름을 볼 수 있습니다. 그 변호사가 의뢰를 수락하면 사건, 서류, AI와의 대화를 열람할 수 있고, 변호사의 기록 보관 의무에 따라 사본을 보관할 수 있습니다.",
       },
       {
         q: "비용은 얼마인가요?",
-        a: "사건 생성은 무료이며, 새 사건에는 채팅 크레딧이 포함됩니다. 크레딧이 더 필요하면 결제 전에 표시된 가격으로 구매할 수 있습니다. 변호사 요청도 무료입니다. 변호사를 선택하면 변호사 보수와 ilovelawyer 플랫폼 수수료를 결제하며, 견적에 두 금액이 동의하기 전에 표시됩니다. 견적의 총액이 결제하는 금액입니다. [부가가치세 표시 방식: 확정 후 기재]",
+        a: "사건 생성은 무료이며, 새 사건에는 채팅 크레딧이 포함됩니다. 크레딧이 더 필요하면 결제 전에 표시된 가격으로 구매할 수 있습니다. 변호사 요청도 무료입니다. 변호사 보수는 선택한 변호사와 직접 약정합니다. [부가가치세 표시 방식: 확정 후 기재]",
       },
       {
         q: "ilovelawyer는 어떻게 수익을 얻나요?",
-        a: "두 가지입니다. 사건에 구매하는 채팅 크레딧, 그리고 변호사를 선택할 때 견적에 더해지는 플랫폼 수수료입니다. 변호사는 보수 전액을 받습니다. 자세한 내용은 위의 'ilovelawyer 수익 구조'를 확인하세요.",
+        a: "두 가지입니다. 의뢰인이 구매하는 채팅 크레딧, 그리고 변호사가 이용하는 업무용 소프트웨어 구독료입니다. 변호사 소개나 수임의 대가는 받지 않습니다. 자세한 내용은 위의 'ilovelawyer 수익 구조'를 확인하세요.",
       },
       {
         q: "환불받을 수 있나요?",
-        a: "네, 환불 정책에 안내된 경우에 가능합니다. 그 정책은 변호사를 선택할 때 ilovelawyer로 결제한 금액도 다룹니다. [청약철회 기간: 확정 후 기재]",
+        a: "네, 환불 정책에 안내된 경우에 가능합니다. [청약철회 기간: 확정 후 기재]",
       },
       {
         q: "마음에 드는 견적이 없으면요?",
-        a: "하나를 꼭 선택하지 않아도 되며, 견적을 받는 데 드는 비용은 없습니다. 직접 선택해 결제한 변호사만 사건 전체를 볼 수 있습니다.",
+        a: "하나를 꼭 선택하지 않아도 되며, 견적을 받는 데 드는 비용은 없습니다. 의뢰를 수락한 변호사만 사건 전체를 볼 수 있습니다.",
       },
       {
         q: "어떤 사건을 다루나요?",

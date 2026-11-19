@@ -13,10 +13,11 @@ export interface MockLawyer {
   initials: string;
   firm: string;
   bio: string;
-  /** The lawyer's own fee, the platform fee and what the client pays, already written as money. */
-  fee: string;
-  platform: string;
-  total: string;
+  /** The lawyer's own fee, the platform fee and what the client pays, already written as money.
+   * Left out where the client agrees the fee with the lawyer directly (KR). */
+  fee?: string;
+  platform?: string;
+  total?: string;
   message: string;
 }
 
@@ -31,7 +32,8 @@ export interface PhotoSlot {
 export interface MockText {
   lawyers: MockLawyer[];
   starters: string[];
-  /** The API's own wording for who pays what (CLIENT_REQUEST_REFERRAL_DISCLOSURE in ilovelawyer-api). */
+  /** Who pays what. UK: the API's own wording (CLIENT_REQUEST_REFERRAL_DISCLOSURE in ilovelawyer-api).
+   * KR: the no-platform-fee model, ahead of the API change that will match it. */
   disclosure: string;
   aiNote: string;
   /** The place shown after the case's area in its header, and the client's name in the sample. */
@@ -87,9 +89,13 @@ export interface MockText {
     heading: string;
     deadline: string;
     quoteEyebrow: string;
-    feeLine: (first: string) => string;
-    platformFee: string;
-    youPay: string;
+    /** The fee breakdown, for sites where the client pays the lawyer through ilovelawyer (UK). */
+    feeLine?: (first: string) => string;
+    platformFee?: string;
+    youPay?: string;
+    /** Set where the client agrees and pays the fee with the lawyer directly and pays nothing through
+     * ilovelawyer (KR): the quote card shows this line instead of amounts. */
+    directFee?: string;
     accept: (total: string) => string;
     decline: string;
   };
