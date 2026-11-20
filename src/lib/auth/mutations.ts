@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { resetLanding } from "@/lib/landing";
+import { useChosenLawyer } from "@/lib/lawyers/chosen-lawyer";
 import { useApp } from "@/lib/store";
 import { useWizard } from "@/lib/wizard-store";
 import {
@@ -174,6 +175,7 @@ export function useResetPasswordMutation() {
 function clearAccountData(queryClient: QueryClient) {
   useApp.getState().signOut();
   useWizard.getState().claimFor("");
+  useChosenLawyer.getState().clear();
   resetLanding();
   queryClient.clear();
 }

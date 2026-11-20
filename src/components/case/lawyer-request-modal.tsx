@@ -76,6 +76,16 @@ function RequestForm({ caseId, lawyer }: { caseId: string; lawyer: RequestedLawy
             setError(t("The consent wording has just been updated. Please read it again."));
             return;
           }
+          // Asked by name: the API checks the lawyer again on send, which can say no even when the
+          // case looked like a fit here (its type of issue was still being worked out).
+          if (name && err instanceof ApiError && err.code === "LAWYER_NOT_A_MATCH") {
+            setError(t("{name} doesn't take cases like this one. Close this and let us match you instead, or pick another lawyer.", { name }));
+            return;
+          }
+          if (name && err instanceof ApiError && err.code === "LAWYER_NOT_AVAILABLE") {
+            setError(t("{name} isn’t taking new requests right now", { name }));
+            return;
+          }
           setError(err instanceof Error ? err.message : t("Couldn't send your request. Try again."));
         },
       },

@@ -81,6 +81,7 @@ function Case() {
           }}
           // The Interview tab has no per-message anchor yet, so "You said" just switches to it.
           onOpenChat={() => setTab("chat")}
+          onOpenLawyer={hasLawyerTab ? () => setTab("lawyer") : undefined}
         />
       )}
       {active === "docs" && <Documents c={c} focusDocumentId={focusDocumentId} onFocused={clearFocusDocument} onOpenOverview={() => setTab("overview")} />}

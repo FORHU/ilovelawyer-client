@@ -9,6 +9,8 @@ export interface OverviewProps {
   c: Case;
   onOpenDocument: (documentId: string) => void;
   onOpenChat: () => void;
+  /** To the Lawyer tab, once a request is with a lawyer (ChosenLawyerCard). */
+  onOpenLawyer?: () => void;
 }
 
 /** What the AI has gathered about the case: one view per device, one hook (use-overview). */

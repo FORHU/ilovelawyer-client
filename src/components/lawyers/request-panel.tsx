@@ -172,7 +172,7 @@ export function RequestPanel({
           </div>
           {!sentToThem && available && (
             <button type="button" onClick={startCase} className="-mt-2 self-start border-0 bg-transparent p-0 text-[13px] font-medium text-ink underline underline-offset-4">
-              Or start a new case for {name}
+              {t("Or start a new case for {name}", { name })}
             </button>
           )}
 

@@ -3,10 +3,10 @@
 import { Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLawyerReadinessQuery } from "@/lib/cases/readiness";
-import { useCaseQuery, useMessagesQuery } from "@/lib/cases/queries";
+import { useMessagesQuery } from "@/lib/cases/queries";
 import { firstName } from "@/lib/format";
 import { useEligibilityQuery, useLawyerRequestForm, useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
-import { chosenLawyerFit, useChosenLawyer } from "@/lib/lawyers/chosen-lawyer";
+import { useChosenLawyerCard } from "@/lib/lawyers/use-chosen-lawyer-card";
 import { useApp } from "@/lib/store";
 
 import { useT } from "@/components/site/language-provider";
@@ -31,11 +31,12 @@ export function GetLawyerAction({ caseId }: { caseId: string }) {
   const { data: messages } = useMessagesQuery(caseId);
   const latestAnswerId = messages?.messages.findLast((m) => m.role === "ai")?.id;
   const { data: readiness } = useLawyerReadinessQuery(caseId, latestAnswerId);
-  const { data: theCase } = useCaseQuery(caseId);
-  // A lawyer chosen first (Find a lawyer) who takes the case is asked by name; otherwise it's a
-  // match, and the Interview's suggestion says why.
-  const chosen = useChosenLawyer((s) => s.byCase[caseId] ?? null);
-  const named = chosen && (!theCase || chosenLawyerFit(chosen, theCase) !== "mismatch") ? chosen : null;
+  // A lawyer chosen first (Find a lawyer) is asked by name once the case is ready for them. While
+  // it isn't, or they don't take it, there's no match on offer here: the Overview card and the
+  // Interview's suggestion say why and what to do.
+  const chosen = useChosenLawyerCard(caseId);
+  if (chosen.kind === "not-ready" || chosen.kind === "mismatch") return null;
+  const named = chosen.kind === "ready" ? chosen.lawyer : null;
 
   if (!data || openRequest) return null;
 

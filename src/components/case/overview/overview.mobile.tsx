@@ -4,7 +4,7 @@ import { ErrorBox } from "@/components/ui/banner";
 import { PullToRefresh } from "@/components/shell/pull-to-refresh";
 import { CaseDetails } from "@/components/case/overview/case-details";
 import { ReadinessBanner } from "@/components/case/overview/readiness-banner";
-import { buildSections, GetLawyerCard, NothingYet } from "./overview-sections";
+import { buildSections, ChosenLawyerCard, GetLawyerCard, NothingYet } from "./overview-sections";
 import type { OverviewProps } from "./overview";
 import { useOverview } from "./use-overview";
 import { useT } from "@/components/site/language-provider";
@@ -14,7 +14,7 @@ import { useSite } from "@/components/site/site-provider";
  * what is still needed and the dates coming up, then what to double-check; the longer record
  * (summary, timeline, facts, people, goals, questions) follows, then the case details and the
  * way to get a lawyer. */
-export function OverviewMobile({ c, onOpenDocument, onOpenChat }: OverviewProps) {
+export function OverviewMobile({ c, onOpenDocument, onOpenChat, onOpenLawyer }: OverviewProps) {
   const { intake, error, running, updatePending, updateError, onUpdate } = useOverview(c);
   const t = useT();
   const aiOpen = useSite().intakeChat === "open";
@@ -40,6 +40,8 @@ export function OverviewMobile({ c, onOpenDocument, onOpenChat }: OverviewProps)
 
         {aiOpen ? (
           <>
+            {/* The lawyer the client chose first is their next step, so it leads. */}
+            <ChosenLawyerCard caseId={c.id} fullWidth onOpenChat={onOpenChat} onOpenLawyer={onOpenLawyer} />
             {stillNeeded}
             {deadlines}
             {doubleCheck}
@@ -58,6 +60,7 @@ export function OverviewMobile({ c, onOpenDocument, onOpenChat }: OverviewProps)
           </>
         ) : (
           <>
+            <ChosenLawyerCard caseId={c.id} fullWidth onOpenLawyer={onOpenLawyer} />
             <CaseDetails c={c} defaultOpen />
             <p className="text-[12.5px] leading-[1.5] text-ink-2">{t("This is what you've told us about your case so far. It isn't legal advice.")}</p>
           </>

@@ -1,15 +1,22 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { TriangleAlert } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Check, Circle, TriangleAlert } from "lucide-react";
+import { NOT_AVAILABLE_TEXT } from "@/components/case/get-lawyer-action";
+import { useT } from "@/components/site/language-provider";
+import { useSite } from "@/components/site/site-provider";
 import { Button } from "@/components/ui/button";
 import { AsideCard, SectionCard, SectionSkeleton } from "@/components/case/overview/overview-section";
 import { SourceBadge } from "@/components/case/overview/source-badge";
 import { cn } from "@/lib/cn";
 import { deadlineStatus, urgentFirst } from "@/lib/cases/overview-urgency";
-import { formatDay, formatEventDate } from "@/lib/format";
+import { useCaseQuery } from "@/lib/cases/queries";
+import { firstName, formatDateTime, formatDay, formatEventDate } from "@/lib/format";
 import { useEligibilityQuery, useLawyerRequestForm, useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
-import type { CaseIntake, IntakeItem } from "@/lib/types";
+import { pickAnotherLawyer, useChosenLawyer } from "@/lib/lawyers/chosen-lawyer";
+import { useChosenLawyerCard } from "@/lib/lawyers/use-chosen-lawyer-card";
+import { areasLabel, type CaseIntake, type IntakeItem } from "@/lib/types";
 
 export type SourceProps = { onOpenChat: () => void; onOpenDocument: (id: string) => void };
 
@@ -299,7 +306,9 @@ export function NothingYet({ sections }: { sections: EmptySection[] }) {
 export function GetLawyerCard({ caseId, fullWidth }: { caseId: string; fullWidth?: boolean }) {
   const { data: openRequest } = useOpenLawyerRequestQuery(caseId);
   const { data } = useEligibilityQuery(caseId);
-  if (openRequest || !data?.eligible) return null;
+  // A lawyer chosen first has their own card (ChosenLawyerCard), never a match beside it.
+  const chosen = useChosenLawyer((s) => !!s.byCase[caseId]);
+  if (chosen || openRequest || !data?.eligible) return null;
   return (
     <section className="flex flex-col gap-2.5 rounded-card bg-primary px-5 py-[18px] text-white">
       <h3 className="font-display text-[19px]">Get a lawyer for this case</h3>
@@ -315,5 +324,144 @@ export function GetLawyerCard({ caseId, fullWidth }: { caseId: string; fullWidth
         Match me
       </Button>
     </section>
+  );
+}
+
+/** The lawyer the client chose before the case existed (Find a lawyer, lib/lawyers/chosen-lawyer.ts),
+ * in place of GetLawyerCard: what the case still needs before it can go to them, then sending it
+ * (through the request form and its consent), why they don't fit, or that it's with them now. A
+ * request sent to one lawyer by name shows here too, whichever way it was sent. */
+export function ChosenLawyerCard({
+  caseId,
+  fullWidth,
+  onOpenChat,
+  onOpenLawyer,
+}: {
+  caseId: string;
+  fullWidth?: boolean;
+  onOpenChat?: () => void;
+  onOpenLawyer?: () => void;
+}) {
+  const t = useT();
+  const router = useRouter();
+  const { regionQuestion } = useSite();
+  const { data: theCase } = useCaseQuery(caseId);
+  const state = useChosenLawyerCard(caseId);
+  if (state.kind === "none") return null;
+
+  const name = firstName(state.lawyer.name) ?? state.lawyer.name;
+  const size = fullWidth ? "lg" : "md";
+  const primary = cn("!border-0", fullWidth ? "w-full" : "self-start");
+  const actions = cn("mt-1 flex gap-x-4 gap-y-2", fullWidth ? "flex-col" : "flex-wrap items-center");
+  const textLink = cn(
+    "min-h-11 border-0 bg-transparent p-0 text-[13px] font-medium text-white underline underline-offset-4 md:min-h-0",
+    fullWidth && "self-center",
+  );
+  const pickAnother = () => pickAnotherLawyer(caseId, router.push);
+  const card = (children: ReactNode) => <section className="flex flex-col gap-2.5 rounded-card bg-primary px-5 py-[18px] text-white">{children}</section>;
+
+  if (state.kind === "sent") {
+    return card(
+      <>
+        <h3 className="flex items-center gap-2 font-display text-[19px]">
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-success-bg text-success-ink">
+            <Check size={14} aria-hidden />
+          </span>
+          {t("Request sent to {name}", { name })}
+        </h3>
+        <p className="text-[13px] text-[#d4d4d4]">
+          {state.routingExpiresAt
+            ? t("{name} has until {date} to take it up. If they don’t, it goes to other verified lawyers who match.", { name, date: formatDateTime(state.routingExpiresAt) })
+            : t("Only {name} can take it up for the next 24 hours. If they can’t, it goes to other matching lawyers automatically.", { name })}
+        </p>
+        {onOpenLawyer && (
+          <Button variant="soft" size={size} className={cn("mt-1", primary)} onClick={onOpenLawyer}>
+            {t("See it in the Lawyer tab")}
+          </Button>
+        )}
+      </>,
+    );
+  }
+
+  if (state.kind === "not-ready") {
+    return card(
+      <>
+        <h3 className="font-display text-[19px]">{t("Finish your case to send it to {name}", { name })}</h3>
+        {state.reason ? (
+          <p className="text-[13px] text-[#d4d4d4]">{t(NOT_AVAILABLE_TEXT[state.reason])}</p>
+        ) : state.missing.length > 0 ? (
+          <>
+            <p className="text-[13px] text-[#d4d4d4]">{t("{name} needs a little more first. Tell the AI about these in the Interview:", { name })}</p>
+            <ul className="flex flex-col gap-1">
+              {state.missing.map((c) => (
+                <li key={c.key} className="flex items-center gap-2 text-[13px]">
+                  <Circle size={11} className="shrink-0 text-[#d4d4d4]" aria-hidden />
+                  {c.label}
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <p className="text-[13px] text-[#d4d4d4]">
+            {t("Tell the AI what’s going on in the Interview. Once your case has what a lawyer needs, you can send it to {name}.", { name })}
+          </p>
+        )}
+        <div className={actions}>
+          {onOpenChat && !state.reason && (
+            <Button variant="soft" size={size} className={primary} onClick={onOpenChat}>
+              {t("Continue in the Interview")}
+            </Button>
+          )}
+          <button type="button" onClick={pickAnother} className={textLink}>
+            {t("Choose someone else")}
+          </button>
+        </div>
+      </>,
+    );
+  }
+
+  if (state.kind === "mismatch") {
+    const area = (theCase && areasLabel(theCase.areas)) || t("this type of issue");
+    return card(
+      <>
+        <h3 className="font-display text-[19px]">{t("{name} doesn't take cases like this one", { name })}</h3>
+        <p className="text-[13px] text-[#d4d4d4]">
+          {/* The UK's parts of the UK only on the UK: another site's lawyers take its whole country. */}
+          {regionQuestion
+            ? t("Your case is about {area} in {place}, which {name} doesn't handle. We can match you with verified lawyers who do, or you can pick someone else.", {
+                area,
+                place: theCase?.ukJurisdiction ?? "",
+                name,
+              })
+            : t("Your case is about {area}, which {name} doesn't handle. We can match you with verified lawyers who do, or you can pick someone else.", { area, name })}
+        </p>
+        <div className={actions}>
+          <Button variant="soft" size={size} className={primary} onClick={() => useLawyerRequestForm.getState().openFor(caseId)}>
+            {t("Let us match me")}
+          </Button>
+          <button type="button" onClick={pickAnother} className={textLink}>
+            {t("Pick another lawyer")}
+          </button>
+        </div>
+      </>,
+    );
+  }
+
+  const { lawyer } = state;
+  return card(
+    <>
+      <h3 className="font-display text-[19px]">{t("Your case is ready for {name}", { name })}</h3>
+      <p className="text-[13px] text-[#d4d4d4]">
+        {t("Only {name} sees it at first. If they can't take it up within 24 hours, it goes to other verified lawyers who match.", { name })}
+      </p>
+      <div className={actions}>
+        <Button variant="soft" size={size} className={primary} onClick={() => useLawyerRequestForm.getState().openFor(caseId, { id: lawyer.id, name: lawyer.name })}>
+          {t("Send request to {name}", { name })}
+        </Button>
+        <button type="button" onClick={pickAnother} className={textLink}>
+          {t("Choose someone else")}
+        </button>
+      </div>
+    </>,
   );
 }
