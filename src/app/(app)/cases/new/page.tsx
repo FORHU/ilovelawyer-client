@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { ChosenLawyerBanner } from "@/components/cases/chosen-lawyer-banner";
 import { IntakeChat } from "@/components/cases/intake-chat";
 import { GuideButton } from "@/components/tour/guide-button";
 import { TourHint } from "@/components/tour/tour-hint";
@@ -28,6 +29,7 @@ import {
 import { useFailedUploads } from "@/lib/failed-uploads";
 import { useCreateCaseFromWizard, useStillHere } from "@/lib/cases/new-case";
 import { uploadAll, useCreateCaseMutation } from "@/lib/cases/queries";
+import { useChosenLawyer } from "@/lib/lawyers/chosen-lawyer";
 import { usePricingQuery } from "@/lib/pricing";
 import { useApp } from "@/lib/store";
 import { useWizard } from "@/lib/wizard-store";
@@ -215,6 +217,8 @@ function NewCase() {
     // It's a case now, not a draft. The next New case starts a new one.
     if (id) removeDraft(id);
     if (useWizard.getState().draftId === id) useWizard.setState({ draftId: null });
+    // A lawyer chosen first (Find a lawyer) goes with the case.
+    if (userId) useChosenLawyer.getState().attach(created.id, userId);
     const notUploaded = await uploadAll(created.id, files);
     useFailedUploads.getState().set(created.id, notUploaded);
     void sendMessage(created.id, text);
@@ -253,6 +257,7 @@ function NewCase() {
             </div>
           </div>
           <TourHint className="mt-3" />
+          <ChosenLawyerBanner className="mt-3" />
         </div>
         <IntakeChat
           creating={creating || chatCreating}

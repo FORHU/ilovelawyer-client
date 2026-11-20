@@ -3,8 +3,10 @@
 import { Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLawyerReadinessQuery } from "@/lib/cases/readiness";
-import { useMessagesQuery } from "@/lib/cases/queries";
+import { useCaseQuery, useMessagesQuery } from "@/lib/cases/queries";
+import { firstName } from "@/lib/format";
 import { useEligibilityQuery, useLawyerRequestForm, useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
+import { chosenLawyerFit, useChosenLawyer } from "@/lib/lawyers/chosen-lawyer";
 import { useApp } from "@/lib/store";
 
 import { useT } from "@/components/site/language-provider";
@@ -29,6 +31,11 @@ export function GetLawyerAction({ caseId }: { caseId: string }) {
   const { data: messages } = useMessagesQuery(caseId);
   const latestAnswerId = messages?.messages.findLast((m) => m.role === "ai")?.id;
   const { data: readiness } = useLawyerReadinessQuery(caseId, latestAnswerId);
+  const { data: theCase } = useCaseQuery(caseId);
+  // A lawyer chosen first (Find a lawyer) who takes the case is asked by name; otherwise it's a
+  // match, and the Interview's suggestion says why.
+  const chosen = useChosenLawyer((s) => s.byCase[caseId] ?? null);
+  const named = chosen && (!theCase || chosenLawyerFit(chosen, theCase) !== "mismatch") ? chosen : null;
 
   if (!data || openRequest) return null;
 
@@ -38,9 +45,9 @@ export function GetLawyerAction({ caseId }: { caseId: string }) {
     // check switched off on the API, offer it as before.
     if (!readiness || readiness.unavailable || (readiness.enabled && !readiness.ready)) return null;
     return (
-      <Button variant="soft" size="md" data-no-tap data-tour="get-lawyer" className="h-11 flex-1 !px-4 md:h-9 md:flex-none" onClick={() => useLawyerRequestForm.getState().openFor(caseId)}>
+      <Button variant="soft" size="md" data-no-tap data-tour="get-lawyer" className="h-11 flex-1 !px-4 md:h-9 md:flex-none" onClick={() => useLawyerRequestForm.getState().openFor(caseId, named ? { id: named.id, name: named.name } : undefined)}>
         <Scale size={14} />
-        {t("Get a lawyer")}
+        {named ? t("Request {name}", { name: firstName(named.name) ?? named.name }) : t("Get a lawyer")}
       </Button>
     );
   }

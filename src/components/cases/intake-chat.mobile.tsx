@@ -9,6 +9,7 @@ import { ChatBar, ChatScreen, ComposerButton, ComposerPill, QuickReplies, ReplyC
 import { cn } from "@/lib/cn";
 import type { IntakeMessage } from "@/lib/cases/use-intake-chat";
 import { sideLabel } from "@/lib/types";
+import { BrowseLawyersLink } from "./browse-lawyers-link";
 import { REGIONS, STARTERS, type IntakeViewProps } from "./use-intake-controller";
 
 function AiMessage({ children }: { children: React.ReactNode }) {
@@ -150,6 +151,7 @@ export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, has
           >
             {formLink}
           </button>
+          <BrowseLawyersLink className="mt-1" />
         </div>
 
         <ChatBar>
