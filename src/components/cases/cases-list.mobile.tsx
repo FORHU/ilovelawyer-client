@@ -45,7 +45,7 @@ function CaseCard({ c, archived, request, onMenu }: { c: Case; archived: boolean
     </>
   );
   return (
-    <li className="relative rounded-card border border-line bg-white">
+    <li className="relative rounded-card border border-line bg-surface">
       {archived ? (
         <div className="flex flex-col gap-1.5 p-4">{body}</div>
       ) : (
@@ -119,7 +119,7 @@ export function CasesListMobile() {
                     data-no-tap
                     className={cn(
                       "h-10 rounded-full border text-[14px] font-medium transition-colors",
-                      status === s ? "border-line bg-white text-ink shadow-sm" : "border-transparent text-muted",
+                      status === s ? "border-line bg-surface text-ink shadow-sm" : "border-transparent text-muted",
                     )}
                   >
                     {s === "ACTIVE" ? t("Active") : t("Archived")}
@@ -136,7 +136,7 @@ export function CasesListMobile() {
                   onChange={(e) => v.updateSearch(e.target.value)}
                   placeholder={t("Search your cases")}
                   aria-label={t("Search your cases")}
-                  className="box-border h-12 w-full rounded-full border border-line-input bg-white pl-11 pr-11 text-base text-ink outline-none transition-colors focus:border-ink-2 [&::-webkit-search-cancel-button]:hidden"
+                  className="box-border h-12 w-full rounded-full border border-line-input bg-surface pl-11 pr-11 text-base text-ink outline-none transition-colors focus:border-ink-2 [&::-webkit-search-cancel-button]:hidden"
                 />
                 {searching && (
                   <button
@@ -212,7 +212,7 @@ export function CasesListMobile() {
         </div>
       </PullToRefresh>
 
-      <div data-tour="sticky-bar" className="shrink-0 border-t border-line bg-white px-4 py-3">
+      <div data-tour="sticky-bar" className="shrink-0 border-t border-line bg-surface px-4 py-3">
         <Button size="xl" className="w-full" data-tour="new-case" onClick={v.newCase}>
           <Plus size={16} aria-hidden="true" />
           {t("New case")}

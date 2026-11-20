@@ -32,7 +32,7 @@ export function LawyerTabMobile({ c, request }: LawyerTabProps) {
         {phase === "expired" && <ExpiredStage caseId={c.id} />}
 
         <aside aria-label={t("Request progress")} className="flex flex-col gap-4">
-          <section data-tour="request-status" className="flex flex-col gap-4 rounded-card border border-line bg-white p-5">
+          <section data-tour="request-status" className="flex flex-col gap-4 rounded-card border border-line bg-surface p-5">
             <div className="flex flex-col gap-0.5">
               <Eyebrow muted>{t("Matched for you")}</Eyebrow>
               <h2 className="text-base font-semibold">{t("Your lawyer request")}</h2>
@@ -41,7 +41,7 @@ export function LawyerTabMobile({ c, request }: LawyerTabProps) {
             {canWithdraw && <WithdrawControl request={request} withdraw={withdraw} disabled={deciding} />}
           </section>
 
-          <section className="rounded-card border border-line bg-white">
+          <section className="rounded-card border border-line bg-surface">
             <button
               type="button"
               onClick={() => setShowActivity((v) => !v)}

@@ -59,7 +59,7 @@ export function SupportPanel() {
         aria-labelledby="support-title"
         tabIndex={-1}
         style={{ "--kb": `${inset}px` } as CSSProperties}
-        className="fixed inset-x-0 bottom-[var(--kb)] z-[9008] box-border flex h-[min(85dvh,calc(100dvh-var(--kb)-12px))] flex-col overflow-hidden rounded-t-[20px] bg-white shadow-[0_0_50px_rgb(0_0_0/0.2)] outline-none motion-safe:max-md:animate-[sheet-up_.22s_cubic-bezier(.22,1,.36,1)] [@media(max-height:500px)]:h-[calc(100dvh-var(--kb))] [@media(max-height:500px)]:rounded-t-none md:inset-x-auto md:inset-y-0 md:bottom-0 md:right-0 md:h-auto md:w-[400px] md:rounded-none"
+        className="fixed inset-x-0 bottom-[var(--kb)] z-[9008] box-border flex h-[min(85dvh,calc(100dvh-var(--kb)-12px))] flex-col overflow-hidden rounded-t-[20px] bg-surface shadow-[0_0_50px_rgb(0_0_0/0.2)] outline-none motion-safe:max-md:animate-[sheet-up_.22s_cubic-bezier(.22,1,.36,1)] [@media(max-height:500px)]:h-[calc(100dvh-var(--kb))] [@media(max-height:500px)]:rounded-t-none md:inset-x-auto md:inset-y-0 md:bottom-0 md:right-0 md:h-auto md:w-[400px] md:rounded-none"
       >
         <header className="flex shrink-0 items-center gap-3 border-b border-line py-3 pl-4 pr-1">
           <AssistantAvatar settings={settings} />

@@ -1,8 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { ThemeSegmented } from "@/components/site/theme-toggle";
 import type { HeaderViewProps } from "./header";
 import { useLandingContent } from "./landing-content";
+
+/** Every control in the bar stands 36px tall, the nav links on the left included, so the row reads
+ * as one line. */
+const LINK = "inline-flex h-9 items-center px-2.5 text-[15px]";
+const PILL = "inline-flex h-9 items-center whitespace-nowrap rounded-full px-4 text-[14px]";
 
 export function LandingHeaderDesktop({ solid, onAnchor }: HeaderViewProps) {
   const { nav } = useLandingContent();
@@ -16,27 +22,20 @@ export function LandingHeaderDesktop({ solid, onAnchor }: HeaderViewProps) {
           ilovelawyer
         </a>
         <nav className="flex gap-1">
-          <a href="#how" onClick={onAnchor} className="px-2.5 py-2 text-[15px]">
+          <a href="#how" onClick={onAnchor} className={LINK}>
             {nav.how}
           </a>
-          <a href="#faq" onClick={onAnchor} className="px-2.5 py-2 text-[15px]">
+          <a href="#faq" onClick={onAnchor} className={LINK}>
             {nav.faq}
           </a>
         </nav>
       </div>
       <div className="flex flex-none items-center gap-2">
-        <Link
-          href="/login"
-          data-btn
-          className="whitespace-nowrap rounded-full border border-(--hbd) px-[19px] py-[11px] text-[15px]"
-        >
+        <ThemeSegmented tone="overlay" size="md" className="mr-1" />
+        <Link href="/login" data-btn className={`${PILL} border border-(--hbd)`}>
           {nav.signIn}
         </Link>
-        <Link
-          href="/signup"
-          data-btn
-          className="landing-cta whitespace-nowrap rounded-full bg-(--hb) px-5 py-3 text-[15px] font-medium transition-opacity duration-160 hover:opacity-85"
-        >
+        <Link href="/signup" data-btn className={`landing-cta ${PILL} bg-(--hb) font-medium transition-opacity duration-160 hover:opacity-85`}>
           {nav.start}
         </Link>
       </div>

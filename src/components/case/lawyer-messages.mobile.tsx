@@ -83,7 +83,7 @@ function MessagesScreen({ c, requestId, claimId, lawyerName, closed, beforeHire 
   const canShare = !beforeHire && c.documents.length > 0;
 
   return createPortal(
-    <div ref={panel} role="dialog" aria-modal="true" aria-label={t("Messages with {name}", { name: lawyerName })} tabIndex={-1} className="fixed inset-0 z-50 flex flex-col bg-white outline-none">
+    <div ref={panel} role="dialog" aria-modal="true" aria-label={t("Messages with {name}", { name: lawyerName })} tabIndex={-1} className="fixed inset-0 z-50 flex flex-col bg-surface outline-none">
       <header className="keyboard-hide flex shrink-0 items-center gap-1 border-b border-line px-2 pt-[env(safe-area-inset-top)]">
         <button type="button" aria-label={t("Back")} onClick={onClose} data-no-tap className="flex size-11 shrink-0 items-center justify-center rounded-full active:bg-chip">
           <ArrowLeft size={20} aria-hidden="true" />

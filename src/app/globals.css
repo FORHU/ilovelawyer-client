@@ -9,8 +9,14 @@
   --color-bubble: #f7f7f7;
 
   --color-ink: #252525;
+  /* Between ink and ink-2: secondary text that still has to read as body copy. */
+  --color-ink-soft: #4a4a4a;
   --color-ink-2: #6b6b6b;
   --color-muted: #8e8e8e;
+
+  /* A neutral "for your information" badge (a document's kind). */
+  --color-info-bg: #eef3fb;
+  --color-info-ink: #1d4f91;
 
   --color-line: #e8e8e8;
   --color-line-input: #d8d8d8;
@@ -50,6 +56,68 @@
 
   --shadow-modal: 0 24px 60px rgb(0 0 0 / 0.28);
   --shadow-frame: 0 1px 3px rgb(0 0 0 / 0.08);
+}
+
+/* Dark mode (lib/theme.ts), on every page that uses these tokens: the app and the sign-in pages.
+   <html data-theme> is "light" or "dark", set by the boot script in app/layout.tsx before the page
+   hydrates and kept current by useSiteTheme. `dark:` utilities follow the same attribute. The
+   landing has its own tokens, with a light set in app/(landing)/landing.css. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-page: #0e0e0d;
+  --color-surface: #181817;
+  --color-subtle: #131312;
+  --color-chip: #262624;
+  --color-bubble: #222220;
+
+  --color-ink: #ecebe7;
+  --color-ink-soft: #c9c8c3;
+  --color-ink-2: #a3a29d;
+  --color-muted: #82817c;
+
+  --color-info-bg: #15233a;
+  --color-info-ink: #9ec0f0;
+
+  --color-line: #2c2c2a;
+  --color-line-input: #3b3b38;
+  --color-line-chip: rgb(236 235 231 / 0.22);
+  --color-line-hover: rgb(236 235 231 / 0.42);
+
+  --color-navy-950: #050505;
+  --color-navy-900: #0b0b0b;
+  /* Dark buttons and the client's own chat bubbles: a step up from the page, still under white text. */
+  --color-primary: #34332f;
+
+  --color-gold: #d8a93e;
+  --color-gold-hover: #e9bf5f;
+
+  --color-success: #4cb07a;
+  --color-success-bg: #12251a;
+  --color-success-line: #24452f;
+  --color-success-ink: #86d6a8;
+
+  --color-error: #e9645c;
+  --color-error-field: #e07a74;
+  --color-error-bg: #2b1513;
+  --color-error-line: #5c2723;
+  --color-error-ink: #f4a49e;
+
+  --color-warn-bg: #2a2313;
+  --color-warn-line: #4d3e1d;
+  --color-warn-ink: #e8c873;
+
+  --shadow-modal: 0 24px 60px rgb(0 0 0 / 0.6);
+  --shadow-frame: 0 1px 3px rgb(0 0 0 / 0.5);
+}
+
+/* Gold and ink are light in dark mode, so white text on them would vanish: it turns dark instead.
+   Covers the hover and pressed states that switch a dark button to ink. */
+:root[data-theme="dark"]
+  :is(.bg-gold, .bg-ink, .hover\:bg-gold-hover:hover, .hover\:bg-ink:hover, .active\:bg-ink:active).text-white {
+  color: var(--color-page);
 }
 
 html {

@@ -10,14 +10,14 @@ const base =
 const variants: Record<Variant, string> = {
   primary: "bg-gold text-white tracking-[1.2px] hover:bg-gold-hover",
   outline:
-    "border border-line bg-white text-ink tracking-[1px] hover:border-line-hover",
+    "border border-line bg-surface text-ink tracking-[1px] hover:border-line-hover",
   ghost: "text-muted tracking-[1px] hover:text-ink",
   social:
-    "w-full border border-line-input bg-white text-ink !normal-case !font-medium !text-[14px] tracking-normal gap-[10px] hover:border-line-hover",
+    "w-full border border-line-input bg-surface text-ink !normal-case !font-medium !text-[14px] tracking-normal gap-[10px] hover:border-line-hover",
   danger: "bg-error text-white tracking-[1.2px] hover:bg-error-ink",
   // The revised case screens: sentence-case pills, a near-black primary and a quieter outline.
   dark: "bg-primary text-white !normal-case !font-medium !text-[13px] tracking-normal hover:bg-ink",
-  soft: "border border-line-input bg-white text-ink !normal-case !font-medium !text-[13px] tracking-normal hover:border-line-hover",
+  soft: "border border-line-input bg-surface text-ink !normal-case !font-medium !text-[13px] tracking-normal hover:border-line-hover",
   quiet: "text-ink-2 !normal-case !font-medium !text-[12.5px] tracking-normal hover:text-ink",
   dashed:
     "border border-dashed border-line-input text-ink-2 tracking-[1px] hover:border-line-hover",

@@ -27,7 +27,7 @@ export function WelcomeCard({ name, onShow, onSkip }: { name: string | null; onS
         aria-modal="true"
         aria-labelledby="welcome-title"
         tabIndex={-1}
-        className="box-border flex max-h-full w-full max-w-[440px] flex-col gap-4 overflow-y-auto rounded-modal bg-white p-6 shadow-modal outline-none md:p-[30px]"
+        className="box-border flex max-h-full w-full max-w-[440px] flex-col gap-4 overflow-y-auto rounded-modal bg-surface p-6 shadow-modal outline-none md:p-[30px]"
       >
         <div className="flex flex-col gap-2">
           <h2 id="welcome-title" className="font-display text-[26px] leading-tight tracking-[-0.02em]">

@@ -12,7 +12,7 @@ export function Command({ className, ...props }: ComponentProps<typeof CommandPr
   return (
     <CommandPrimitive
       data-slot="command"
-      className={cn("flex w-full flex-col overflow-hidden rounded-input border border-line-input bg-white text-ink transition-colors focus-within:border-ink-2", className)}
+      className={cn("flex w-full flex-col overflow-hidden rounded-input border border-line-input bg-surface text-ink transition-colors focus-within:border-ink-2", className)}
       {...props}
     />
   );

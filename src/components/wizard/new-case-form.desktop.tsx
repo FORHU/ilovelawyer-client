@@ -69,8 +69,8 @@ export function NewCaseFormDesktop({ included, creating, error, onBack, onNext, 
                         done
                           ? "border-gold bg-gold text-white"
                           : cur
-                            ? "border-gold bg-white text-gold"
-                            : "border-line-input bg-white text-muted",
+                            ? "border-gold bg-surface text-gold"
+                            : "border-line-input bg-surface text-muted",
                       )}
                     >
                       {done ? <Check size={13} strokeWidth={3} /> : s.numeral}
@@ -103,7 +103,7 @@ export function NewCaseFormDesktop({ included, creating, error, onBack, onNext, 
           {step === 4 && <StepDocuments />}
           {error && <ErrorBox message={error} />}
 
-          <div className="sticky bottom-0 z-[2] -mx-4 flex items-center justify-between gap-2.5 border-t border-line bg-white px-4 pb-[30px] pt-3 md:static md:mx-0 md:border-t-0 md:bg-transparent md:p-0">
+          <div className="sticky bottom-0 z-[2] -mx-4 flex items-center justify-between gap-2.5 border-t border-line bg-surface px-4 pb-[30px] pt-3 md:static md:mx-0 md:border-t-0 md:bg-transparent md:p-0">
             <Button variant="outline" onClick={onBack}>
               {t("Back")}
             </Button>

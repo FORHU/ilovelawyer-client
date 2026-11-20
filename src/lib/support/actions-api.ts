@@ -1,4 +1,5 @@
 import { apiFetch, apiFetchBlob } from "@/lib/api/fetch";
+import { saveBlob } from "@/lib/download";
 import type { SupportCaseCredits, SupportDeletionCheck, SupportLawyerRequest, SupportPayment } from "./types";
 
 // The Support Actions a signed-in client can run (ilovelawyer-api /api/client/support/actions).
@@ -19,12 +20,5 @@ export const fetchDeletionCheck = () => apiFetch<SupportDeletionCheck>("/api/cli
  * password; a Google account sends none. */
 export async function downloadMyData(password?: string): Promise<void> {
   const { blob, filename } = await apiFetchBlob("/api/users/me/export", { method: "POST", body: JSON.stringify(password ? { password } : {}) });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename ?? "ilovelawyer-my-data.zip";
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 30_000);
+  saveBlob(blob, filename ?? "ilovelawyer-my-data.zip");
 }

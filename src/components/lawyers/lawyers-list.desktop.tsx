@@ -16,7 +16,7 @@ import type { LawyersList } from "./use-lawyers-list";
 import { useT } from "@/components/site/language-provider";
 import { useSite } from "@/components/site/site-provider";
 const select =
-  "h-[42px] rounded-full border border-line-input bg-white px-4 text-[13.5px] text-ink outline-none focus:border-ink-2";
+  "h-[42px] rounded-full border border-line-input bg-surface px-4 text-[13.5px] text-ink outline-none focus:border-ink-2";
 
 function Option({ active, onClick, children }: { active: boolean; onClick: () => void; children: string }) {
   return (
@@ -26,7 +26,7 @@ function Option({ active, onClick, children }: { active: boolean; onClick: () =>
       onClick={onClick}
       className={cn(
         "rounded-[10px] border px-3 py-2 text-left text-[13.5px] transition-colors",
-        active ? "border-ink bg-white font-medium text-ink" : "border-transparent text-ink-2 hover:text-ink",
+        active ? "border-ink bg-surface font-medium text-ink" : "border-transparent text-ink-2 hover:text-ink",
       )}
     >
       {children}
@@ -67,7 +67,7 @@ export function LawyersListDesktop({ v }: { v: LawyersList }) {
         </header>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <section className="flex flex-col gap-2 rounded-modal border border-line bg-white p-6">
+          <section className="flex flex-col gap-2 rounded-modal border border-line bg-surface p-6">
             <h2 className="text-base font-semibold">{t("Pick a lawyer yourself")}</h2>
             <p className="text-sm leading-[1.6] text-ink-2">
               {t("Browse below and request one. Only that lawyer gets your request for 24 hours. If they can’t take it up, it goes to other matching lawyers automatically.")}
@@ -99,7 +99,7 @@ export function LawyersListDesktop({ v }: { v: LawyersList }) {
                   type="button"
                   disabled={!availability.canRequest}
                   onClick={() => useLawyerRequestForm.getState().openFor(activeCase.id)}
-                  className="h-10 rounded-full bg-white px-5 text-[13px] font-medium text-ink disabled:opacity-50"
+                  className="h-10 rounded-full bg-surface px-5 text-[13px] font-medium text-ink disabled:opacity-50"
                 >
                   {t("Match me")}
                 </button>

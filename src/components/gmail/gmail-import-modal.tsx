@@ -120,7 +120,7 @@ function SearchView({
             placeholder={t("Name, email address or words, e.g. landlord deposit")}
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
-            className="h-[42px] w-full rounded-full border border-line-input bg-white pl-[38px] pr-3.5 text-[14px] outline-none focus-visible:border-gold"
+            className="h-[42px] w-full rounded-full border border-line-input bg-surface pl-[38px] pr-3.5 text-[14px] outline-none focus-visible:border-gold"
           />
         </label>
         <Button type="submit" variant="dark" className="!h-[42px] !px-5">
@@ -150,7 +150,7 @@ function SearchView({
       ) : rows.length === 0 && !search.error ? (
         <p className="py-6 text-center text-[13px] text-ink-2">{t("No emails match. Try fewer words or turn off a filter.")}</p>
       ) : (
-        <ul className="flex flex-col divide-y divide-line rounded-card border border-line bg-white">
+        <ul className="flex flex-col divide-y divide-line rounded-card border border-line bg-surface">
           {rows.map((row) => (
             <MessageRow key={row.id} row={row} onOpen={onOpen} />
           ))}
@@ -218,7 +218,7 @@ function MessageDetails({ caseId, message }: { caseId: string; message: GmailMes
   return (
     <div className="flex flex-col gap-4">
       <h3 className="font-display text-[22px] leading-[1.25] tracking-[-0.01em] text-ink">{message.subject || t("(no subject)")}</h3>
-      <dl className="flex flex-col gap-1 rounded-card border border-line bg-white px-4 py-3">
+      <dl className="flex flex-col gap-1 rounded-card border border-line bg-surface px-4 py-3">
         <HeaderRow label={msg("From")} value={message.from} />
         <HeaderRow label={msg("To")} value={message.to} />
         {message.cc && <HeaderRow label={msg("Cc")} value={message.cc} />}
@@ -231,7 +231,7 @@ function MessageDetails({ caseId, message }: { caseId: string; message: GmailMes
           <h4 className="text-[13px] font-semibold text-ink">
             {files.length === 1 ? t("{n} attachment", { n: 1 }) : t("{n} attachments", { n: files.length })}
           </h4>
-          <ul className="flex flex-col divide-y divide-line rounded-card border border-line bg-white">
+          <ul className="flex flex-col divide-y divide-line rounded-card border border-line bg-surface">
             {files.map((a) => (
               <AttachmentRow key={a.partId} messageId={message.id} attachment={a} />
             ))}

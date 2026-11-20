@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { SUPPORT_EMAIL } from "@/lib/marketing/copy";
 import type { SiteLandingCopy } from "@/lib/marketing/site-landing";
-import { LanguageSwitch } from "@/components/site/language-switch";
+import { ThemeSegmented } from "@/components/site/theme-toggle";
 
 /** The landing page of a site whose lawyers and AI chat aren't open yet (PH, KR): what works there
  * today, and what's coming. A server component; the copy comes from lib/marketing/site-landing.ts. */
@@ -11,11 +11,11 @@ export function SiteLanding({ copy }: { copy: SiteLandingCopy }) {
       <header className="flex items-center justify-between gap-4 px-4 py-4 md:px-8">
         <span className="font-display whitespace-nowrap text-[20px] tracking-[-0.02em]">ilovelawyer</span>
         <div className="flex items-center gap-2">
-          <LanguageSwitch />
-          <Link href="/login" data-btn className="whitespace-nowrap rounded-full border border-(--line) px-4 py-2.5 text-[15px]">
+          <ThemeSegmented tone="band" size="md" />
+          <Link href="/login" data-btn className="inline-flex h-9 items-center whitespace-nowrap rounded-full border border-(--line) px-4 text-[14px]">
             {copy.signIn}
           </Link>
-          <Link href="/signup" data-btn className="whitespace-nowrap rounded-full bg-(--ink) px-4 py-2.5 text-[15px] font-medium text-(--bg)! transition-opacity duration-160 hover:opacity-85">
+          <Link href="/signup" data-btn className="inline-flex h-9 items-center whitespace-nowrap rounded-full bg-(--ink) px-4 text-[14px] font-medium text-(--bg)! transition-opacity duration-160 hover:opacity-85">
             {copy.start}
           </Link>
         </div>

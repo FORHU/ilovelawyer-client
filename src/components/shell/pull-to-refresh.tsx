@@ -84,7 +84,7 @@ export function PullToRefresh({ children, className }: { children: React.ReactNo
         aria-hidden={!refreshing}
         role={refreshing ? "status" : undefined}
         className={cn(
-          "pointer-events-none absolute left-1/2 top-0 z-20 flex size-9 -translate-x-1/2 items-center justify-center rounded-full border border-line bg-white text-ink-2 shadow-sm",
+          "pointer-events-none absolute left-1/2 top-0 z-20 flex size-9 -translate-x-1/2 items-center justify-center rounded-full border border-line bg-surface text-ink-2 shadow-sm",
           !distance && "transition-[transform,opacity] duration-200",
         )}
         style={{ transform: `translate(-50%, ${shown - 36}px)`, opacity: shown > 0 ? Math.min(1, shown / 40) : 0 }}

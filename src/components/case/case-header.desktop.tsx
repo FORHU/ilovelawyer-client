@@ -37,7 +37,7 @@ export function CaseHeaderDesktop({ c }: { c: Case }) {
         aria-label={t("Back to cases")}
         onClick={() => router.push("/cases")}
         data-no-tap
-        className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line bg-white"
+        className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface"
       >
         <ArrowLeft size={15} />
       </button>

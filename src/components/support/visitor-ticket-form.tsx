@@ -79,7 +79,7 @@ export function VisitorTicketForm({
   }
 
   return (
-    <form onSubmit={submit} aria-label="Write to the team" className="flex flex-col gap-3 rounded-card border border-line bg-white p-4">
+    <form onSubmit={submit} aria-label="Write to the team" className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4">
       <p className="text-[14px] leading-[1.5] text-ink">Tell us what&apos;s happened. A person will reply by email.</p>
       <Field label="Your email address" htmlFor="support-visitor-email">
         <TextInput

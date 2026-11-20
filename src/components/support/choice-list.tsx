@@ -25,7 +25,7 @@ export function ChoiceList({ label, choices, onPick }: { label: string; choices:
             "flex min-h-12 items-center justify-between gap-3 rounded-card border px-3.5 text-left text-[15px] transition-colors",
             choice.primary && "border-primary bg-primary font-medium text-white hover:bg-ink",
             choice.quiet && "justify-center border-transparent text-ink-2 underline decoration-line-input underline-offset-4 hover:text-ink",
-            !choice.primary && !choice.quiet && "border-line bg-white text-ink hover:border-line-hover",
+            !choice.primary && !choice.quiet && "border-line bg-surface text-ink hover:border-line-hover",
           )}
         >
           {choice.label}

@@ -80,7 +80,7 @@ export function DocumentsMobile({ c, focusDocumentId, onFocused, onOpenOverview 
                     placeholder={t("Search documents")}
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    className="h-11 w-full rounded-full border border-line-input bg-white pl-10 pr-3.5 outline-none focus-visible:border-gold"
+                    className="h-11 w-full rounded-full border border-line-input bg-surface pl-10 pr-3.5 outline-none focus-visible:border-gold"
                   />
                 </label>
                 <button
@@ -88,7 +88,7 @@ export function DocumentsMobile({ c, focusDocumentId, onFocused, onOpenOverview 
                   onClick={() => setSorting(true)}
                   aria-label={t("Sort: {sort}", { sort: t(SORTS.find((s) => s.key === sort)?.label ?? "") })}
                   data-no-tap
-                  className="flex size-11 shrink-0 items-center justify-center rounded-full border border-line-input bg-white text-ink-2 active:bg-chip"
+                  className="flex size-11 shrink-0 items-center justify-center rounded-full border border-line-input bg-surface text-ink-2 active:bg-chip"
                 >
                   <ArrowUpDown size={18} aria-hidden="true" />
                 </button>
@@ -106,7 +106,7 @@ export function DocumentsMobile({ c, focusDocumentId, onFocused, onOpenOverview 
                       data-no-tap
                       className={cn(
                         "min-h-11 shrink-0 whitespace-nowrap rounded-full border px-4 text-[14px] font-medium",
-                        on ? "border-ink bg-ink text-white" : "border-line-input bg-white text-ink active:bg-chip",
+                        on ? "border-ink bg-ink text-white" : "border-line-input bg-surface text-ink active:bg-chip",
                       )}
                     >
                       {t(f.label)} <span className="opacity-70">{c.documents.filter(tests[f.key]).length}</span>
@@ -132,7 +132,7 @@ export function DocumentsMobile({ c, focusDocumentId, onFocused, onOpenOverview 
                   />
                 ))}
                 {filter === "all" && !needle && uploading.length > 0 && (
-                  <div className="overflow-hidden rounded-card border border-line bg-white">
+                  <div className="overflow-hidden rounded-card border border-line bg-surface">
                     {uploading.map((file, i) => (
                       <UploadingRow key={`${file.name}-${i}`} file={file} />
                     ))}

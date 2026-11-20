@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CaseArea, CaseRegion, OtherParty, Side } from "@/lib/types";
+import { tr } from "@/lib/i18n/translate";
 
 // The Case Creation Chat gathers what the manual form asks for (title, type of issue, region, town,
 // side, other people, what happened / what they want, documents), no more. The deeper fact-finding
@@ -125,8 +126,6 @@ export function titleFrom(text: string): string {
   return `${clean.slice(0, TITLE_MAX - 1).trimEnd()}…`;
 }
 
-const SIDE_SHORT: Record<string, string> = { CLAIMANT: "bringing the complaint", RESPONDENT: "responding to one" };
-
 function addOthers(d: IntakeDraft, names: string[]): IntakeDraft {
   const have = new Set(d.others.map((o) => o.name.toLowerCase()));
   const fresh = names.filter((n) => !have.has(n.toLowerCase()));
@@ -150,7 +149,7 @@ function absorb(text: string, d: IntakeDraft, areas: CaseArea[], regionQuestion:
     const guess = guessAreas(text, areas);
     if (guess.length && guess.map((a) => a.code).join() !== next.areas.join()) {
       next = { ...next, areas: guess.map((a) => a.code) };
-      got.push(guess.map((a) => a.name).join(" and "));
+      got.push(guess.map((a) => a.name).join(tr(" and ")));
     }
   }
   // A site that doesn't ask for a part of the UK (KR, PH) never reads one out of the text either.
@@ -158,7 +157,7 @@ function absorb(text: string, d: IntakeDraft, areas: CaseArea[], regionQuestion:
     const region = guessRegion(text);
     if (region) {
       next = { ...next, region };
-      got.push(region === "OUTSIDE_UK" ? "outside the UK" : region);
+      got.push(region === "OUTSIDE_UK" ? tr("outside the UK") : region);
     }
   }
   if (!next.where) {
@@ -172,13 +171,13 @@ function absorb(text: string, d: IntakeDraft, areas: CaseArea[], regionQuestion:
     const side = guessSide(text);
     if (side) {
       next = { ...next, side };
-      got.push(`you're ${SIDE_SHORT[side]}`);
+      got.push(side === "CLAIMANT" ? tr("you're bringing the complaint") : tr("you're responding to one"));
     }
   }
   const people = guessOthers(text);
   const before = next.others.length;
   next = addOthers(next, people);
-  if (next.others.length > before) got.push(next.others.slice(before).map((o) => o.name).join(" and "));
+  if (next.others.length > before) got.push(next.others.slice(before).map((o) => o.name).join(tr(" and ")));
   if (!next.wants) {
     const wants = guessWants(text);
     if (wants) next = { ...next, wants };
@@ -206,25 +205,28 @@ function nextStep(d: IntakeDraft, asked: ReadonlySet<IntakeStep>, hasFiles: bool
 function question(step: IntakeStep): string {
   switch (step) {
     case "region":
-      return "Which part of the UK is this in? The law is different in each.";
+      return tr("Which part of the UK is this in? The law is different in each.");
     case "where":
-      return "Which town or city was this in? Type it below, or skip.";
+      return tr("Which town or city was this in? Type it below, or skip.");
     case "side":
-      return "Which side are you on?";
+      return tr("Which side are you on?");
     case "others":
-      return "Is anyone else involved, like an employer, a landlord or a company? Type a name, or skip.";
+      return tr("Is anyone else involved, like an employer, a landlord or a company? Type a name, or skip.");
     case "want":
-      return "What would you like to come of it? For example, your job back or money you're owed. Type it below, or skip.";
+      return tr("What would you like to come of it? For example, your job back or money you're owed. Type it below, or skip.");
     case "more":
-      return "Do you have any documents, like a contract or messages? Use the paperclip to add files, or continue without.";
+      return tr("Do you have any documents, like a contract or messages? Use the paperclip to add files, or continue without.");
     case "check":
-      return "That's what I need to set up your case. Please check it below. Nothing is created until you press Create case. The interview afterwards goes into the detail.";
+      return tr("That's what I need to set up your case. Please check it below. Nothing is created until you press Create case. The interview afterwards goes into the detail.");
     default:
-      return "Tell me a bit more about what happened.";
+      return tr("Tell me a bit more about what happened.");
   }
 }
 
-const ack = (got: string[]) => (got.length ? `Thanks, I've noted: ${got.join(", ")}. ` : "Thanks. ");
+/** "2 files attached", in the client's language. */
+const filesAttached = (n: number) => (n === 1 ? tr("{n} file attached", { n }) : tr("{n} files attached", { n }));
+
+const ack = (got: string[]) => (got.length ? tr("Thanks, I've noted: {items}. ", { items: got.join(", ") }) : tr("Thanks. "));
 
 /** The conversation as it stands, to save as a draft and pick up again (lib/cases/drafts.ts). */
 export interface IntakeSnapshot {
@@ -301,13 +303,13 @@ export function useIntakeChat({
         // Too thin to work with: ask for more rather than marching on to the questions.
         if (words < 4 && !got.length) {
           update({ ...draft, happened: [draft.happened, text].filter(Boolean).join("\n") });
-          say("Could you tell me a bit more about what happened? A sentence or two is plenty.", "start");
+          say(tr("Could you tell me a bit more about what happened? A sentence or two is plenty."), "start");
           return;
         }
         // A thin first message that was kept stays in what happened, with this one after it.
         const d = update({ ...read, happened: [draft.happened, text].filter(Boolean).join("\n"), title: draft.title || titleFrom(text) });
-        const lead = "Thanks, and I'm sorry you're dealing with this. ";
-        ahead(d, got.length ? `${lead}I've noted: ${got.join(", ")}. ` : lead);
+        const lead = tr("Thanks, and I'm sorry you're dealing with this. ");
+        ahead(d, got.length ? lead + tr("I've noted: {items}. ", { items: got.join(", ") }) : lead);
         return;
       }
       case "region": {
@@ -315,7 +317,7 @@ export function useIntakeChat({
         if (d.region) {
           ahead(d, ack(got));
         } else {
-          say("I couldn't tell which part of the UK that is. Please choose one of the options below.", "region");
+          say(tr("I couldn't tell which part of the UK that is. Please choose one of the options below."), "region");
         }
         return;
       }
@@ -331,7 +333,7 @@ export function useIntakeChat({
           ahead(update(read), ack(got));
         } else {
           update(read);
-          say("Please choose one of the options below.", "side");
+          say(tr("Please choose one of the options below."), "side");
         }
         return;
       }
@@ -341,7 +343,7 @@ export function useIntakeChat({
         // part of names ("Marks and Spencer"), and skip what absorb already read out of the same
         // text ("my landlord John Smith" -> "John Smith").
         if (NO_ONE.test(text)) {
-          ahead(update(read), "Okay. ");
+          ahead(update(read), tr("Okay. "));
           return;
         }
         const names = text
@@ -355,14 +357,14 @@ export function useIntakeChat({
       case "want": {
         asked.current.add("want");
         const d = update({ ...read, wants: text });
-        ahead(d, "Got it. ");
+        ahead(d, tr("Got it. "));
         return;
       }
       default: {
         // "more" and "check": more detail for the case. Added to what happened, not asked about again.
         asked.current.add("more");
         const d = update({ ...read, happened: `${draft.happened}\n\n${text}`.trim() });
-        ahead(d, `${ack(got)}I've added that. `);
+        ahead(d, ack(got) + tr("I've added that. "));
       }
     }
   };
@@ -383,7 +385,7 @@ export function useIntakeChat({
   /** Skips an optional question (town, other people, what you want). */
   const skip = () => {
     if (typing) return;
-    push("user", step === "others" ? "Done" : "Skip");
+    push("user", step === "others" ? tr("Done") : tr("Skip"));
     asked.current.add(step);
     ahead(draft, "");
   };
@@ -392,15 +394,15 @@ export function useIntakeChat({
   const confirmFiles = () => {
     if (typing) return;
     asked.current.add("more");
-    push("user", files.length ? `${files.length} ${files.length === 1 ? "file" : "files"} attached` : "No documents");
+    push("user", files.length ? filesAttached(files.length) : tr("No documents"));
     ahead(draft, "");
   };
 
   /** Documents sent with nothing typed: noted as the first message, then the story is asked for. */
   const submitFiles = () => {
     if (!files.length || typing) return;
-    push("user", `${files.length} ${files.length === 1 ? "file" : "files"} attached`);
-    say("Thanks, I've got your documents. Could you tell me a bit about what happened?", "start");
+    push("user", filesAttached(files.length));
+    say(tr("Thanks, I've got your documents. Could you tell me a bit about what happened?"), "start");
   };
 
   const addFiles = (picked: File[]) => setFiles((f) => [...f, ...picked]);

@@ -61,7 +61,7 @@ export function DocumentCardMobile({
     <div
       ref={rowRef}
       className={cn(
-        "flex flex-col rounded-card border bg-white transition-colors",
+        "flex flex-col rounded-card border bg-surface transition-colors",
         highlighted ? "border-gold bg-warn-bg" : "border-line",
       )}
     >
@@ -231,7 +231,7 @@ export function DocumentCardMobile({
             )}
           </div>
 
-          <div className="flex gap-2 rounded-xl bg-chip px-3 py-2.5 text-[12.5px] text-[#4a4a4a]">
+          <div className="flex gap-2 rounded-xl bg-chip px-3 py-2.5 text-[12.5px] text-ink-soft">
             <Lock size={14} aria-hidden className="mt-px shrink-0" />
             <span>{t("Only you can see this file. A lawyer sees it once you confirm them — before that, they only see an anonymised summary.")}</span>
           </div>
