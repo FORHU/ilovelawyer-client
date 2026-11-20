@@ -9,8 +9,7 @@ import { useCaseQuery } from "@/lib/cases/queries";
 import { lawyerKind, useLawyerReadinessQuery } from "@/lib/cases/readiness";
 import { firstName } from "@/lib/format";
 import { useLawyerRequestForm } from "@/lib/lawyer-requests/api";
-import { chosenLawyerFit, useChosenLawyer } from "@/lib/lawyers/chosen-lawyer";
-import { useMarketplaceCase } from "@/lib/lawyers/marketplace";
+import { chosenLawyerFit, pickAnotherLawyer, useChosenLawyer } from "@/lib/lawyers/chosen-lawyer";
 import { areasLabel } from "@/lib/types";
 
 import { useT } from "@/components/site/language-provider";
@@ -35,11 +34,7 @@ export function LawyerSuggestion({ caseId, latestAnswerId }: { caseId: string; l
   const chosen = useChosenLawyer((s) => s.byCase[caseId] ?? null);
   const router = useRouter();
   const chosenName = chosen ? (firstName(chosen.name) ?? chosen.name) : null;
-  const pickAnother = () => {
-    useMarketplaceCase.getState().set(caseId);
-    useChosenLawyer.getState().forget(caseId);
-    router.push("/lawyers");
-  };
+  const pickAnother = () => pickAnotherLawyer(caseId, router.push);
 
   // Desktop lines up with the AI's text; on a phone everything is full width.
   const indent = mobile ? "" : "ml-[38px]";
@@ -105,8 +100,9 @@ export function LawyerSuggestion({ caseId, latestAnswerId }: { caseId: string; l
           >
             {t("Request {name}", { name: chosenName })}
           </Button>
-          <Button variant="soft" size={mobile ? "lg" : "sm"} className={mobile ? "w-full" : undefined} onClick={openForm}>
-            {t("Let us match me instead")}
+          {/* No match on offer beside a lawyer the client chose: another lawyer, or this one. */}
+          <Button variant="soft" size={mobile ? "lg" : "sm"} className={mobile ? "w-full" : undefined} onClick={pickAnother}>
+            {t("Choose someone else")}
           </Button>
         </div>
       </div>
