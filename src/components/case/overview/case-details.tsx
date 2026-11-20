@@ -33,7 +33,7 @@ export function CaseDetails({ c, defaultOpen }: { c: Case; defaultOpen: boolean 
   ];
 
   return (
-    <section className="overflow-hidden rounded-card border border-line bg-white">
+    <section className="overflow-hidden rounded-card border border-line bg-surface">
       <div className="flex items-center gap-2 py-3 pl-2 pr-3.5">
         <button
           type="button"
@@ -49,7 +49,7 @@ export function CaseDetails({ c, defaultOpen }: { c: Case; defaultOpen: boolean 
           type="button"
           onClick={() => setEditing(true)}
           data-no-tap
-          className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-line bg-white px-3 text-xs font-semibold text-gold hover:text-gold-hover max-md:h-11 max-md:px-4"
+          className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-line bg-surface px-3 text-xs font-semibold text-gold hover:text-gold-hover max-md:h-11 max-md:px-4"
         >
           <Pencil size={12} aria-hidden />
           {t("Edit")}

@@ -119,7 +119,7 @@ export function ActionMenu({
           "flex size-11 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-gold",
           quiet
             ? "text-muted hover:bg-chip hover:text-ink aria-expanded:bg-chip aria-expanded:text-ink md:size-8"
-            : "border border-line bg-white text-ink-2 hover:border-line-hover md:size-9",
+            : "border border-line bg-surface text-ink-2 hover:border-line-hover md:size-9",
         )}
       >
         <MoreHorizontal size={16} aria-hidden />
@@ -133,7 +133,7 @@ export function ActionMenu({
             onKeyDown={onMenuKey}
             // Drawn invisibly first so it can be measured, then placed.
             style={{ position: "fixed", top: placement?.top ?? 0, left: placement?.left ?? 0, width: MENU_WIDTH, visibility: placement ? "visible" : "hidden" }}
-            className={cn("z-50 flex flex-col overflow-hidden rounded-card border border-line bg-white py-1 shadow-modal", placement?.up && "origin-bottom")}
+            className={cn("z-50 flex flex-col overflow-hidden rounded-card border border-line bg-surface py-1 shadow-modal", placement?.up && "origin-bottom")}
           >
             {items.map((item) => (
               <button

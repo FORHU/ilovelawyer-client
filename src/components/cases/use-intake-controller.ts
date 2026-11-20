@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useCaseAreasQuery } from "@/lib/cases/case-areas";
 import { useSite } from "@/components/site/site-provider";
+import { useT } from "@/components/site/language-provider";
+import { msg } from "@/lib/i18n/msg";
 import type { DraftChat } from "@/lib/cases/drafts";
 import { checkFiles, useLimitsQuery } from "@/lib/cases/limits";
 import { type IntakeDraft, useIntakeChat } from "@/lib/cases/use-intake-chat";
@@ -37,19 +39,20 @@ export type IntakeViewProps = IntakeChatProps & { controller: IntakeController }
 
 export const REGIONS: { value: CaseRegion; label: string }[] = [
   ...UK_JURISDICTIONS.map((j) => ({ value: j, label: j })),
-  { value: "OUTSIDE_UK", label: "Outside the UK" },
+  { value: "OUTSIDE_UK", label: msg("Outside the UK") },
 ];
 
-export const STARTERS = ["I lost my job", "A problem with my landlord", "Someone owes me money"];
+/** Translation keys: shown, and sent as the first message, through t() in the client's language. */
+export const STARTERS = [msg("I lost my job"), msg("A problem with my landlord"), msg("Someone owes me money")];
 
 const PLACEHOLDER = {
-  start: "Tell me what's going on…",
-  want: "Type your answer…",
-  where: "Type a town or city…",
-  others: "Type a name or company…",
-  more: "Add anything else…",
-  check: "Add anything else…",
-  choice: "Choose an option above",
+  start: msg("Tell me what's going on…"),
+  want: msg("Type your answer…"),
+  where: msg("Type a town or city…"),
+  others: msg("Type a name or company…"),
+  more: msg("Add anything else…"),
+  check: msg("Add anything else…"),
+  choice: msg("Choose an option above"),
 } as const;
 
 /** Everything the case-creation chat does, shared by its desktop and mobile views: the
@@ -59,6 +62,7 @@ export function useIntakeController({ onFirstMessage, initial, onChange }: Pick<
   const areasQuery = useCaseAreasQuery();
   const areas = areasQuery.data ?? [];
   const { regionQuestion } = useSite();
+  const t = useT();
   const chat = useIntakeChat({ areas, initial: initial?.chat, initialFiles: initial?.files, regionQuestion });
   const { messages, step, typing, files, draft, askedSteps } = chat;
   const { data: limits } = useLimitsQuery();
@@ -147,7 +151,7 @@ export function useIntakeController({ onFirstMessage, initial, onChange }: Pick<
   const { dragging, dragProps } = useFileDrop(addFiles, !canAttach);
 
   const choiceStep = step === "region" || step === "side";
-  const placeholder = choiceStep ? PLACEHOLDER.choice : PLACEHOLDER[step];
+  const placeholder = t(choiceStep ? PLACEHOLDER.choice : PLACEHOLDER[step]);
   const areaNames = draft.areas
     .map((c) => areas.find((a) => a.code === c)?.name)
     .filter(Boolean)

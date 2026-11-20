@@ -10,9 +10,11 @@ import { inputClass, WizardLabel } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
 import type { IntakeMessage } from "@/lib/cases/use-intake-chat";
 import { sideLabel } from "@/lib/types";
+import { useT } from "@/components/site/language-provider";
 import { REGIONS, STARTERS, type IntakeViewProps } from "./use-intake-controller";
 
 function AiBubble({ children }: { children: React.ReactNode }) {
+  const t = useT();
   return (
     <div className="flex items-start gap-2.5">
       <span
@@ -24,7 +26,7 @@ function AiBubble({ children }: { children: React.ReactNode }) {
       <div className="min-w-0 max-w-[560px]">
         <div className="mb-1 flex items-center gap-2 text-[11px] text-muted">
           <span className="font-semibold text-ink">ilovelawyer AI</span>
-          <span>AI guidance, not legal advice</span>
+          <span>{t("AI guidance, not legal advice")}</span>
         </div>
         <div className="rounded-[4px_16px_16px_16px] bg-bubble px-4 py-3 text-[14px] leading-[1.55] text-ink">
           {children}
@@ -35,11 +37,12 @@ function AiBubble({ children }: { children: React.ReactNode }) {
 }
 
 function Message({ m }: { m: IntakeMessage }) {
+  const t = useT();
   if (m.role === "ai") return <AiBubble>{m.text}</AiBubble>;
   return (
     <div className="flex justify-end">
       <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-[16px_4px_16px_16px] bg-primary px-4 py-3 text-[14px] leading-[1.55] text-white">
-        <span className="sr-only">You: </span>
+        <span className="sr-only">{t("You:")} </span>
         {m.text}
       </div>
     </div>
@@ -60,6 +63,7 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
     chat, step, typing, files, draft, text, setText, recorder, rejected, endRef, box,
     send, submitFirst, canSend, onKey, addFiles, choiceStep, placeholder, areaNames, titleMissing, regionQuestion, regionMissing, canAttach, empty, messages, dragging, dragProps,
   } = controller;
+  const t = useT();
 
   const composer = (
     <>
@@ -69,7 +73,7 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
             </div>
           )}
           {files.length > 0 && step !== "check" && (
-            <ul className="mb-2 flex flex-wrap gap-1.5" aria-label="Attached files">
+            <ul className="mb-2 flex flex-wrap gap-1.5" aria-label={t("Attached files")}>
               {files.map((f, i) => (
                 <li
                   key={`${f.name}-${i}`}
@@ -79,7 +83,7 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
                   <span className="truncate">{f.name}</span>
                   <button
                     type="button"
-                    aria-label={`Remove ${f.name}`}
+                    aria-label={t("Remove {name}", { name: f.name })}
                     onClick={() => chat.removeFile(i)}
                     className="flex size-7 items-center justify-center rounded-full text-ink-2 hover:bg-ink/10"
                   >
@@ -97,7 +101,7 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
       <div
         data-tour="chatbox"
         className={cn(
-          "flex items-center gap-1.5 rounded-[28px] border border-line-input bg-white p-2 shadow-[0_2px_14px_rgb(0_0_0/0.06)] transition-colors focus-within:border-ink-2",
+          "flex items-center gap-1.5 rounded-[28px] border border-line-input bg-surface p-2 shadow-[0_2px_14px_rgb(0_0_0/0.06)] transition-colors focus-within:border-ink-2",
         )}
       >
         {empty && recorder.phase === "recording" ? (
@@ -105,20 +109,20 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
             <button
               type="button"
               onClick={recorder.cancel}
-              aria-label="Cancel recording"
+              aria-label={t("Cancel recording")}
               data-no-tap
               className="flex size-11 shrink-0 items-center justify-center rounded-full border border-line-input text-ink-2 hover:border-line-hover hover:text-ink"
             >
               <X size={18} aria-hidden="true" />
             </button>
-            <div role="status" aria-label="Recording" className="flex min-h-11 flex-1 items-center justify-center gap-2.5 text-[14px]">
+            <div role="status" aria-label={t("Recording")} className="flex min-h-11 flex-1 items-center justify-center gap-2.5 text-[14px]">
               <span aria-hidden className="size-2.5 rounded-full bg-error motion-safe:animate-pulse" />
-              <span className="text-ink-2">Recording</span>
+              <span className="text-ink-2">{t("Recording")}</span>
             </div>
             <button
               type="button"
               onClick={recorder.stop}
-              aria-label="Stop and send"
+              aria-label={t("Stop and send")}
               data-no-tap
               className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gold text-white hover:bg-gold-hover"
             >
@@ -126,9 +130,9 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
             </button>
           </>
         ) : empty && recorder.phase === "transcribing" ? (
-          <div role="status" aria-label="Transcribing" className="flex min-h-11 flex-1 items-center justify-center gap-2.5 text-[14px]">
+          <div role="status" aria-label={t("Transcribing")} className="flex min-h-11 flex-1 items-center justify-center gap-2.5 text-[14px]">
             <span aria-hidden className="size-2.5 rounded-full bg-gold motion-safe:animate-pulse" />
-            <span className="text-ink-2">Transcribing…</span>
+            <span className="text-ink-2">{t("Transcribing…")}</span>
           </div>
         ) : (
           <>
@@ -138,7 +142,7 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
                 type="button"
                 onClick={open}
                 disabled={!canAttach}
-                aria-label="Attach documents"
+                aria-label={t("Attach documents")}
                 data-no-tap
                 className="flex size-11 shrink-0 items-center justify-center self-end rounded-full text-ink-2 transition-colors hover:bg-chip hover:text-ink disabled:opacity-40"
               >
@@ -166,7 +170,7 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
               type="button"
               onClick={recorder.start}
               disabled={creating || recorder.phase === "transcribing"}
-              aria-label="Record a voice message"
+              aria-label={t("Record a voice message")}
               data-no-tap
               className="flex size-11 shrink-0 items-center justify-center self-end rounded-full text-ink-2 transition-colors hover:bg-chip hover:text-ink disabled:opacity-40"
             >
@@ -177,7 +181,7 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
             type="button"
             onClick={send}
             disabled={!canSend || choiceStep || creating}
-            aria-label="Send"
+            aria-label={t("Send")}
             data-no-tap
             className="flex size-11 shrink-0 items-center justify-center self-end rounded-full bg-ink text-white transition-colors hover:bg-primary disabled:bg-chip disabled:text-muted"
           >
@@ -197,26 +201,25 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
           <div className="mx-auto flex w-full max-w-[768px] flex-1 flex-col justify-center gap-7 px-6 pb-24 pt-8">
             <div className="flex flex-col items-center gap-3 text-center">
               <h1 className="font-display text-[44px] font-normal leading-tight tracking-[-0.02em]">
-                What&apos;s going on?
+                {t("What's going on?")}
               </h1>
               <p className="max-w-[540px] text-[15px] leading-[1.55] text-ink-2">
-                Tell us in your own words. We&apos;ll ask a few questions and set up your case. AI guidance, not
-                legal advice.
+                {t("Tell us in your own words. We'll ask a few questions and set up your case. AI guidance, not legal advice.")}
               </p>
             </div>
 
             <div className="flex flex-col gap-3">
               <div>{composer}</div>
-              <div data-tour="starters" role="group" aria-label="Not sure where to start?" className="flex flex-wrap justify-center gap-1.5">
+              <div data-tour="starters" role="group" aria-label={t("Not sure where to start?")} className="flex flex-wrap justify-center gap-1.5">
                 {STARTERS.map((s) => (
                   <button
                     key={s}
                     type="button"
-                    onClick={() => submitFirst(s)}
+                    onClick={() => submitFirst(t(s))}
                     data-no-tap
                     className="min-h-8 rounded-full border border-line-chip bg-subtle px-3 text-[12.5px] font-medium text-ink transition-colors hover:border-gold"
                   >
-                    {s}
+                    {t(s)}
                   </button>
                 ))}
               </div>
@@ -228,9 +231,9 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
                 onClick={onUseForm}
                 data-tour="opt-form"
                 data-no-tap
-                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-line-input bg-white px-5 text-[13px] font-medium text-ink hover:border-line-hover"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-line-input bg-surface px-5 text-[13px] font-medium text-ink hover:border-line-hover"
               >
-                {hasDraft ? "Resume your form draft" : "Prefer a form? Fill in a form"}
+                {hasDraft ? t("Resume your form draft") : t("Prefer a form? Fill in a form")}
                 <ArrowRight size={14} className="text-gold" aria-hidden="true" />
               </button>
             </div>
@@ -240,7 +243,7 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
         <>
           <div
             role="log"
-            aria-label="Conversation with ilovelawyer AI"
+            aria-label={t("Conversation with ilovelawyer AI")}
             aria-live="polite"
             className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
           >
@@ -251,7 +254,7 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
 
             {typing && (
               <AiBubble>
-                <span className="sr-only">ilovelawyer AI is typing</span>
+                <span className="sr-only">{t("ilovelawyer AI is typing")}</span>
                 <span aria-hidden="true" className="flex h-[22px] items-center gap-1">
                   {[0, 1, 2].map((i) => (
                     <span
@@ -265,53 +268,53 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
             )}
 
             {!typing && step === "region" && (
-              <div className="flex flex-wrap gap-1.5 pl-[42px]" role="group" aria-label="Which part of the UK?">
+              <div className="flex flex-wrap gap-1.5 pl-[42px]" role="group" aria-label={t("Which part of the UK?")}>
                 {REGIONS.map((r) => (
-                  <PromptChip key={r.value} onClick={() => chat.chooseRegion(r.value, r.label)}>
-                    {r.label}
+                  <PromptChip key={r.value} onClick={() => chat.chooseRegion(r.value, t(r.label))}>
+                    {t(r.label)}
                   </PromptChip>
                 ))}
               </div>
             )}
 
             {!typing && step === "side" && (
-              <div className="flex flex-wrap gap-1.5 pl-[42px]" role="group" aria-label="Which side are you on?">
-                <PromptChip onClick={() => chat.chooseSide("CLAIMANT", "I'm bringing the complaint")}>
-                  I&apos;m bringing the complaint
+              <div className="flex flex-wrap gap-1.5 pl-[42px]" role="group" aria-label={t("Which side are you on?")}>
+                <PromptChip onClick={() => chat.chooseSide("CLAIMANT", t("I'm bringing the complaint"))}>
+                  {t("I'm bringing the complaint")}
                 </PromptChip>
-                <PromptChip onClick={() => chat.chooseSide("RESPONDENT", "I'm responding to one")}>
-                  I&apos;m responding to one
+                <PromptChip onClick={() => chat.chooseSide("RESPONDENT", t("I'm responding to one"))}>
+                  {t("I'm responding to one")}
                 </PromptChip>
-                <PromptChip onClick={() => chat.chooseSide("", "Not sure yet")}>Not sure yet</PromptChip>
+                <PromptChip onClick={() => chat.chooseSide("", t("Not sure yet"))}>{t("Not sure yet")}</PromptChip>
               </div>
             )}
 
             {!typing && (step === "where" || step === "others" || step === "want") && (
               <div className="pl-[42px]">
-                <PromptChip onClick={chat.skip}>{step === "others" ? "Done" : "Skip"}</PromptChip>
+                <PromptChip onClick={chat.skip}>{step === "others" ? t("Done") : t("Skip")}</PromptChip>
               </div>
             )}
 
             {!typing && step === "more" && files.length === 0 && (
               <div className="flex flex-wrap gap-1.5 pl-[42px]">
-                <PromptChip onClick={chat.confirmFiles}>No documents</PromptChip>
+                <PromptChip onClick={chat.confirmFiles}>{t("No documents")}</PromptChip>
               </div>
             )}
 
             {!typing && step === "check" && (
               <section
-                aria-label="Check your case"
+                aria-label={t("Check your case")}
                 className="flex flex-col gap-4 rounded-modal border border-warn-line bg-warn-bg/40 ml-[42px] p-5"
               >
                 <div className="flex flex-col gap-1">
-                  <div className="text-[10px] font-semibold uppercase tracking-[1.2px] text-gold">Check your case</div>
+                  <div className="text-[10px] font-semibold uppercase tracking-[1.2px] text-gold">{t("Check your case")}</div>
                   <div className="text-[12.5px] text-ink-2">
-                    Filled in from our chat. Change anything before you create it.
+                    {t("Filled in from our chat. Change anything before you create it.")}
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <WizardLabel htmlFor="intake-title">Case name *</WizardLabel>
+                  <WizardLabel htmlFor="intake-title">{t("Case name *")}</WizardLabel>
                   <input
                     id="intake-title"
                     value={draft.title}
@@ -319,30 +322,30 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
                     aria-invalid={titleMissing}
                     aria-describedby={titleMissing ? "intake-title-err" : undefined}
                     onChange={(e) => chat.patchDraft({ title: e.target.value })}
-                    className={cn(inputClass, "bg-white font-display text-[17px]", titleMissing && "border-error-field")}
+                    className={cn(inputClass, "bg-surface font-display text-[17px]", titleMissing && "border-error-field")}
                   />
                   {titleMissing && (
                     <div id="intake-title-err" className="text-xs text-error">
-                      Give your case a name before creating it.
+                      {t("Give your case a name before creating it.")}
                     </div>
                   )}
                 </div>
 
-                <dl className="rounded-input border border-line bg-white px-4">
-                  <Row label="Type of issue">{areaNames || "Not set"}</Row>
+                <dl className="rounded-input border border-line bg-surface px-4">
+                  <Row label={t("Type of issue")}>{areaNames || t("Not set")}</Row>
                   {regionQuestion && (
-                    <Row label="Part of the UK">
-                      {draft.region ? (draft.region === "OUTSIDE_UK" ? "Outside the UK" : draft.region) : "Not set"}
+                    <Row label={t("Part of the UK")}>
+                      {draft.region ? (draft.region === "OUTSIDE_UK" ? t("Outside the UK") : draft.region) : t("Not set")}
                     </Row>
                   )}
-                  {draft.where && <Row label="Town or city">{draft.where}</Row>}
-                  <Row label="Your side">{draft.side ? sideLabel(draft.side) : "Not set"}</Row>
-                  <Row label="What happened">{draft.happened || "Not set"}</Row>
-                  <Row label="What you want">{draft.wants || "Not set"}</Row>
+                  {draft.where && <Row label={t("Town or city")}>{draft.where}</Row>}
+                  <Row label={t("Your side")}>{draft.side ? sideLabel(draft.side) : t("Not set")}</Row>
+                  <Row label={t("What happened")}>{draft.happened || t("Not set")}</Row>
+                  <Row label={t("What you want")}>{draft.wants || t("Not set")}</Row>
                   {draft.others.length > 0 && (
-                    <Row label="Others involved">{draft.others.map((o) => o.name).join(", ")}</Row>
+                    <Row label={t("Others involved")}>{draft.others.map((o) => o.name).join(", ")}</Row>
                   )}
-                  {files.length > 0 && <Row label="Attached files">{files.map((f) => f.name).join(", ")}</Row>}
+                  {files.length > 0 && <Row label={t("Attached files")}>{files.map((f) => f.name).join(", ")}</Row>}
                 </dl>
 
                 {error && <ErrorBox message={error} />}
@@ -353,17 +356,17 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
                     onClick={() => onCreate(draft, files)}
                     className="px-[26px]"
                   >
-                    {creating ? "Creating…" : "Create case"}
+                    {creating ? t("Creating…") : t("Create case")}
                   </Button>
                   <Button variant="outline" disabled={creating} onClick={() => onEditDetails(draft, files)}>
-                    Edit details
+                    {t("Edit details")}
                   </Button>
                 </div>
                 {(draft.areas.length === 0 || regionMissing) && (
                   <div className="text-xs text-error">
                     {regionQuestion
-                      ? "A type of issue and a part of the UK are needed. Use Edit details to add them."
-                      : "A type of issue is needed. Use Edit details to add it."}
+                      ? t("A type of issue and a part of the UK are needed. Use Edit details to add them.")
+                      : t("A type of issue is needed. Use Edit details to add it.")}
                   </div>
                 )}
               </section>
@@ -372,13 +375,13 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
             </div>
           </div>
 
-          <div data-tour="sticky-bar" className="shrink-0 bg-white px-6 pb-[max(16px,env(safe-area-inset-bottom))] pt-2">
+          <div data-tour="sticky-bar" className="shrink-0 bg-surface px-6 pb-[max(16px,env(safe-area-inset-bottom))] pt-2">
             <div className="mx-auto w-full max-w-[768px]">
               {composer}
               <div className="mt-2 flex flex-col items-center justify-between gap-1 text-[11.5px] text-muted sm:flex-row">
-                <span>AI guidance, not legal advice. Advice comes from the solicitor you choose.</span>
+                <span>{t("AI guidance, not legal advice. Advice comes from the solicitor you choose.")}</span>
                 <button type="button" onClick={onUseForm} className="min-h-8 underline underline-offset-2 hover:text-ink">
-                  {hasDraft ? "Resume your form draft" : "Prefer a form? Fill it in instead"}
+                  {hasDraft ? t("Resume your form draft") : t("Prefer a form? Fill it in instead")}
                 </button>
               </div>
             </div>

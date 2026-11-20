@@ -50,7 +50,7 @@ export function ChatBar({ children, className }: { children: ReactNode; classNam
     <div
       data-tour="sticky-bar"
       className={cn(
-        "shrink-0 border-t border-line bg-white px-3 pt-2.5 pb-[max(12px,env(safe-area-inset-bottom))] group-data-[keyboard=true]/chat:pb-2.5",
+        "shrink-0 border-t border-line bg-surface px-3 pt-2.5 pb-[max(12px,env(safe-area-inset-bottom))] group-data-[keyboard=true]/chat:pb-2.5",
         className,
       )}
     >
@@ -86,7 +86,7 @@ export function ComposerPill({ children, className, ...rest }: { children: React
   return (
     <div
       className={cn(
-        "flex items-end gap-1 rounded-[26px] border border-line-input bg-white p-1.5 transition-colors focus-within:border-ink-2",
+        "flex items-end gap-1 rounded-[26px] border border-line-input bg-surface p-1.5 transition-colors focus-within:border-ink-2",
         className,
       )}
       {...rest}

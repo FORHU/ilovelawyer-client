@@ -176,7 +176,7 @@ export function LawyerProfileMobile({ lawyer }: { lawyer: ClientLawyerProfile })
       </PullToRefresh>
 
       {/* Always in reach: the screen above scrolls, this doesn't. */}
-      <div className="flex shrink-0 items-center gap-3 border-t border-line bg-white px-4 py-3">
+      <div className="flex shrink-0 items-center gap-3 border-t border-line bg-surface px-4 py-3">
         <div className="flex min-w-0 flex-col">
           <span className="text-[12px] text-ink-2">{t("First consultation")}</span>
           <span className="truncate text-[16px] font-semibold">{firstConsultationLabel(lawyer)}</span>

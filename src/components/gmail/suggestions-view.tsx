@@ -76,7 +76,7 @@ export function SuggestionsView({ suggest, onBack, onOpen }: { suggest: SuggestM
           <p className="text-[12px] text-muted">
             {matches.length} of the {suggest.data!.searched} emails it looked at. The AI can miss emails or include unrelated ones, so check before adding.
           </p>
-          <ul className="flex flex-col divide-y divide-line rounded-card border border-line bg-white">
+          <ul className="flex flex-col divide-y divide-line rounded-card border border-line bg-surface">
             {matches.map((m) => (
               <MessageRow
                 key={m.id}

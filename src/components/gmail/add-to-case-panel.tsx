@@ -79,7 +79,7 @@ export function AddToCasePanel({ caseId, message }: { caseId: string; message: G
   if (importMutation.isSuccess) {
     const added = importMutation.data.documents;
     return (
-      <section className="flex flex-col gap-2 rounded-card border border-line bg-white px-4 py-3.5">
+      <section className="flex flex-col gap-2 rounded-card border border-line bg-surface px-4 py-3.5">
         <p className="flex items-center gap-2 text-[13.5px] font-semibold text-ink">
           <CheckCircle2 size={16} aria-hidden className="shrink-0 text-success" />
           {added.length === 1 ? t("Added {n} document to this case", { n: 1 }) : t("Added {n} documents to this case", { n: added.length })}
@@ -102,7 +102,7 @@ export function AddToCasePanel({ caseId, message }: { caseId: string; message: G
         <h4 className="text-[13px] font-semibold text-ink">{t("Add to this case")}</h4>
         <p className="text-[12px] leading-[1.5] text-ink-2">{t("Only what you tick is copied into the case, each as its own document.")}</p>
       </div>
-      <div className="flex flex-col divide-y divide-line rounded-card border border-line bg-white">
+      <div className="flex flex-col divide-y divide-line rounded-card border border-line bg-surface">
         <Option
           checked={includeEmail}
           onChange={setIncludeEmail}

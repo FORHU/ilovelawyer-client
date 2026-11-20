@@ -17,7 +17,7 @@ import { useT } from "@/components/site/language-provider";
 import { msg } from "@/lib/i18n/msg";
 
 const railBtn =
-  "flex size-[34px] shrink-0 items-center justify-center rounded-full border bg-white text-ink";
+  "flex size-[34px] shrink-0 items-center justify-center rounded-full border bg-surface text-ink";
 
 const NAV: { href: string; label: string; icon: LucideIcon; match: RegExp }[] = [
   { href: "/cases", label: msg("Cases"), icon: Folder, match: /^\/cases(?!\/new)/ },
@@ -74,7 +74,7 @@ export function Sidebar() {
             href="/cases/new"
             onClick={onNewCase}
             data-no-tap
-            className="flex h-10 items-center gap-2.5 rounded-full border border-line bg-white px-3.5 text-[13px] font-medium text-ink no-underline hover:border-line-hover hover:text-ink"
+            className="flex h-10 items-center gap-2.5 rounded-full border border-line bg-surface px-3.5 text-[13px] font-medium text-ink no-underline hover:border-line-hover hover:text-ink"
           >
             <Plus size={15} />
             {t("New case")}
@@ -110,7 +110,7 @@ export function Sidebar() {
                   href={`/cases/${c.id}`}
                   className={cn(
                     "flex flex-col gap-0.5 rounded-[10px] border px-2.5 py-[9px] no-underline",
-                    active ? "border-line bg-white" : "border-transparent bg-transparent",
+                    active ? "border-line bg-surface" : "border-transparent bg-transparent",
                   )}
                 >
                   <span className="text-[13px] font-medium leading-snug text-ink">{c.title}</span>
@@ -162,7 +162,7 @@ export function Sidebar() {
                   data-no-tap
                   className={cn(
                     "flex size-[34px] shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold text-ink no-underline hover:text-ink",
-                    on ? "border-gold bg-chip" : "border-line bg-white",
+                    on ? "border-gold bg-chip" : "border-line bg-surface",
                   )}
                 >
                   {c.title

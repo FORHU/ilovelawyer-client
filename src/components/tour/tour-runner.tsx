@@ -193,7 +193,7 @@ export function TourRunner({ tour, context }: { tour: ActiveTour; context: TourC
         aria-describedby="tour-card-body"
         tabIndex={-1}
         className={cn(
-          "fixed z-[9002] box-border flex flex-col gap-1.5 bg-white px-5 py-[18px] shadow-[0_18px_48px_rgb(0_0_0/0.22),0_2px_6px_rgb(0_0_0/0.08)] outline-none transition-[left,top] duration-300 ease-out motion-reduce:transition-none",
+          "fixed z-[9002] box-border flex flex-col gap-1.5 bg-surface px-5 py-[18px] shadow-[0_18px_48px_rgb(0_0_0/0.22),0_2px_6px_rgb(0_0_0/0.08)] outline-none transition-[left,top] duration-300 ease-out motion-reduce:transition-none",
           viewport.phone ? "rounded-modal" : "rounded-card",
         )}
         style={cardStyle}
@@ -208,7 +208,7 @@ export function TourRunner({ tour, context }: { tour: ActiveTour; context: TourC
       </div>
 
       <div
-        className="fixed left-1/2 z-[9003] inline-flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-white p-1.5 shadow-[0_10px_30px_rgb(0_0_0/0.18)]"
+        className="fixed left-1/2 z-[9003] inline-flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-surface p-1.5 shadow-[0_10px_30px_rgb(0_0_0/0.18)]"
         style={{ bottom }}
       >
         <button

@@ -19,6 +19,7 @@ import { useAppSocket } from "@/lib/socket";
 import { useApp } from "@/lib/store";
 import { useHydrated } from "@/lib/use-hydrated";
 import { useDevice } from "@/components/device/device-provider";
+import { AppHeader } from "./app-header";
 import { BottomTabBar, MobileTopBar, isImmersive } from "./mobile-nav";
 import { Sidebar } from "./sidebar";
 
@@ -87,8 +88,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className={mobile ? "flex h-dvh min-h-0 flex-col overflow-hidden" : "flex h-dvh min-h-0 overflow-hidden"}>
       <LandingWatcher />
       {mobile ? <MobileTop name={user?.name || ""} /> : <Sidebar />}
-      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
-        {banner && <SuccessBanner message={banner} onDismiss={() => setBanner("")} />}
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-surface">
+        {!mobile && <AppHeader />}
+        {banner &&<SuccessBanner message={banner} onDismiss={() => setBanner("")} />}
         {children}
       </div>
       {mobile ? <MobileBottom /> : null}

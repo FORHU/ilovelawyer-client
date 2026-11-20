@@ -17,7 +17,7 @@ import type { LawyersList } from "./use-lawyers-list";
 
 import { useT } from "@/components/site/language-provider";
 import { useSite } from "@/components/site/site-provider";
-const field = "h-11 rounded-full border border-line-input bg-white px-4 text-[14px] text-ink outline-none focus:border-ink-2";
+const field = "h-11 rounded-full border border-line-input bg-surface px-4 text-[14px] text-ink outline-none focus:border-ink-2";
 
 function FilterGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -53,7 +53,7 @@ export function LawyersListMobile({ v }: { v: LawyersList }) {
         <p className="mt-1 text-[14px] leading-[1.5] text-ink-2">{ukSite ? t("Verified solicitors. Every fee is set by the lawyer and shown before you ask.") : t("Verified lawyers. Every fee is set by the lawyer and shown before you ask.")}</p>
       </div>
 
-      <div className="sticky top-0 z-10 flex flex-col gap-2.5 border-b border-line bg-white px-4 pb-3 pt-2">
+      <div className="sticky top-0 z-10 flex flex-col gap-2.5 border-b border-line bg-surface px-4 pb-3 pt-2">
         <div className="relative">
           <Search size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-2" aria-hidden="true" />
           <input
@@ -72,7 +72,7 @@ export function LawyersListMobile({ v }: { v: LawyersList }) {
             onClick={() => setFiltering(true)}
             aria-haspopup="dialog"
             data-no-tap
-            className="flex h-11 shrink-0 items-center gap-2 rounded-full border border-line-input bg-white px-4 text-[14px] font-medium text-ink active:bg-chip"
+            className="flex h-11 shrink-0 items-center gap-2 rounded-full border border-line-input bg-surface px-4 text-[14px] font-medium text-ink active:bg-chip"
           >
             <SlidersHorizontal size={16} aria-hidden="true" />
             {t("Filters")}
@@ -191,7 +191,7 @@ export function LawyersListMobile({ v }: { v: LawyersList }) {
                     disabled={!v.availability.canRequest}
                     onClick={() => useLawyerRequestForm.getState().openFor(activeCase.id)}
                     data-no-tap
-                    className="h-12 rounded-full bg-white px-5 text-[14px] font-medium text-ink disabled:opacity-50"
+                    className="h-12 rounded-full bg-surface px-5 text-[14px] font-medium text-ink disabled:opacity-50"
                   >
                     {t("Match me")}
                   </button>
@@ -265,7 +265,7 @@ export function LawyersListMobile({ v }: { v: LawyersList }) {
           )}
         </div>
         {/* Filters apply as they are chosen, so this just closes the sheet on the result. */}
-        <div className="sticky bottom-0 mt-3 flex gap-2 border-t border-line bg-white px-3 pb-1 pt-3">
+        <div className="sticky bottom-0 mt-3 flex gap-2 border-t border-line bg-surface px-3 pb-1 pt-3">
           <Button variant="soft" size="lg" className="flex-1" onClick={clear}>
             {t("Clear all")}
           </Button>

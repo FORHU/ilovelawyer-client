@@ -6,6 +6,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ApiError } from "@/lib/api/fetch";
 import { SiteProvider } from "@/components/site/site-provider";
 import { LanguageProvider } from "@/components/site/language-provider";
+import { useSiteTheme } from "@/lib/theme";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -41,6 +42,8 @@ function getQueryClient() {
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "not-configured.apps.googleusercontent.com";
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  // Light / dark mode on every page (lib/theme.ts).
+  useSiteTheme();
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <QueryClientProvider client={getQueryClient()}>

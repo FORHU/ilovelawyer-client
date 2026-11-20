@@ -28,7 +28,7 @@ function ToastCard({ toast }: { toast: Toast }) {
   return (
     <div
       role={toast.tone === "error" ? "alert" : "status"}
-      className={cn("pointer-events-auto flex w-full max-w-[400px] items-start gap-3 rounded-card border bg-white p-4 shadow-[0_10px_30px_rgb(0_0_0/0.12)]", tone.border)}
+      className={cn("pointer-events-auto flex w-full max-w-[400px] items-start gap-3 rounded-card border bg-surface p-4 shadow-[0_10px_30px_rgb(0_0_0/0.12)]", tone.border)}
       style={{ animation: "fade-in .15s ease" }}
     >
       <tone.Icon size={18} className={cn("mt-0.5 shrink-0", tone.icon)} aria-hidden />

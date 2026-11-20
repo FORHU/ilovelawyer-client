@@ -2,7 +2,7 @@ import type { InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from "rea
 import { cn } from "@/lib/cn";
 
 export const inputClass =
-  "h-12 w-full box-border rounded-input border border-line-input bg-white px-[14px] text-[15px] text-ink outline-none transition-colors focus:border-ink-2";
+  "h-12 w-full box-border rounded-input border border-line-input bg-surface px-[14px] text-[15px] text-ink outline-none transition-colors focus:border-ink-2";
 
 export function TextInput({
   className,

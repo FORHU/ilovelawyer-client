@@ -55,7 +55,7 @@ export function TicketStarter({
   };
 
   return (
-    <form onSubmit={submit} aria-label="Write to the team" className="flex flex-col gap-3 rounded-card border border-line bg-white p-4">
+    <form onSubmit={submit} aria-label="Write to the team" className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4">
       <Field label="What would you like to tell the team?" htmlFor="support-ticket-message">
         <TextArea
           id="support-ticket-message"

@@ -16,7 +16,7 @@ const STATUS_DOT = {
 export function TabsMobile({ tabs, active, onChange }: TabsProps) {
   const t = useT();
   return (
-    <div role="tablist" className="keyboard-hide grid shrink-0 grid-flow-col auto-cols-fr border-b border-line bg-white">
+    <div role="tablist" className="keyboard-hide grid shrink-0 grid-flow-col auto-cols-fr border-b border-line bg-surface">
       {tabs.map((tab) => {
         const on = tab.id === active;
         return (

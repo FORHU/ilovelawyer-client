@@ -11,11 +11,11 @@ const variants = {
   /** The sidebar's list of pages. */
   nav: "flex h-10 w-full items-center gap-2.5 rounded-[10px] px-2.5 text-left text-[13.5px] font-medium text-ink hover:bg-chip/60",
   /** The collapsed sidebar's round buttons. */
-  rail: "flex size-[34px] shrink-0 items-center justify-center rounded-full border border-line bg-white text-ink",
+  rail: "flex size-[34px] shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink",
   /** The phone's top bar. */
   bar: "flex size-11 items-center justify-center rounded-full text-ink-2 active:bg-chip",
   /** A labelled button on a page's own header (the new-case chat on a desktop). */
-  pill: "flex min-h-8 items-center gap-1.5 rounded-full border border-line-input bg-white px-3 text-[12px] font-medium text-ink-2 hover:border-line-hover hover:text-ink",
+  pill: "flex min-h-8 items-center gap-1.5 rounded-full border border-line-input bg-surface px-3 text-[12px] font-medium text-ink-2 hover:border-line-hover hover:text-ink",
 } as const;
 
 /** Where the red dot sits on each: the corner of a round button, the end of a row. */
