@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { useSession } from "@/lib/auth/session";
 import { setCurrentSite } from "@/lib/tenant/current-site";
 import type { CaseArea, UkJurisdiction } from "@/lib/types";
 import type { LawyerReadiness } from "@/lib/cases/readiness";
@@ -79,6 +80,30 @@ describe("useChosenLawyer on sign-out", () => {
     s.clear();
     expect(useChosenLawyer.getState().pending).toBeNull();
     expect(useChosenLawyer.getState().byCase).toEqual({});
+  });
+});
+
+describe("useChosenLawyer when the session ends", () => {
+  const USER = { id: "u1", username: "u", email: "u@example.com", name: null, role: "USER" as const };
+  afterEach(() => useSession.getState().clear());
+
+  it("clears what's remembered when the session is cleared, as a failed refresh does", () => {
+    useSession.getState().setSession(USER, "token");
+    const s = useChosenLawyer.getState();
+    s.choose(JANE, "u1");
+    s.attach("c1", "u1");
+    s.choose(JANE, "u1");
+    useSession.getState().clear();
+    expect(useChosenLawyer.getState().pending).toBeNull();
+    expect(useChosenLawyer.getState().byCase).toEqual({});
+  });
+
+  it("keeps it while the session is only refreshed", () => {
+    useSession.getState().setSession(USER, "token");
+    useChosenLawyer.getState().choose(JANE, "u1");
+    useSession.getState().setAccessToken("newer");
+    useSession.getState().setUser({ ...USER, name: "Una" });
+    expect(useChosenLawyer.getState().pending?.id).toBe("l1");
   });
 });
 

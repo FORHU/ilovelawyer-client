@@ -100,8 +100,9 @@ export function LawyerSuggestion({ caseId, latestAnswerId }: { caseId: string; l
           >
             {t("Request {name}", { name: chosenName })}
           </Button>
-          <Button variant="soft" size={mobile ? "lg" : "sm"} className={mobile ? "w-full" : undefined} onClick={openForm}>
-            {t("Let us match me instead")}
+          {/* No match on offer beside a lawyer the client chose: another lawyer, or this one. */}
+          <Button variant="soft" size={mobile ? "lg" : "sm"} className={mobile ? "w-full" : undefined} onClick={pickAnother}>
+            {t("Choose someone else")}
           </Button>
         </div>
       </div>

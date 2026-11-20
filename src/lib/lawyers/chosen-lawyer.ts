@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { useSession } from "@/lib/auth/session";
 import { currentSite } from "@/lib/tenant/current-site";
 import type { LawyerReadiness } from "@/lib/cases/readiness";
 import type { IneligibleReason, LawyerRequest, LawyerRequestEligibility } from "@/lib/lawyer-requests/api";
@@ -57,6 +58,13 @@ export const useChosenLawyer = create<ChosenLawyerState>()(
     { name: CHOSEN_LAWYER_STORAGE_KEY, storage: createJSONStorage(() => localStorage) },
   ),
 );
+
+// However the session ends (signing out, deleting the account, or a refresh that failed, see
+// apiFetch), what's remembered for the account goes with it. Here, not in session.ts, which
+// marketplace.ts (imported above) already imports.
+useSession.subscribe((s, prev) => {
+  if (prev.user && !s.user) useChosenLawyer.getState().clear();
+});
 
 /** The lawyer this client chose for their next case, if any. */
 export function usePendingLawyer(ownerId: string | undefined) {

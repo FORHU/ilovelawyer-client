@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useSite } from "@/components/site/site-provider";
 import { create } from "zustand";
 import { apiFetch } from "@/lib/api/fetch";
@@ -362,11 +362,20 @@ export function useRefreshLawyerRequests(caseId: string) {
   return () => invalidateLawyerRequests(queryClient, userId, caseId);
 }
 
+/** A request just sent, as the case's open request (useOpenLawyerRequestQuery), until the refetch. */
+export function seedOpenRequest(queryClient: QueryClient, userId: string | undefined, caseId: string, sent: LawyerRequest) {
+  if (isOpen(sent)) queryClient.setQueryData(lawyerRequestKeys.open(userId, caseId), sent);
+}
+
 export function useCreateLawyerRequestMutation(caseId: string) {
   const queryClient = useQueryClient();
   const userId = useUserId();
   return useMutation({
     mutationFn: (input: { note: string; consentVersion: string; lawyerId?: string }) => createLawyerRequest({ caseId, ...input, consentAccepted: true }),
+    // The new request is the case's open one from now: shown right away, before the refetch, so
+    // nothing in between offers a lawyer as if none was asked (the form's own onSuccess runs after
+    // this, and drops a lawyer chosen first).
+    onSuccess: (sent) => seedOpenRequest(queryClient, userId, caseId, sent),
     onSettled: () => invalidateLawyerRequests(queryClient, userId, caseId),
   });
 }

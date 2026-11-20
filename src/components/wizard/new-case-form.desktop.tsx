@@ -1,6 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
+import { ChosenLawyerBanner } from "@/components/cases/chosen-lawyer-banner";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { TourHint } from "@/components/tour/tour-hint";
@@ -48,6 +49,7 @@ export function NewCaseFormDesktop({ included, creating, error, onBack, onNext, 
               </button>
             )}
           </div>
+          <ChosenLawyerBanner />
           <ol className="flex flex-row justify-between gap-1 md:flex-col">
             {STEPS.map((s, i) => {
               const n = i + 1;
