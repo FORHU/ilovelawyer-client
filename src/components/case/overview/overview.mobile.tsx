@@ -4,6 +4,7 @@ import { ErrorBox } from "@/components/ui/banner";
 import { PullToRefresh } from "@/components/shell/pull-to-refresh";
 import { CaseDetails } from "@/components/case/overview/case-details";
 import { ReadinessBanner } from "@/components/case/overview/readiness-banner";
+import { DownloadSummaryButton } from "./download-summary";
 import { buildSections, GetLawyerCard, NothingYet } from "./overview-sections";
 import type { OverviewProps } from "./overview";
 import { useOverview } from "./use-overview";
@@ -12,8 +13,8 @@ import { useSite } from "@/components/site/site-provider";
 
 /** The phone's Overview: one column, in the order a client acts on it. Where the case stands, then
  * what is still needed and the dates coming up, then what to double-check; the longer record
- * (summary, timeline, facts, people, goals, questions) follows, then the case details and the
- * way to get a lawyer. */
+ * (summary, timeline, facts, people, goals, questions) follows, then the case details, the
+ * way to get a lawyer and the case summary download. */
 export function OverviewMobile({ c, onOpenDocument, onOpenChat }: OverviewProps) {
   const { intake, error, running, updatePending, updateError, onUpdate } = useOverview(c);
   const t = useT();
@@ -52,6 +53,7 @@ export function OverviewMobile({ c, onOpenDocument, onOpenChat }: OverviewProps)
             {empties.length > 0 && <NothingYet sections={empties} />}
             <CaseDetails c={c} defaultOpen={!intake.generatedAt && intake.status !== "RUNNING"} />
             <GetLawyerCard caseId={c.id} fullWidth />
+            <DownloadSummaryButton c={c} size="lg" />
             <p className="text-[12.5px] leading-[1.5] text-ink-2">
               This is what we&apos;ve gathered from you so far, to help a lawyer get up to speed quickly. It isn&apos;t legal advice.
             </p>
