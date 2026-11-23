@@ -2,6 +2,7 @@
 
 import { useState, type MouseEvent } from "react";
 import Link from "next/link";
+import { ThemeSegmented } from "@/components/site/theme-toggle";
 import type { HeaderViewProps } from "./header";
 import { useLandingContent } from "./landing-content";
 
@@ -43,7 +44,7 @@ export function LandingHeaderMobile({ solid, onAnchor }: HeaderViewProps) {
         <nav
           id="landing-menu"
           aria-label={nav.menu}
-          className="fixed inset-x-3 top-[70px] z-59 flex flex-col rounded-[22px] border border-white/14 bg-[rgb(10_9_8/0.96)] p-2 text-[#f5f3ef] backdrop-blur-md"
+          className="fixed inset-x-3 top-[70px] z-59 flex flex-col rounded-[22px] border border-(--band-ink)/14 bg-(--band)/96 p-2 text-(--band-ink) backdrop-blur-md"
         >
           <a href="#how" onClick={onMenuAnchor} className={MENU_ITEM}>
             {nav.how}
@@ -51,9 +52,12 @@ export function LandingHeaderMobile({ solid, onAnchor }: HeaderViewProps) {
           <a href="#faq" onClick={onMenuAnchor} className={MENU_ITEM}>
             {nav.faq}
           </a>
-          <Link href="/login" onClick={close} className={`${MENU_ITEM} border-t border-white/12`}>
+          <Link href="/login" onClick={close} className={`${MENU_ITEM} border-t border-(--band-ink)/12`}>
             {nav.signIn}
           </Link>
+          <div className="flex flex-wrap items-center gap-2 border-t border-(--band-ink)/12 px-3 pb-2 pt-3">
+            <ThemeSegmented tone="band" size="lg" />
+          </div>
         </nav>
       )}
     </>

@@ -33,7 +33,7 @@ export function MessageBubble({ message, assistant }: { message: ChatMessage; as
         <Link
           href={message.link.href}
           onClick={() => useSupport.getState().close()}
-          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-line-chip bg-white px-4 text-[14px] font-medium text-ink hover:border-line-hover"
+          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-line-chip bg-surface px-4 text-[14px] font-medium text-ink hover:border-line-hover"
         >
           {message.link.label}
           <ArrowRight size={15} className="text-gold" aria-hidden />

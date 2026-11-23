@@ -41,11 +41,8 @@ export const authKeys = {
   resetToken: (token: string) => [...authKeys.all, "reset-token", token] as const,
 };
 
-export function welcomeBack(name: string | null): string {
-  const first = name?.trim().split(" ")[0];
-  return first ? `Welcome back, ${first}.` : "Welcome back.";
-}
-
+/** A plain sign-in shows no banner: the app header already says "Welcome back". */
+const NO_BANNER = "";
 const DELETION_CANCELLED_BANNER = "Welcome back. Signing in cancelled your account deletion.";
 
 /** Every successful sign-in path ends here: keep the session, make this browser's local data the
@@ -83,7 +80,7 @@ export function useLoginMutation() {
   const complete = useCompleteSignIn();
   return useMutation({
     mutationFn: login,
-    onSuccess: (data) => complete(data, data.deletionCancelled ? DELETION_CANCELLED_BANNER : welcomeBack(data.user.name)),
+    onSuccess: (data) => complete(data, data.deletionCancelled ? DELETION_CANCELLED_BANNER : NO_BANNER),
   });
 }
 
@@ -91,7 +88,7 @@ export function useGoogleLoginMutation() {
   const complete = useCompleteSignIn();
   return useMutation({
     mutationFn: ({ idToken, remember }: { idToken: string; remember: boolean }) => googleLogin(idToken, remember),
-    onSuccess: (data) => complete(data, data.deletionCancelled ? DELETION_CANCELLED_BANNER : welcomeBack(data.user.name)),
+    onSuccess: (data) => complete(data, data.deletionCancelled ? DELETION_CANCELLED_BANNER : NO_BANNER),
   });
 }
 
@@ -102,7 +99,7 @@ export function useGoogleLinkMutation() {
   return useMutation({
     mutationFn: ({ idToken, password, remember }: { idToken: string; password: string; remember: boolean }) =>
       googleLink(idToken, password, remember),
-    onSuccess: (data) => complete(data, welcomeBack(data.user.name)),
+    onSuccess: (data) => complete(data, NO_BANNER),
   });
 }
 
@@ -124,7 +121,7 @@ export function useVerifyOtpMutation() {
     onSuccess: (data, { source }) =>
       complete(
         data,
-        source === "signup" ? "Welcome to ilovelawyer. Create your first case to get started." : welcomeBack(data.user.name),
+        source === "signup" ? "Welcome to ilovelawyer. Create your first case to get started." : NO_BANNER,
       ),
   });
 }

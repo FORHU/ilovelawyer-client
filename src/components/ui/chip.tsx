@@ -21,7 +21,7 @@ export function Chip({
         "disabled:opacity-40",
         selected
           ? "border-ink bg-ink text-white"
-          : "border-line-input bg-white text-ink hover:border-line-hover",
+          : "border-line-input bg-surface text-ink hover:border-line-hover",
         className,
       )}
       {...rest}

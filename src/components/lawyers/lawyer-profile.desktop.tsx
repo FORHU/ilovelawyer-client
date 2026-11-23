@@ -121,7 +121,7 @@ export function LawyerProfileDesktop({ lawyer }: { lawyer: ClientLawyerProfile }
             </Section>
           </div>
 
-          <RequestPanel lawyer={lawyer} id="request" className="rounded-card border border-line bg-white p-5 lg:sticky lg:top-6" />
+          <RequestPanel lawyer={lawyer} id="request" className="rounded-card border border-line bg-surface p-5 lg:sticky lg:top-6" />
         </div>
       </div>
     </div>

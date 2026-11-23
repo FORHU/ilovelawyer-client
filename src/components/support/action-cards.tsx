@@ -12,7 +12,7 @@ import type { SupportActionCard, SupportPayment } from "@/lib/support/types";
 
 const closeSupport = () => useSupport.getState().close();
 
-const row = "flex flex-col gap-1.5 rounded-card border border-line bg-white px-3.5 py-3";
+const row = "flex flex-col gap-1.5 rounded-card border border-line bg-surface px-3.5 py-3";
 const caseLink = "min-w-0 break-words text-[15px] font-semibold text-ink underline decoration-line-input underline-offset-2 hover:decoration-ink";
 
 /** Words as well as colour and an icon, so the status never depends on seeing a colour. */
@@ -110,7 +110,7 @@ export function ActionCardView({ card }: { card: SupportActionCard }) {
               <Link
                 href={requestHref(r)}
                 onClick={closeSupport}
-                className="mt-1 inline-flex min-h-11 items-center justify-center self-start rounded-full border border-line-chip bg-white px-5 text-[14px] font-medium text-ink hover:border-line-hover"
+                className="mt-1 inline-flex min-h-11 items-center justify-center self-start rounded-full border border-line-chip bg-surface px-5 text-[14px] font-medium text-ink hover:border-line-hover"
               >
                 {BLOCKING_ACTION_LABEL[r.action]}
                 <span className="sr-only">: {r.caseTitle}</span>

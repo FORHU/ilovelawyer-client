@@ -104,7 +104,7 @@ function RequestForm({ caseId, lawyer }: { caseId: string; lawyer: RequestedLawy
           rows={4}
           placeholder={t("Anything a lawyer should know first. For example, you'd prefer a fixed fee, or there's a deadline coming up.")}
           onChange={(e) => setNote(e.target.value)}
-          className="w-full resize-none rounded-input border border-line-input bg-white px-[14px] py-3 text-[15px] leading-[1.5] text-ink outline-none transition-colors focus:border-ink-2"
+          className="w-full resize-none rounded-input border border-line-input bg-surface px-[14px] py-3 text-[15px] leading-[1.5] text-ink outline-none transition-colors focus:border-ink-2"
         />
         <div className="text-right text-xs text-muted">
           {note.length}/{LAWYER_NOTE_MAX_LENGTH}
@@ -135,7 +135,7 @@ function RequestForm({ caseId, lawyer }: { caseId: string; lawyer: RequestedLawy
         onClick={() => setAgreed(!agreed)}
         className="group flex cursor-pointer items-start gap-2.5 border-0 bg-transparent p-0 text-left disabled:cursor-default disabled:opacity-60"
       >
-        <span className={cn("relative mt-0.5 size-4 shrink-0 border-2 bg-white transition-colors", agreed ? "border-ink" : "border-line group-hover:border-gold")}>
+        <span className={cn("relative mt-0.5 size-4 shrink-0 border-2 bg-surface transition-colors", agreed ? "border-ink" : "border-line group-hover:border-gold")}>
           {agreed && <span className="absolute inset-0.5 bg-ink" />}
         </span>
         <span className="text-[13px] text-ink">{t("I agree to share my case this way.")}</span>

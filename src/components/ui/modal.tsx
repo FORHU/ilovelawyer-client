@@ -92,7 +92,7 @@ export function Modal({ open, onClose, locked, title, subtitle, size = "md", chi
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         // Children never shrink: content taller than the screen scrolls rather than squashing a button.
-        className={`box-border flex max-h-full w-full ${WIDTHS[size]} flex-col gap-[18px] overflow-y-auto overscroll-contain rounded-t-3xl bg-white p-6 shadow-modal outline-none md:rounded-modal [&>*]:shrink-0`}
+        className={`box-border flex max-h-full w-full ${WIDTHS[size]} flex-col gap-[18px] overflow-y-auto overscroll-contain rounded-t-3xl bg-surface p-6 shadow-modal outline-none md:rounded-modal [&>*]:shrink-0`}
       >
         <div className="flex items-start justify-between gap-3">
           <div>

@@ -21,7 +21,7 @@ export function LawyerCardMobile({ lawyer }: { lawyer: ClientLawyer }) {
   const chips = lawyer.practiceAreas.slice(0, MAX_CHIPS);
   const more = lawyer.practiceAreas.length - chips.length;
   return (
-    <article className="relative flex flex-col gap-3 rounded-card border border-line bg-white p-4 active:bg-subtle">
+    <article className="relative flex flex-col gap-3 rounded-card border border-line bg-surface p-4 active:bg-subtle">
       <div className="flex items-start gap-3">
         <LawyerAvatar lawyer={{ name: lawyer.name, tone: toneFor(lawyer.id), avatarUrl: lawyer.avatarUrl }} size={44} />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">

@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api/fetch";
+import { apiFetch, apiFetchBlob } from "@/lib/api/fetch";
 import type { ClientBudget } from "@/lib/cases/budget";
 import type { CancelMessageResponse, Case, CaseDocument, CaseIntake, ChatMessage, OtherParty, UkJurisdiction } from "@/lib/types";
 
@@ -83,6 +83,14 @@ export function getIntake(caseId: string) {
  * something and want the overview caught up right now". */
 export function refreshIntake(caseId: string) {
   return post<CaseIntake>(`/api/client/cases/${caseId}/intake/refresh`, {});
+}
+
+/** The case summary PDF: what the client told us, built by the API from the stored intake — never an
+ * AI refresh, never a credit. The PDF is the response itself (nothing is stored), its labels in
+ * `lang`; the filename comes from Content-Disposition. An empty intake is 409 INTAKE_EMPTY, one still
+ * being prepared 409 INTAKE_RUNNING. */
+export function exportCaseSummary(caseId: string, lang: "en" | "ko") {
+  return apiFetchBlob(`/api/client/cases/${caseId}/export?format=pdf&lang=${lang}`);
 }
 
 /** The answer is written in the background; listMessages shows it when it's done. `documentIds`

@@ -48,7 +48,7 @@ import { msg } from "@/lib/i18n/msg";
 /** Up to 3 lawyers can take up a request and quote (ilovelawyer-api, several lawyers). */
 const MAX_LAWYERS = 3;
 
-const CARD = "flex flex-col gap-4 rounded-modal border border-line bg-white p-6 max-md:p-5";
+const CARD = "flex flex-col gap-4 rounded-modal border border-line bg-surface p-6 max-md:p-5";
 const HEADING = "font-display text-2xl font-normal tracking-[-0.02em] max-md:text-[22px]";
 
 function StepDot({ n, state }: { n: number; state: "done" | "current" | "fail" | "upcoming" }) {
@@ -60,7 +60,7 @@ function StepDot({ n, state }: { n: number; state: "done" | "current" | "fail" |
         state === "done" && "bg-ink text-white",
         state === "current" && "border-2 border-gold bg-warn-bg text-gold shadow-[0_0_0_4px_rgb(138_98_0/0.12)]",
         state === "fail" && "border-2 border-error bg-error-bg text-error",
-        state === "upcoming" && "border-[1.5px] border-line-input bg-white text-ink-2",
+        state === "upcoming" && "border-[1.5px] border-line-input bg-surface text-ink-2",
       )}
     >
       {state === "done" ? <Check size={13} strokeWidth={3} /> : state === "fail" ? "!" : n}
@@ -217,7 +217,7 @@ function LawyerHeader({ lawyer, tone = "plain", children }: { lawyer: NonNullabl
     <section
       className={cn(
         "flex flex-wrap items-center gap-3.5 rounded-modal border px-5 py-[18px] max-md:px-4",
-        tone === "success" ? "border-success-line bg-success-bg" : "border-line bg-white",
+        tone === "success" ? "border-success-line bg-success-bg" : "border-line bg-surface",
       )}
     >
       <Avatar initials={initialsOf(lawyer.name)} size={52} className="!border-0 !bg-ink !text-base !text-white" />
@@ -321,7 +321,7 @@ function OfferCard({
           <Eyebrow muted>{offer.quote.type === "FIXED_FEE" ? t("Fixed fee quote") : t("First consultation")}</Eyebrow>
           <span className="font-display text-[34px] tracking-[-0.02em] max-md:text-[30px]">{money(pay ?? offer.quote.amount)}</span>
           <BudgetFit budget={c.budget} quote={offer.quote} payMinor={(pay ?? offer.quote.amount).amountMinor} />
-          {offer.quote.message && <p className="text-[#4a4a4a]">{offer.quote.message}</p>}
+          {offer.quote.message && <p className="text-ink-soft">{offer.quote.message}</p>}
           {offer.quotation && <QuoteBreakdown quotation={offer.quotation} lawyerFirst={first} />}
           {offer.quotation &&
             (expired ? (
@@ -523,7 +523,7 @@ function PayStage({ c, request, quotation }: { c: Case; request: LawyerRequest; 
       {request.lawyer && <LawyerHeader lawyer={request.lawyer} />}
       <section className={CARD}>
         <h2 className={HEADING}>{t("Pay {name}'s quote", { name: first })}</h2>
-        <p className="text-[#4a4a4a]">
+        <p className="text-ink-soft">
           {expired
             ? t("You accepted {name}'s quote, but it expired on {date} before it was paid.", { name: first, date: pickByDay(quotation.expiresAt) })
             : t("You accepted {name}'s quote. Pay it here to get started: {name} can see your case and message you once it's paid. Pay by {date}, or the quote expires.", {
@@ -691,7 +691,7 @@ export function CompletionCard({ c, request }: { c: Case; request: LawyerRequest
             rows={3}
             disabled={busy}
             autoFocus
-            className="w-full resize-none rounded-input border border-line-input bg-white px-3.5 py-2.5 text-[14px] outline-none focus:border-ink disabled:opacity-60"
+            className="w-full resize-none rounded-input border border-line-input bg-surface px-3.5 py-2.5 text-[14px] outline-none focus:border-ink disabled:opacity-60"
           />
           <div className="flex flex-wrap gap-2.5">
             <Button variant="soft" size="sm" className="max-md:!h-11 max-md:flex-1" disabled={busy} onClick={() => setDeclining(false)}>
@@ -833,7 +833,7 @@ export function ClosedStage({ c, request }: { c: Case; request: LawyerRequest })
     <div className="flex flex-col gap-4">
       <section className={CARD}>
         <h2 className={HEADING}>{exited ? t("{name} can't continue", { name: firstName(name) ?? t("Your lawyer") }) : t("Engagement ended")}</h2>
-        <p className="text-[#4a4a4a]">
+        <p className="text-ink-soft">
           {exited
             ? t("Your lawyer has stopped acting on your case.")
             : request.closedBy === "CLIENT"
@@ -868,10 +868,10 @@ export function ExpiredStage({ caseId }: { caseId: string }) {
   return (
     <section className={cn(CARD, "border-error-line")}>
       <h2 className={HEADING}>{t("No lawyer found")}</h2>
-      <p className="text-[#4a4a4a]">
+      <p className="text-ink-soft">
         {t("No lawyer picked up your request within 48 hours, or no quote was chosen within 7 days. You haven't been charged anything, and any case fee credit stays on your account.")}
       </p>
-      <ul className="flex list-disc flex-col gap-1 pl-[18px] text-[13px] text-[#4a4a4a]">
+      <ul className="flex list-disc flex-col gap-1 pl-[18px] text-[13px] text-ink-soft">
         <li>{t("Answering the questions still open in your interview helps lawyers see what you need.")}</li>
         <li>{t("You can send it again any time.")}</li>
       </ul>
@@ -890,7 +890,7 @@ export function StageCard({ c, request, phase }: { c: Case; request: LawyerReque
     return (
       <section className={CARD}>
         <h2 className={HEADING}>{t("Preparing your request")}</h2>
-        <p className="text-[#4a4a4a]">{t("We're turning your overview into an anonymised summary — no names except for the conflict check. This takes about a minute; you can leave this page.")}</p>
+        <p className="text-ink-soft">{t("We're turning your overview into an anonymised summary — no names except for the conflict check. This takes about a minute; you can leave this page.")}</p>
         <div className="flex flex-col gap-2" aria-hidden>
           <span className="h-2.5 w-[90%] animate-pulse rounded-md bg-chip" />
           <span className="h-2.5 w-3/4 animate-pulse rounded-md bg-chip" />
@@ -906,7 +906,7 @@ export function StageCard({ c, request, phase }: { c: Case; request: LawyerReque
       return (
         <section className={CARD}>
           <h2 className={HEADING}>{t("Waiting for {name}", { name: named })}</h2>
-          <p className="text-[#4a4a4a]">{t("Only {name} has an anonymised summary of your case. If they take it up, they'll check for conflicts and send you a quote.", { name: named })}</p>
+          <p className="text-ink-soft">{t("Only {name} has an anonymised summary of your case. If they take it up, they'll check for conflicts and send you a quote.", { name: named })}</p>
           <div className="flex flex-wrap gap-2.5">
             <Tile label={t("Sent")}>{formatDateTime(request.createdAt)}</Tile>
             {request.routingExpiresAt && <Tile label={t("{name} has until", { name: named })}>{formatDateTime(request.routingExpiresAt)}</Tile>}
@@ -921,8 +921,8 @@ export function StageCard({ c, request, phase }: { c: Case; request: LawyerReque
     return (
       <section className={CARD}>
         <h2 className={HEADING}>{t("Finding the right lawyer")}</h2>
-        {named && <p className="text-[#4a4a4a]">{t("{name} couldn't take it up, so we've sent it to other verified lawyers who match, as you agreed.", { name: named })}</p>}
-        <p className="text-[#4a4a4a]">
+        {named && <p className="text-ink-soft">{t("{name} couldn't take it up, so we've sent it to other verified lawyers who match, as you agreed.", { name: named })}</p>}
+        <p className="text-ink-soft">
           {t("Verified lawyers who handle cases like yours have an anonymised summary of your case. Up to {n} can take it up; each checks for conflicts and sends you a quote.", { n: MAX_LAWYERS })}
         </p>
         <div className="flex flex-wrap gap-2.5">
@@ -938,7 +938,7 @@ export function StageCard({ c, request, phase }: { c: Case; request: LawyerReque
     return (
       <section className={CARD}>
         <h2 className={HEADING}>{on > 1 ? t("{n} lawyers are reviewing your case", { n: on }) : t("A lawyer is reviewing your case")}</h2>
-        <p className="text-[#4a4a4a]">
+        <p className="text-ink-soft">
           {on > 1
             ? t("Each is checking they don't already act for the other side, then each will send you a quote within 24 hours. You don't need to do anything yet.")
             : t("They're checking they don't already act for the other side, then they'll send you a quote within 24 hours. You don't need to do anything yet.")}
@@ -965,7 +965,7 @@ export function StageCard({ c, request, phase }: { c: Case; request: LawyerReque
 export function VisibilityCard({ engaged, since }: { engaged: boolean; since?: string | null }) {
   const t = useT();
   return (
-    <section className="flex flex-col gap-2.5 rounded-card border border-line bg-white px-5 py-[18px]">
+    <section className="flex flex-col gap-2.5 rounded-card border border-line bg-surface px-5 py-[18px]">
       <h3 className="text-[13.5px] font-semibold">{t("What the lawyer can see")}</h3>
       <ul className="flex flex-col gap-2">
         {VISIBILITY(engaged, since).map((v) => (

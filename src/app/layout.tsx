@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import Script from "next/script";
 import { Providers } from "@/components/providers";
+import { THEME_BOOT_SCRIPT } from "@/lib/theme-boot";
 import "./globals.css";
 
 // Fonts are self-hosted (src/app/fonts) so `next build` never depends on reaching Google Fonts.
@@ -51,9 +53,15 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${inter.variable} ${interExtended.variable} ${caslon.variable}`}>
+    // suppressHydrationWarning: the boot script may set data-theme before React hydrates.
+    <html lang="en" className={`${inter.variable} ${interExtended.variable} ${caslon.variable}`} suppressHydrationWarning>
       <body>
         <Providers>{children}</Providers>
+        {/* Dark mode before first paint on app pages (lib/theme-boot.ts). beforeInteractive puts it in
+            the server's HTML ahead of any Next.js code; a plain <script> React warns about. */}
+        <Script id="theme-boot" strategy="beforeInteractive">
+          {THEME_BOOT_SCRIPT}
+        </Script>
       </body>
     </html>
   );

@@ -136,7 +136,7 @@ export function DocumentPreview({ name, url }: { name: string; url: string }) {
 
   if (kind === "docx") {
     return (
-      <div className="h-full overflow-y-auto overscroll-contain bg-white p-4 text-black md:p-8">
+      <div className="h-full overflow-y-auto overscroll-contain bg-surface p-4 text-black md:p-8">
         {loading && <Loading />}
         <div ref={docx} className={loading ? "hidden" : "mx-auto max-w-3xl"} />
       </div>
@@ -147,7 +147,7 @@ export function DocumentPreview({ name, url }: { name: string; url: string }) {
 
   if (kind === "xlsx") {
     return (
-      <div className="flex h-full flex-col bg-white text-black">
+      <div className="flex h-full flex-col bg-surface text-black">
         {sheets.length > 1 && (
           <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-line px-2 pt-2">
             {sheets.map((_, i) => (
@@ -171,7 +171,7 @@ export function DocumentPreview({ name, url }: { name: string; url: string }) {
   }
 
   return (
-    <div className="h-full overflow-y-auto overscroll-contain bg-white p-4 md:p-8">
+    <div className="h-full overflow-y-auto overscroll-contain bg-surface p-4 md:p-8">
       <p className="mx-auto max-w-3xl whitespace-pre-wrap break-words text-[13px] text-ink">{text}</p>
     </div>
   );

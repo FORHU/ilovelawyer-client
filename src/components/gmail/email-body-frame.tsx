@@ -42,7 +42,7 @@ export function EmailBodyFrame({ html, text }: { html: string | null; text: stri
 
   if (!html) {
     return (
-      <pre className="whitespace-pre-wrap break-words rounded-input border border-line bg-white px-4 py-3.5 font-sans text-[14px] leading-[1.6] text-ink">
+      <pre className="whitespace-pre-wrap break-words rounded-input border border-line bg-surface px-4 py-3.5 font-sans text-[14px] leading-[1.6] text-ink">
         {text?.trim() || t("This email has no text.")}
       </pre>
     );
@@ -70,7 +70,7 @@ export function EmailBodyFrame({ html, text }: { html: string | null; text: stri
         sandbox="allow-popups allow-popups-to-escape-sandbox"
         srcDoc={documentFor(html, showRemoteImages ? CSP_WITH_REMOTE_IMAGES : CSP)}
         referrerPolicy="no-referrer"
-        className="h-[420px] w-full rounded-input border border-line bg-white"
+        className="h-[420px] w-full rounded-input border border-line bg-surface"
       />
     </div>
   );

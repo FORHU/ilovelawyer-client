@@ -64,7 +64,7 @@ export function DocumentPreviewModal({ name, url, onClose }: { name: string; url
         aria-label={name}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className="flex h-[92dvh] w-full max-w-[880px] flex-col overflow-hidden rounded-t-3xl bg-white shadow-modal outline-none md:h-[80vh] md:rounded-modal"
+        className="flex h-[92dvh] w-full max-w-[880px] flex-col overflow-hidden rounded-t-3xl bg-surface shadow-modal outline-none md:h-[80vh] md:rounded-modal"
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-line bg-subtle px-5 py-3">
           <div className="flex min-w-0 items-center gap-2">

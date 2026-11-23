@@ -83,7 +83,7 @@ function AreaFieldMobile({ value, onChange, error }: { value: string[]; onChange
         disabled={!areas.data}
         data-no-tap
         className={cn(
-          "flex h-12 w-full items-center justify-between rounded-input border bg-white px-4 text-left text-[16px] disabled:opacity-60",
+          "flex h-12 w-full items-center justify-between rounded-input border bg-surface px-4 text-left text-[16px] disabled:opacity-60",
           error || areas.isError ? "border-error-field" : "border-line-input",
         )}
       >
@@ -120,7 +120,7 @@ function AreaFieldMobile({ value, onChange, error }: { value: string[]; onChange
                     data-no-tap
                     className="flex min-h-[52px] w-full items-center gap-3 rounded-card px-3 text-left text-[16px] active:bg-chip"
                   >
-                    <span aria-hidden="true" className={cn("flex size-6 shrink-0 items-center justify-center rounded-md border", picked ? "border-ink bg-ink text-white" : "border-line-input bg-white")}>
+                    <span aria-hidden="true" className={cn("flex size-6 shrink-0 items-center justify-center rounded-md border", picked ? "border-ink bg-ink text-white" : "border-line-input bg-surface")}>
                       {picked && <Check size={15} strokeWidth={3} />}
                     </span>
                     {a.name}
@@ -158,7 +158,7 @@ function RegionFieldMobile({ value, onChange, error }: { value: CaseRegion | "";
             className={cn(
               "min-h-12 rounded-card border-[1.5px] px-3 text-[15px] font-medium transition-colors active:bg-chip",
               r.value === "OUTSIDE_UK" && "col-span-2",
-              value === r.value ? "border-gold bg-white text-ink" : "border-line bg-white text-ink-2",
+              value === r.value ? "border-gold bg-surface text-ink" : "border-line bg-surface text-ink-2",
             )}
           >
             {r.label}

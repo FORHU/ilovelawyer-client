@@ -17,7 +17,7 @@ export function LawyerTabDesktop({ c, request }: LawyerTabProps) {
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
       <div className="mx-auto flex w-full max-w-[1120px] flex-wrap items-start gap-6 px-4 pb-14 pt-7 md:px-10">
         <aside aria-label={t("Request progress")} className="flex min-w-0 flex-[1_1_300px] flex-col gap-4">
-          <section data-tour="request-status" className="flex flex-col gap-4 rounded-card border border-line bg-white p-5">
+          <section data-tour="request-status" className="flex flex-col gap-4 rounded-card border border-line bg-surface p-5">
             <div className="flex flex-col gap-0.5">
               <Eyebrow muted>{t("Matched for you")}</Eyebrow>
               <h2 className="text-base font-semibold">{t("Your lawyer request")}</h2>
@@ -26,7 +26,7 @@ export function LawyerTabDesktop({ c, request }: LawyerTabProps) {
             {canWithdraw && <WithdrawControl request={request} withdraw={withdraw} disabled={deciding} />}
           </section>
 
-          <section className="flex flex-col gap-2.5 rounded-card border border-line bg-white px-5 py-[18px]">
+          <section className="flex flex-col gap-2.5 rounded-card border border-line bg-surface px-5 py-[18px]">
             <h3>
               <Eyebrow muted>{t("Activity")}</Eyebrow>
             </h3>

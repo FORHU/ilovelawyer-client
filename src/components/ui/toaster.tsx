@@ -2,16 +2,24 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { CircleCheck, X } from "lucide-react";
+import { CircleAlert, CircleCheck, Info, X } from "lucide-react";
+import { cn } from "@/lib/cn";
 import { useToasts, type Toast } from "@/lib/toast";
 import { useT } from "@/components/site/language-provider";
 
 /** How long a toast stays up. Long enough to read two lines and follow its link. */
 const TOAST_MS = 7000;
 
+const TONES = {
+  success: { Icon: CircleCheck, border: "border-success-line", icon: "text-success-ink" },
+  info: { Icon: Info, border: "border-line", icon: "text-ink-2" },
+  error: { Icon: CircleAlert, border: "border-error-line", icon: "text-error-ink" },
+} as const;
+
 function ToastCard({ toast }: { toast: Toast }) {
   const dismiss = useToasts((s) => s.dismiss);
   const t = useT();
+  const tone = TONES[toast.tone ?? "success"];
   useEffect(() => {
     const id = setTimeout(() => dismiss(toast.id), TOAST_MS);
     return () => clearTimeout(id);
@@ -19,11 +27,11 @@ function ToastCard({ toast }: { toast: Toast }) {
 
   return (
     <div
-      role="status"
-      className="pointer-events-auto flex w-full max-w-[400px] items-start gap-3 rounded-card border border-success-line bg-white p-4 shadow-[0_10px_30px_rgb(0_0_0/0.12)]"
+      role={toast.tone === "error" ? "alert" : "status"}
+      className={cn("pointer-events-auto flex w-full max-w-[400px] items-start gap-3 rounded-card border bg-surface p-4 shadow-[0_10px_30px_rgb(0_0_0/0.12)]", tone.border)}
       style={{ animation: "fade-in .15s ease" }}
     >
-      <CircleCheck size={18} className="mt-0.5 shrink-0 text-success-ink" aria-hidden />
+      <tone.Icon size={18} className={cn("mt-0.5 shrink-0", tone.icon)} aria-hidden />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <p className="text-[14px] font-semibold text-ink">{toast.title}</p>
         {toast.description && <p className="text-[13px] leading-[1.55] text-ink-2">{toast.description}</p>}
@@ -40,7 +48,7 @@ function ToastCard({ toast }: { toast: Toast }) {
   );
 }
 
-/** Mounted once in the signed-in app shell: the toasts from toast.success(), newest at the bottom.
+/** Mounted once in the signed-in app shell: the toasts from toast.success() / info() / error(), newest at the bottom.
  * Above modals, and above the phone's bottom tab bar. */
 export function Toaster() {
   const toasts = useToasts((s) => s.toasts);

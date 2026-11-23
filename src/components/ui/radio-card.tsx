@@ -43,7 +43,7 @@ export function RadioCard({
       aria-checked={selected}
       onClick={onSelect}
       className={cn(
-        "flex w-full gap-3 border-[1.5px] bg-white text-left transition-colors",
+        "flex w-full gap-3 border-[1.5px] bg-surface text-left transition-colors",
         compact
           ? "min-h-11 items-center rounded-input px-[14px] py-3"
           : "items-start rounded-card p-4",

@@ -14,5 +14,14 @@
   "You": "나",
   "You'll need to sign in again to see your cases on this device.": "이 기기에서 사건을 보려면 다시 로그인해야 합니다.",
   "Your cases": "내 사건",
-  "ilovelawyer, your cases": "ilovelawyer, 내 사건"
+  "ilovelawyer, your cases": "ilovelawyer, 내 사건",
+  "Appearance": "화면 모드",
+  "How ilovelawyer looks on this device.": "이 기기에서 ilovelawyer가 보이는 방식입니다.",
+  "Switch to {language}": "{language}(으)로 바꾸기",
+  "Appearance: {now}. Switch to {next}": "화면 모드: {now}. {next}(으)로 바꾸기",
+  "Light": "라이트",
+  "Dark": "다크",
+  "Match my device": "기기 설정 따르기",
+  "Welcome back, {name}": "{name}님, 다시 오신 것을 환영합니다",
+  "Welcome back": "다시 오신 것을 환영합니다"
 }

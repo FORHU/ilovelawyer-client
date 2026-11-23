@@ -55,7 +55,7 @@ export function DocumentsDesktop({ c, focusDocumentId, onFocused, onOpenOverview
                 placeholder={t("Search documents")}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="h-[38px] w-[220px] rounded-full border border-line-input bg-white pl-[38px] pr-3.5 text-[13px] outline-none focus-visible:border-gold"
+                className="h-[38px] w-[220px] rounded-full border border-line-input bg-surface pl-[38px] pr-3.5 text-[13px] outline-none focus-visible:border-gold"
               />
             </label>
             <label className="flex items-center gap-1.5 text-[12.5px] text-ink-2">
@@ -63,7 +63,7 @@ export function DocumentsDesktop({ c, focusDocumentId, onFocused, onOpenOverview
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value as SortKey)}
-                className="h-[38px] rounded-full border border-line-input bg-white px-2.5 text-[13px] text-ink"
+                className="h-[38px] rounded-full border border-line-input bg-surface px-2.5 text-[13px] text-ink"
               >
                 {SORTS.map((s) => (
                   <option key={s.key} value={s.key}>
@@ -145,7 +145,7 @@ export function DocumentsDesktop({ c, focusDocumentId, onFocused, onOpenOverview
                     data-no-tap
                     className={cn(
                       "h-8 rounded-full border px-3.5 text-[12.5px] font-medium",
-                      on ? "border-ink bg-ink text-white" : "border-line-input bg-white text-ink hover:border-line-hover",
+                      on ? "border-ink bg-ink text-white" : "border-line-input bg-surface text-ink hover:border-line-hover",
                     )}
                   >
                     {t(f.label)} <span className="opacity-70">{c.documents.filter(tests[f.key]).length}</span>
@@ -155,7 +155,7 @@ export function DocumentsDesktop({ c, focusDocumentId, onFocused, onOpenOverview
             </div>
 
             <div className="flex flex-wrap items-start gap-5">
-              <div className="min-w-0 flex-[999_1_520px] overflow-hidden rounded-card border border-line bg-white">
+              <div className="min-w-0 flex-[999_1_520px] overflow-hidden rounded-card border border-line bg-surface">
                 <TableHead />
                 {visible.map((d) => (
                   <DocumentRow
@@ -224,7 +224,7 @@ function DocumentPanel({
         : t("Nothing in your overview comes from this file yet.");
 
   return (
-    <aside aria-label={t("Selected document")} className="flex min-w-0 flex-[1_1_300px] flex-col gap-3.5 rounded-card border border-line bg-white p-[18px]">
+    <aside aria-label={t("Selected document")} className="flex min-w-0 flex-[1_1_300px] flex-col gap-3.5 rounded-card border border-line bg-surface p-[18px]">
       <div className="flex items-center gap-3">
         <KindBadge name={d.name} size="lg" />
         <div className="flex min-w-0 flex-col gap-0.5">
@@ -260,7 +260,7 @@ function DocumentPanel({
         )}
       </div>
 
-      <div className="flex gap-2 rounded-xl bg-chip px-3 py-2.5 text-xs text-[#4a4a4a]">
+      <div className="flex gap-2 rounded-xl bg-chip px-3 py-2.5 text-xs text-ink-soft">
         <Lock size={14} aria-hidden className="mt-px shrink-0" />
         <span>{t("Only you can see this file. A lawyer sees it once you confirm them — before that, they only see an anonymised summary.")}</span>
       </div>

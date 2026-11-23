@@ -51,7 +51,7 @@ function TalkToPerson({ ctx, onOpened }: { ctx: PromptContext; onOpened?: () => 
 
   if (activeThread) {
     return (
-      <div className="flex flex-col gap-2 rounded-card border border-line bg-white p-4">
+      <div className="flex flex-col gap-2 rounded-card border border-line bg-surface p-4">
         <p className="text-[14px] leading-[1.5] text-ink">You already have a conversation open with the team. Anything you write there joins it.</p>
         <ChoiceList
           label="Next step"
@@ -127,7 +127,7 @@ function TeamCard({ thread, onOpen }: { thread: SupportThread; onOpen: () => voi
     <button
       type="button"
       onClick={onOpen}
-      className="flex min-h-14 w-full items-center gap-3 rounded-card border border-line-chip bg-white px-4 py-3 text-left transition-colors hover:border-line-hover"
+      className="flex min-h-14 w-full items-center gap-3 rounded-card border border-line-chip bg-surface px-4 py-3 text-left transition-colors hover:border-line-hover"
     >
       <LifeBuoy size={18} className="shrink-0 text-gold" aria-hidden />
       <span className="flex min-w-0 flex-1 flex-col">
@@ -215,7 +215,7 @@ export function SupportConversation({
         {prompt && <PromptView prompt={prompt} ctx={ctx} />}
       </div>
 
-      <div className="shrink-0 border-t border-line bg-white px-3 pb-[max(12px,env(safe-area-inset-bottom))] pt-2.5">
+      <div className="shrink-0 border-t border-line bg-surface px-3 pb-[max(12px,env(safe-area-inset-bottom))] pt-2.5">
         {replies.length > 0 && (
           <QuickReplies label="Quick replies">
             {replies.map((reply) => (

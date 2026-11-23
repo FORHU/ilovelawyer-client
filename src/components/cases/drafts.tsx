@@ -94,7 +94,7 @@ export function SidebarDrafts({ collapsed }: { collapsed: boolean }) {
               data-no-tap
               className={cn(
                 "flex size-[34px] shrink-0 items-center justify-center rounded-full border border-dashed text-[11px] font-semibold text-ink-2 no-underline hover:text-ink",
-                nav.isOpen(d) ? "border-gold bg-chip" : "border-line-input bg-white",
+                nav.isOpen(d) ? "border-gold bg-chip" : "border-line-input bg-surface",
               )}
             >
               {title
@@ -117,7 +117,7 @@ export function SidebarDrafts({ collapsed }: { collapsed: boolean }) {
         const title = draftTitle(d);
         const active = nav.isOpen(d);
         return (
-          <div key={d.id} className={cn("group flex items-center rounded-[10px] border", active ? "border-line bg-white" : "border-transparent")}>
+          <div key={d.id} className={cn("group flex items-center rounded-[10px] border", active ? "border-line bg-surface" : "border-transparent")}>
             <Link href={draftHref(d)} onClick={(e) => nav.open(d, e)} className="flex min-w-0 flex-1 flex-col gap-0.5 py-[9px] pl-2.5 no-underline">
               <span className="truncate text-[13px] font-medium leading-snug text-ink">{title}</span>
               <span className="text-[11px] text-muted">{t("Draft · {when}", { when: draftWhen(d.updatedAt) })}</span>
@@ -153,7 +153,7 @@ export function DraftsSection({ mobile = false }: { mobile?: boolean }) {
       <h2 id="drafts-heading" className={cn("font-semibold uppercase tracking-[1px] text-muted", mobile ? "text-[12px]" : "text-[10px]")}>
         {t("Drafts · not created yet")}
       </h2>
-      <ul className="flex flex-col divide-y divide-line rounded-card border border-dashed border-line-input bg-white">
+      <ul className="flex flex-col divide-y divide-line rounded-card border border-dashed border-line-input bg-surface">
         {drafts.map((d) => {
           const title = draftTitle(d);
           return (
