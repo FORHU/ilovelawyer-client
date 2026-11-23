@@ -88,6 +88,17 @@ describe("howPose", () => {
     expect(photos.rightX + photos.w).toBeLessThanOrEqual(phone.W);
     expect(photos.top).toBeGreaterThanOrEqual(0);
   });
+
+  it("keeps the photos below a long heading, on both layouts", () => {
+    // A four-line heading: the longest a translated step runs to on a phone.
+    const tall = 124;
+    for (const d of [3.2, 4, 5]) {
+      const onPhone = howPose(d, { ...phone, headingH: tall });
+      expect(onPhone.photos.top).toBeGreaterThanOrEqual(76 + tall);
+      const onDesk = howPose(d, { ...desktop, headingH: tall });
+      expect(onDesk.headingTop + tall).toBeLessThanOrEqual(onDesk.photos.top);
+    }
+  });
 });
 
 describe("headings", () => {
