@@ -54,6 +54,11 @@ export interface OtherParty {
 /** READY once the AI can read it. */
 export type DocumentStatus = "PENDING" | "READY" | "FAILED";
 
+/** CW/#159's relabeled sync vocabulary for evidence uploads, at the ilovelawyer-api boundary.
+ * Assumed field name and values — ilovelawyer-api's #159 work wasn't landed yet when this was
+ * written; adjust once its actual shape is confirmed. Falls back to `status` when absent. */
+export type DocumentSyncStatus = "uploading" | "processing" | "done" | "failed";
+
 export interface CaseDocument {
   id: string;
   name: string;
@@ -63,6 +68,13 @@ export interface CaseDocument {
   uploadedAt: string;
   /** Same as uploadedAt; the API keeps it for older apps. */
   createdAt: string;
+  /** #159: the relabeled uploading/processing/done/failed status, once ilovelawyer-api exposes
+   * it. Assumed field name. Absent on an API that doesn't send it yet — fall back to `status`. */
+  syncStatus?: DocumentSyncStatus;
+  /** #159: the id of the IntakeGap (CaseIntake.missing) this evidence item resolved, if any.
+   * Assumed field name — ilovelawyer-api's gap-linking schema wasn't landed yet when this was
+   * written. Null/absent when the document doesn't fill a known gap. */
+  filledGapId?: string | null;
 }
 
 /** A case as the API returns it (GET /api/client/cases/:id). */
@@ -104,6 +116,10 @@ export interface ChatMessage {
    * synthesized reply on its answer. Null on an ordinary typed turn. */
   audioUrl?: string | null;
   createdAt: string;
+  /** #158: 2-4 short tappable reply candidates for the client's next answer, on an AI message —
+   * absent/empty when CW isn't confident enough to suggest any. Assumed field name; CW/#158's
+   * payload wasn't landed yet when this was written. Only ever meaningful on the latest AI turn. */
+  suggestions?: string[];
 }
 
 /** POST /api/client/cases/:caseId/messages/:messageId/cancel (the Stop button). CANCELLED means this

@@ -5,6 +5,7 @@ import { checkFiles, useLimitsQuery } from "@/lib/cases/limits";
 import { citationsByDocument } from "@/lib/cases/citations";
 import { useIntakeQuery, useUploadDocumentsMutation, useUploadingFiles } from "@/lib/cases/queries";
 import { applyDocumentView, filterTests, type FilterKey, type SortKey } from "@/lib/documents/filter-sort";
+import { nextSuggestedGap } from "@/lib/documents/evidence-gaps";
 import { useFailedUploads, useFailedUploadsOf } from "@/lib/failed-uploads";
 import type { Case, CaseDocument } from "@/lib/types";
 import { useFileDrop } from "@/lib/use-file-drop";
@@ -79,10 +80,12 @@ export function useDocuments(c: Case, focusDocumentId?: string | null, onFocused
   const picked = visible.find((d) => d.id === pickedId) ?? null;
   const totalBytes = c.documents.reduce((sum, d) => sum + (d.size ?? 0), 0);
   const hasAny = c.documents.length > 0 || uploading.length > 0;
+  // #159: the one most useful thing to upload next, from the Overview's open gaps.
+  const nextGap = nextSuggestedGap(intake, c.documents);
 
   return {
     upload, limits, failed, citations, opener, leftOver, uploading, confirmingId, setConfirmingId, filter, setFilter, sort, setSort,
-    query, setQuery, setPickedId, dragging, dragProps, add, retry, usedCount, tests, needle, visible, picked, totalBytes, hasAny,
+    query, setQuery, setPickedId, dragging, dragProps, add, retry, usedCount, tests, needle, visible, picked, totalBytes, hasAny, intake, nextGap,
     registerRow: (id: string) => (el: HTMLDivElement | null) => {
       rows.current[id] = el;
     },

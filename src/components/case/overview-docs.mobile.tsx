@@ -13,6 +13,7 @@ import { FILTERS, SORTS } from "@/lib/documents/filter-sort";
 import { formatBytes } from "@/lib/format";
 import { DocumentCardMobile } from "./document-card.mobile";
 import { UploadingRow } from "./document-row";
+import { EvidenceSuggestionBanner } from "./evidence-suggestion-banner";
 import type { DocumentsProps } from "./overview-docs";
 import { useDocuments } from "./use-documents";
 import { useT } from "@/components/site/language-provider";
@@ -23,7 +24,7 @@ import { useSite } from "@/components/site/site-provider";
 export function DocumentsMobile({ c, focusDocumentId, onFocused, onOpenOverview }: DocumentsProps) {
   const {
     upload, limits, failed, citations, opener, leftOver, uploading, filter, setFilter, sort, setSort, query, setQuery,
-    add, retry, usedCount, tests, needle, visible, totalBytes, hasAny, registerRow,
+    add, retry, usedCount, tests, needle, visible, totalBytes, hasAny, registerRow, nextGap,
   } = useDocuments(c, focusDocumentId, onFocused);
   const [sorting, setSorting] = useState(false);
   const [gmailOpen, setGmailOpen] = useState(false);
@@ -43,6 +44,8 @@ export function DocumentsMobile({ c, focusDocumentId, onFocused, onOpenOverview 
               {aiOpen && ` · ${t("the AI reads each one and cites it in your overview")}`}
             </span>
           </div>
+
+          <EvidenceSuggestionBanner gap={nextGap} />
 
           {leftOver.length > 0 && (
             <div className="flex flex-col gap-3 rounded-card border border-error-line bg-error-bg px-4 py-3">
