@@ -7,6 +7,7 @@ import { ErrorBox } from "@/components/ui/banner";
 import { FilePicker } from "@/components/ui/file-picker";
 import { AiMark } from "@/components/ui/misc";
 import { AfterAnswer } from "@/components/case/after-answer";
+import { CitationText } from "@/components/case/citation-text";
 import { DeleteConfirm, MessageMenu } from "@/components/case/message-actions";
 import { usePayment } from "@/lib/payment-store";
 import type { Case } from "@/lib/types";
@@ -100,7 +101,9 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
                   <div className="flex gap-3">
                     <AiMark />
                     <div className="flex min-w-0 flex-1 flex-col gap-2.5 text-[15px] leading-[1.7]">
-                      <div className="whitespace-pre-line">{m.text}</div>
+                      <div className="whitespace-pre-line">
+                        <CitationText text={m.text} />
+                      </div>
                       {m.audioUrl && <audio controls src={m.audioUrl} className="h-8 w-56" />}
                       <div className="flex items-center justify-between gap-3">
                         <div className="text-xs text-muted">I collect and organise your information for a lawyer. I can&apos;t give legal advice.</div>

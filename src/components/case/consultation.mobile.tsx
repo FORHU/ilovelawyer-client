@@ -9,6 +9,7 @@ import { AiMark } from "@/components/ui/misc";
 import { TypingDots } from "@/components/ui/typing-dots";
 import { ChatBar, ChatScreen, ComposerButton, ComposerPill } from "@/components/mobile/chat";
 import { AfterAnswer } from "@/components/case/after-answer";
+import { CitationText } from "@/components/case/citation-text";
 import { DeleteConfirm, MessageMenu } from "@/components/case/message-actions";
 import { cn } from "@/lib/cn";
 import { usePayment } from "@/lib/payment-store";
@@ -95,7 +96,9 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
                     <AiMark size={28} />
                     <div className="flex min-w-0 flex-1 flex-col gap-1 break-words text-[15px] leading-[1.6]">
                       <span className="sr-only">ilovelawyer AI: </span>
-                      <div className="whitespace-pre-line">{m.text}</div>
+                      <div className="whitespace-pre-line">
+                        <CitationText text={m.text} />
+                      </div>
                       {m.audioUrl && <audio controls src={m.audioUrl} className="h-8 w-56" />}
                       <div className="-mb-2 flex justify-end">
                         <MessageMenu m={m} consultation={consultation} />
