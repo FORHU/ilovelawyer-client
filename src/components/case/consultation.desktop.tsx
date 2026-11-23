@@ -9,8 +9,9 @@ import { AiMark } from "@/components/ui/misc";
 import { AfterAnswer } from "@/components/case/after-answer";
 import { CitationText } from "@/components/case/citation-text";
 import { DeleteConfirm, MessageMenu } from "@/components/case/message-actions";
+import { useSite } from "@/components/site/site-provider";
 import { usePayment } from "@/lib/payment-store";
-import type { Case } from "@/lib/types";
+import { caseRegion, type Case } from "@/lib/types";
 import { PROMPTS, type Consultation } from "./use-consultation";
 
 export function ConsultationDesktop({ c, consultation }: { c: Case; consultation: Consultation }) {
@@ -21,6 +22,12 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
     stop, canStop,
   } = consultation;
   const [showMissing, setShowMissing] = useState(false);
+  // AfterAnswer already shows its own dedicated RegionPrompt card whenever the case has no part
+  // of the UK yet — the exact same question CW's own #158 suggestions ask for the jurisdiction
+  // question. Suppressing the chips in that one case, not the feature generally: a later,
+  // different open question still gets its own suggestions normally.
+  const { regionQuestion } = useSite();
+  const regionPromptShowing = regionQuestion && caseRegion(c) === "";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -177,7 +184,7 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
           )}
           {/* #158: CW's suggested replies for the question just asked — tap to send as-is, or
              type/speak a different answer instead. Nothing renders when there are none. */}
-          {suggestions.length > 0 && !out && (
+          {suggestions.length > 0 && !out && !regionPromptShowing && (
             <div role="group" aria-label="Suggested replies" className="flex flex-wrap justify-center gap-1.5">
               {suggestions.map((s, i) => (
                 <button

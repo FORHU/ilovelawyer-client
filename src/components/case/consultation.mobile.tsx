@@ -11,9 +11,10 @@ import { ChatBar, ChatScreen, ComposerButton, ComposerPill } from "@/components/
 import { AfterAnswer } from "@/components/case/after-answer";
 import { CitationText } from "@/components/case/citation-text";
 import { DeleteConfirm, MessageMenu } from "@/components/case/message-actions";
+import { useSite } from "@/components/site/site-provider";
 import { cn } from "@/lib/cn";
 import { usePayment } from "@/lib/payment-store";
-import type { Case } from "@/lib/types";
+import { caseRegion, type Case } from "@/lib/types";
 import { PROMPTS, type Consultation } from "./use-consultation";
 
 export function ConsultationMobile({ c, consultation }: { c: Case; consultation: Consultation }) {
@@ -21,6 +22,10 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
     recorder, out, thinking, messages, documentById, scroller, missing, missingGaps, suggestions, openRequest, lastFailed, latestAnswer, connected, loadError, notice, credits, attachedIds, failedAttachedIds, removeAttached, input, setInput, onPaste, textareaRef, attach, upload, attachmentPending, sendableAttachedIds, send, stop, canStop, askAbout,
   } = consultation;
   const [showMissing, setShowMissing] = useState(false);
+  // See consultation.desktop.tsx's identical note: AfterAnswer's own RegionPrompt card already
+  // covers the jurisdiction question, so #158's chips are suppressed only for that one collision.
+  const { regionQuestion } = useSite();
+  const regionPromptShowing = regionQuestion && caseRegion(c) === "";
 
   return (
     <ChatScreen>
@@ -148,7 +153,7 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
         )}
         {/* #158: CW's suggested replies for the question just asked — tap to send as-is, or
            type/speak a different answer instead. Nothing renders when there are none. */}
-        {suggestions.length > 0 && !out && (
+        {suggestions.length > 0 && !out && !regionPromptShowing && (
           <div role="group" aria-label="Suggested replies" className="no-scrollbar -mx-3 mb-2 flex gap-1.5 overflow-x-auto px-3">
             {suggestions.map((s, i) => (
               <button
