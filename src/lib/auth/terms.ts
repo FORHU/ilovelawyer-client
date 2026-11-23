@@ -49,7 +49,7 @@ const GOVERNING_LAW: Partial<Record<TenantCode, { label: string; paragraphs: str
     label: "Republic of Korea",
     paragraphs: [
       "These Terms are governed by the laws of the Republic of Korea. Any dispute arising from them or from your use of the Platform will be brought before the competent courts of the Republic of Korea, unless the law gives you the right to bring it elsewhere.",
-      "We process your personal information in line with the Personal Information Protection Act. Your account, cases and documents are stored on servers in London, United Kingdom. By agreeing to these Terms you consent to your personal information being transferred to and processed in the United Kingdom for that purpose. The Privacy Policy explains what is transferred, why, and how to withdraw your consent.",
+      "We process your personal information in line with the Personal Information Protection Act. Your account, cases and documents may be stored and processed outside Korea, on servers in Singapore and the United Kingdom and by the AI service providers named in the Privacy Policy. The Privacy Policy explains what is transferred, to whom and to which countries, why and for how long, and how to refuse the transfer.",
     ],
   },
 };
