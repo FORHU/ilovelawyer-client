@@ -1,3 +1,4 @@
+import { useT } from "@/components/site/language-provider";
 import { cn } from "@/lib/cn";
 import { appendSpoken, clock } from "@/lib/voice/live-dictation";
 import type { LiveDictationPhase } from "@/lib/voice/use-live-dictation";
@@ -17,7 +18,8 @@ export function LiveDictationStatus({
   transcript: string;
   before?: string;
 }) {
-  const label = phase === "starting" ? "Starting…" : phase === "finishing" ? "Finishing…" : "Listening";
+  const t = useT();
+  const label = phase === "starting" ? t("Starting…") : phase === "finishing" ? t("Finishing…") : t("Listening");
   const shown = appendSpoken(before, transcript).trim();
   return (
     <div className="flex min-h-11 min-w-0 flex-1 flex-col justify-center gap-0.5 px-1 py-1.5">
@@ -28,7 +30,7 @@ export function LiveDictationStatus({
       </div>
       {/* Not announced as it changes: the words are revised several times a second. */}
       <p className="flex max-h-18 flex-col justify-end overflow-hidden text-[15px] leading-6 text-ink">
-        {shown ? <span className="whitespace-pre-wrap">{shown}</span> : phase === "recording" && <span className="text-muted">Say what happened…</span>}
+        {shown ? <span className="whitespace-pre-wrap">{shown}</span> : phase === "recording" && <span className="text-muted">{t("Say what happened…")}</span>}
       </p>
     </div>
   );
