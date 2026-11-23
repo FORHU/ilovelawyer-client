@@ -28,12 +28,12 @@ export const DISCLAIMER = "AI guidance, not legal advice. Advice comes from the 
 
 export const TRUST_CARDS = [
   {
-    title: "Verified solicitors",
-    body: "Every solicitor on ilovelawyer is regulated by the Solicitors Regulation Authority (SRA), the Law Society of Scotland or the Law Society of Northern Ireland. We check their registration before they can send you a quote. You can look any solicitor up on their regulator's register yourself.",
+    title: "Registered solicitors",
+    body: "Every solicitor on ilovelawyer is regulated by the Solicitors Regulation Authority (SRA), the Law Society of Scotland or the Law Society of Northern Ireland. We check each solicitor's registration on their regulator's public register before they can respond. This isn't a recommendation of their services. You can look any solicitor up on their regulator's register yourself.",
   },
   {
     title: "What solicitors can see",
-    body: "Solicitors first see an anonymised summary that leaves out names and documents. Up to three can take up your request, and each also sees the names of the people and organisations in your case, only to check for a conflict of interest. Only the solicitor you hire and pay can read your case, its documents and your chat with the AI.",
+    body: "Before sharing, we show which solicitors receive which details and why. Solicitors first see an anonymised summary that leaves out names and documents. Up to three can take up your request, and each also sees the names of the people and organisations in your case, only to check for a conflict of interest. Only the solicitor you hire and pay can read your case, its documents and your chat with the AI.",
   },
   {
     title: "How ilovelawyer is paid",
@@ -41,7 +41,7 @@ export const TRUST_CARDS = [
   },
   {
     title: "Your data and AI",
-    body: "We use AI to summarise what you tell us. Your information is used to provide the service and is not sold. You can ask to see it or delete it at any time. Read our Privacy Policy for details.",
+    body: "We use AI to summarise what you tell us. Your information is used to provide the service and is not sold. We never sell it. You can ask to see, correct or delete it, subject to records we must keep by law. See our Privacy Policy for our AI providers.",
   },
 ];
 
@@ -59,8 +59,8 @@ export const FAQS = [
     a: "No. ilovelawyer is not a law firm and the AI does not give legal advice. Legal advice comes from the independent solicitor you choose to instruct, and they are responsible to you for it.",
   },
   {
-    q: "Are the solicitors really verified?",
-    a: "Yes. Before a solicitor can receive requests or send quotes, one of our team checks them against their regulator's register: the Solicitors Regulation Authority (SRA), the Law Society of Scotland or the Law Society of Northern Ireland. We confirm that the name matches, that they are currently practising, and which parts of the UK they are qualified in. If a solicitor changes those details, they can't take new requests until we have checked again.",
+    q: "Do you check that solicitors are registered?",
+    a: "Yes. Before a solicitor can receive requests or send quotes, one of our team checks them against their regulator's register: the Solicitors Regulation Authority (SRA), the Law Society of Scotland or the Law Society of Northern Ireland. We confirm that the name matches, that they are currently practising, and which parts of the UK they are qualified in. If a solicitor changes those details, they can't take new requests until we have checked again. A registration check is not a recommendation or endorsement of a solicitor's services.",
   },
   {
     q: "Do solicitors see my name?",

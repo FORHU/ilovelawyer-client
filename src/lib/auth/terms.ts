@@ -67,7 +67,7 @@ const BASE_SECTIONS: TermsSection[] = [
     number: "Section 02",
     title: "What ilovelawyer Is",
     paragraphs: [
-      "ilovelawyer helps you understand a legal problem. Its AI explains how the law may apply to the facts and documents you give it, and you can ask a verified lawyer to take a look.",
+      "ilovelawyer helps you understand a legal problem. Its AI organises the facts and documents you give it and gives general legal information, not legal advice about your case. You can ask a registered solicitor to take a look.",
       "The AI's answers are legal information, not legal advice, and they can be wrong or incomplete. Using the Platform does not create a lawyer-client relationship. That relationship starts only when a lawyer accepts your request and agrees the terms of their help with you.",
     ],
     quote:

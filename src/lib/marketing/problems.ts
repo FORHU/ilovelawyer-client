@@ -30,6 +30,8 @@ export const HERO_IMAGE = { width: 3168, height: 1344 };
 
 export const heroImageSrc = (p: Pick<Problem, "slug" | "imageDir">) => `/landing/${p.imageDir ?? "hero"}/${p.slug}.webp`;
 
+// The Visa and immigration and Asylum cards are off until UK counsel signs them off: immigration advice
+// is a regulated activity (Immigration and Asylum Act 1999, Part V).
 // "Insurance claim" is in the design but its photo isn't in the bundle. It comes back once supplied.
 export const PROBLEMS: Problem[] = [
   {
@@ -37,7 +39,7 @@ export const PROBLEMS: Problem[] = [
     slug: "unfair-dismissal",
     tag: "Employment",
     h: "Lost your job unfairly?",
-    help: "Tell us what happened. We explain your rights and the time limits that apply, then employment solicitors send you quotes.",
+    help: "Tell us what happened. We explain how this kind of problem usually works and the general time limits to check, then you can ask a solicitor to look at your case.",
     say: "I was sacked without warning",
     keywords: ["sacked", "fired", "dismiss", "let go", "lost my job", "made redundant", "redundan", "terminated"],
     alt: "A man carries a box of his desk things along a city street, looking back over his shoulder.",
@@ -117,18 +119,6 @@ export const PROBLEMS: Problem[] = [
     fy: 0.29,
   },
   {
-    label: "Visa and immigration",
-    slug: "immigration",
-    tag: "Immigration",
-    h: "Questions about your visa?",
-    help: "We explain the routes and steps that apply to you, then immigration solicitors quote for your case.",
-    say: "My visa is running out",
-    keywords: ["visa", "immigration", "home office", "settled status", "citizenship", "passport", "asylum", "deport"],
-    alt: "A young man fills in forms at his kitchen table, his passport beside him.",
-    fx: 0.7,
-    fy: 0.3,
-  },
-  {
     label: "Unpaid invoice",
     slug: "unpaid-invoice",
     tag: "Business",
@@ -145,7 +135,7 @@ export const PROBLEMS: Problem[] = [
     slug: "eviction-notice",
     tag: "Housing",
     h: "Been told to leave your home?",
-    help: "We explain what your notice means and how long you have, then housing solicitors quote to help.",
+    help: "We explain what a notice like this usually means and the general time limits to check, then housing solicitors quote to help.",
     say: "I've been told to move out",
     keywords: ["evict", "leave my", "section 21", "section 8", "notice to quit", "kicked out", "homeless"],
     alt: "A woman reads an eviction notice among packed boxes in her living room.",
@@ -169,7 +159,7 @@ export const PROBLEMS: Problem[] = [
     slug: "workplace-discrimination",
     tag: "Employment",
     h: "Treated unfairly at work?",
-    help: "We explain what counts as discrimination and the time limits, then employment solicitors send you quotes.",
+    help: "We explain what counts as discrimination and the general time limits to check, then you can ask an employment solicitor to look at your case.",
     say: "I'm treated differently at work",
     keywords: ["discriminat", "harass", "bullied", "racis", "sexis", "pregnan", "disab", "treated unfairly"],
     alt: "A woman sits at her desk in an open-plan office, looking away with a guarded expression.",
@@ -275,26 +265,14 @@ export const PROBLEMS: Problem[] = [
   {
     label: "Benefits appeal",
     slug: "benefits-appeal",
-    tag: "Immigration & public services",
+    tag: "Public services",
     h: "Benefits refused or cut?",
-    help: "We explain how to challenge the decision and the deadlines, then solicitors quote to help with your appeal.",
+    help: "We explain how appeals usually work and the general deadlines to check, then solicitors quote to help with your appeal.",
     say: "My benefits were cut",
     keywords: [],
     alt: "A woman reads a letter at a library computer, looking concerned.",
     fx: 0.41,
     fy: 0.27,
-  },
-  {
-    label: "Asylum",
-    slug: "asylum",
-    tag: "Immigration",
-    h: "Applying for asylum?",
-    help: "We explain the stages of the process, then immigration solicitors quote for your case.",
-    say: "I want to claim asylum",
-    keywords: [],
-    alt: "A woman waits on a chair in an office corridor holding a folder of papers.",
-    fx: 0.28,
-    fy: 0.21,
   },
 ];
 
