@@ -29,9 +29,11 @@ function PhotoStack({ name, label, photos, show }: { name: string; label: string
           aria-label={p.alt}
           className="absolute inset-0 overflow-hidden rounded-[18px] bg-cover opacity-0"
           style={{ backgroundImage: show ? `url("${p.src}")` : undefined, backgroundPosition: p.position ?? "50% 40%", ...p.style }}
-        />
+        >
+          {/* The caption belongs to the photo, so it shows and fades with it and never floats alone. */}
+          {show && <span className="pointer-events-none absolute bottom-2.5 left-2.5 rounded-full bg-black/60 px-2.5 py-1 text-[12px] text-white">{label}</span>}
+        </div>
       ))}
-      <span className="pointer-events-none absolute bottom-2.5 left-2.5 rounded-full bg-black/60 px-2.5 py-1 text-[12px] text-white">{label}</span>
     </div>
   );
 }
