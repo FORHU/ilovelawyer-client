@@ -71,10 +71,30 @@ export interface CaseDocument {
   /** #159: the relabeled uploading/processing/done/failed status, once ilovelawyer-api exposes
    * it. Assumed field name. Absent on an API that doesn't send it yet — fall back to `status`. */
   syncStatus?: DocumentSyncStatus;
-  /** #159: the id of the IntakeGap (CaseIntake.missing) this evidence item resolved, if any.
-   * Assumed field name — ilovelawyer-api's gap-linking schema wasn't landed yet when this was
-   * written. Null/absent when the document doesn't fill a known gap. */
-  filledGapId?: string | null;
+}
+
+/** #159: one open CaseMissingEvidence row (GET /api/client/cases/:id/missing-evidence) — "need a
+ * bank statement", "need the termination letter". NOT the same thing as IntakeGap/CaseIntake.missing
+ * (the #157 readiness checklist: jurisdiction, other side, etc.) — an earlier version of this file
+ * conflated the two, since this route didn't exist yet when it was written. */
+export interface MissingEvidenceItem {
+  id: string;
+  label: string;
+  detail: string | null;
+  severity: "CRITICAL" | "MODERATE" | "MINOR";
+  suggestedSource: string | null;
+  /** Set once a document has been uploaded as this gap's answer (an explicit client action at
+   * upload time, not an AI guess) — the id of that CaseDocument. */
+  filledByDocumentId: string | null;
+  filledAt: string | null;
+}
+
+/** GET /api/client/cases/:id/missing-evidence. */
+export interface MissingEvidenceResponse {
+  gaps: MissingEvidenceItem[];
+  /** CW's pick of which unfilled gap is most worth the client's next upload, and how to phrase
+   * asking for it — null when there are no unfilled gaps or CW had nothing confident to suggest. */
+  suggestion: { gapId: string; message: string } | null;
 }
 
 /** A case as the API returns it (GET /api/client/cases/:id). */

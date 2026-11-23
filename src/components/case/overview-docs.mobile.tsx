@@ -24,7 +24,7 @@ import { useSite } from "@/components/site/site-provider";
 export function DocumentsMobile({ c, focusDocumentId, onFocused, onOpenOverview }: DocumentsProps) {
   const {
     upload, limits, failed, citations, opener, leftOver, uploading, filter, setFilter, sort, setSort, query, setQuery,
-    add, retry, usedCount, tests, needle, visible, totalBytes, hasAny, registerRow, nextGap,
+    add, retry, usedCount, tests, needle, visible, totalBytes, hasAny, registerRow, missingEvidence, nextGap, uploadForGap,
   } = useDocuments(c, focusDocumentId, onFocused);
   const [sorting, setSorting] = useState(false);
   const [gmailOpen, setGmailOpen] = useState(false);
@@ -45,7 +45,7 @@ export function DocumentsMobile({ c, focusDocumentId, onFocused, onOpenOverview 
             </span>
           </div>
 
-          <EvidenceSuggestionBanner gap={nextGap} />
+          <EvidenceSuggestionBanner gap={nextGap} message={missingEvidence?.suggestion?.message ?? null} onUpload={uploadForGap} />
 
           {leftOver.length > 0 && (
             <div className="flex flex-col gap-3 rounded-card border border-error-line bg-error-bg px-4 py-3">

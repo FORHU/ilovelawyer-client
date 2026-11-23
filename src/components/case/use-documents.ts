@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { checkFiles, useLimitsQuery } from "@/lib/cases/limits";
 import { citationsByDocument } from "@/lib/cases/citations";
-import { useIntakeQuery, useUploadDocumentsMutation, useUploadingFiles } from "@/lib/cases/queries";
+import { useIntakeQuery, useUploadDocumentsMutation, useUploadForGapMutation, useUploadingFiles } from "@/lib/cases/queries";
 import { applyDocumentView, filterTests, type FilterKey, type SortKey } from "@/lib/documents/filter-sort";
-import { nextSuggestedGap } from "@/lib/documents/evidence-gaps";
+import { nextSuggestedGap, useMissingEvidenceQuery } from "@/lib/documents/evidence-gaps";
 import { useFailedUploads, useFailedUploadsOf } from "@/lib/failed-uploads";
 import type { Case, CaseDocument } from "@/lib/types";
 import { useFileDrop } from "@/lib/use-file-drop";
@@ -15,8 +15,10 @@ import { useOpenDocument } from "./document-row";
  * only decide how it is laid out. */
 export function useDocuments(c: Case, focusDocumentId?: string | null, onFocused?: () => void) {
   const upload = useUploadDocumentsMutation(c.id);
+  const uploadForGapMutation = useUploadForGapMutation(c.id);
   const { data: limits } = useLimitsQuery();
   const { data: intake } = useIntakeQuery(c.id, c.documents.some((d) => d.status === "PENDING"));
+  const { data: missingEvidence } = useMissingEvidenceQuery(c.id);
   const [failed, setFailed] = useState<string[]>([]);
   const citations = useMemo(() => citationsByDocument(intake), [intake]);
   const opener = useOpenDocument(c.id, c.documents);
@@ -80,12 +82,15 @@ export function useDocuments(c: Case, focusDocumentId?: string | null, onFocused
   const picked = visible.find((d) => d.id === pickedId) ?? null;
   const totalBytes = c.documents.reduce((sum, d) => sum + (d.size ?? 0), 0);
   const hasAny = c.documents.length > 0 || uploading.length > 0;
-  // #159: the one most useful thing to upload next, from the Overview's open gaps.
-  const nextGap = nextSuggestedGap(intake, c.documents);
+  // #159: CW's pick of the single most useful thing to upload next, from the case's open
+  // CaseMissingEvidence gaps — not CaseIntake.missing, see evidence-gaps.ts's own note on why.
+  const nextGap = nextSuggestedGap(missingEvidence);
+  const uploadForGap = (gapId: string, file: File) => uploadForGapMutation.mutate({ file, missingEvidenceId: gapId });
 
   return {
     upload, limits, failed, citations, opener, leftOver, uploading, confirmingId, setConfirmingId, filter, setFilter, sort, setSort,
-    query, setQuery, setPickedId, dragging, dragProps, add, retry, usedCount, tests, needle, visible, picked, totalBytes, hasAny, intake, nextGap,
+    query, setQuery, setPickedId, dragging, dragProps, add, retry, usedCount, tests, needle, visible, picked, totalBytes, hasAny, intake,
+    missingEvidence, nextGap, uploadForGap,
     registerRow: (id: string) => (el: HTMLDivElement | null) => {
       rows.current[id] = el;
     },

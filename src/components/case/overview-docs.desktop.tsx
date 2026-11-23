@@ -10,7 +10,7 @@ import { describeLimits } from "@/lib/cases/limits";
 import { cn } from "@/lib/cn";
 import { FILTERS, SORTS, type SortKey } from "@/lib/documents/filter-sort";
 import { formatBytes } from "@/lib/format";
-import type { CaseDocument, IntakeGap } from "@/lib/types";
+import type { CaseDocument, MissingEvidenceItem } from "@/lib/types";
 import { DocumentRow, KindBadge, TableHead, UploadingRow, documentMeta } from "./document-row";
 import { EvidenceSuggestionBanner } from "./evidence-suggestion-banner";
 import { documentSyncLabel, gapForDocument } from "@/lib/documents/evidence-gaps";
@@ -24,7 +24,7 @@ export function DocumentsDesktop({ c, focusDocumentId, onFocused, onOpenOverview
   const {
     upload, limits, failed, citations, opener, leftOver, uploading, confirmingId, setConfirmingId, filter, setFilter, sort, setSort,
     query, setQuery, setPickedId, dragging, dragProps, add, retry, usedCount, tests, needle, visible, picked, totalBytes, hasAny, registerRow,
-    intake, nextGap,
+    intake, missingEvidence, nextGap, uploadForGap,
   } = useDocuments(c, focusDocumentId, onFocused);
   const [gmailOpen, setGmailOpen] = useState(false);
   const t = useT();
@@ -113,7 +113,7 @@ export function DocumentsDesktop({ c, focusDocumentId, onFocused, onOpenOverview
           )}
         </FilePicker>
 
-        <EvidenceSuggestionBanner gap={nextGap} />
+        <EvidenceSuggestionBanner gap={nextGap} message={missingEvidence?.suggestion?.message ?? null} onUpload={uploadForGap} />
 
         {leftOver.length > 0 && (
           <div className="flex flex-wrap items-center gap-3 rounded-card border border-error-line bg-error-bg px-4 py-3">
@@ -187,7 +187,7 @@ export function DocumentsDesktop({ c, focusDocumentId, onFocused, onOpenOverview
                 <DocumentPanel
                   d={selected}
                   cites={citations.get(selected.id) ?? []}
-                  resolvedGap={gapForDocument(selected, intake)}
+                  resolvedGap={gapForDocument(selected, missingEvidence?.gaps)}
                   onOpen={() => opener.open(selected.id)}
                   opening={opener.openingId === selected.id}
                   openError={opener.errorFor(selected.id)}
@@ -216,8 +216,8 @@ function DocumentPanel({
 }: {
   d: CaseDocument;
   cites: { label: string }[];
-  /** #159: the Overview gap this document resolved, if any. */
-  resolvedGap: IntakeGap | null;
+  /** #159: the CaseMissingEvidence gap this document resolved, if any. */
+  resolvedGap: MissingEvidenceItem | null;
   onOpen: () => void;
   opening: boolean;
   openError?: string;
@@ -245,7 +245,7 @@ function DocumentPanel({
       </div>
       {resolvedGap && (
         <div className="rounded-xl bg-chip px-3 py-2.5 text-xs text-ink-2">
-          Resolves: <span className="text-ink">{resolvedGap.question}</span>
+          Resolves: <span className="text-ink">{resolvedGap.label}</span>
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2">
