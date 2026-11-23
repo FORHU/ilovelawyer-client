@@ -9,6 +9,7 @@ import { ChatBar, ChatScreen, ComposerButton, ComposerPill, QuickReplies, ReplyC
 import { cn } from "@/lib/cn";
 import type { IntakeMessage } from "@/lib/cases/use-intake-chat";
 import { sideLabel } from "@/lib/types";
+import { LiveDictationStatus } from "./live-dictation-status";
 import { REGIONS, STARTERS, type IntakeViewProps } from "./use-intake-controller";
 
 function AiMessage({ children }: { children: React.ReactNode }) {
@@ -79,24 +80,16 @@ export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, has
         </div>
       )}
       <ComposerPill data-tour="chatbox">
-        {empty && recorder.phase === "recording" ? (
+        {empty && recorder.phase !== "idle" ? (
           <>
             <ComposerButton onClick={recorder.cancel} aria-label="Cancel recording">
               <X size={20} aria-hidden="true" />
             </ComposerButton>
-            <div role="status" aria-label="Recording" className="flex min-h-11 flex-1 items-center justify-center gap-2.5 text-[14px]">
-              <span aria-hidden className="size-2.5 rounded-full bg-error motion-safe:animate-pulse" />
-              <span className="text-ink-2">Recording</span>
-            </div>
-            <ComposerButton tone="send" onClick={recorder.stop} aria-label="Stop and send recording">
+            <LiveDictationStatus phase={recorder.phase} seconds={recorder.seconds} transcript={recorder.transcript} before={text} />
+            <ComposerButton tone="send" onClick={recorder.stop} disabled={recorder.phase !== "recording"} aria-label="Stop recording">
               <Square size={16} className="fill-current" aria-hidden="true" />
             </ComposerButton>
           </>
-        ) : empty && recorder.phase === "transcribing" ? (
-          <div role="status" aria-label="Transcribing" className="flex min-h-11 flex-1 items-center justify-center gap-2.5 text-[14px]">
-            <span aria-hidden className="size-2.5 rounded-full bg-gold motion-safe:animate-pulse" />
-            <span className="text-ink-2">Transcribing…</span>
-          </div>
         ) : (
           <>
             <FilePicker onPick={c.addFiles}>
@@ -120,7 +113,7 @@ export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, has
               className="min-h-11 min-w-0 flex-1 resize-none bg-transparent px-1 py-2.5 text-base leading-6 text-ink outline-none placeholder:text-muted disabled:cursor-not-allowed"
             />
             {empty && (
-              <ComposerButton onClick={recorder.start} disabled={creating || recorder.phase === "transcribing"} aria-label="Record a voice message">
+              <ComposerButton onClick={recorder.start} disabled={creating} aria-label="Record a voice message">
                 <Mic size={20} aria-hidden="true" />
               </ComposerButton>
             )}
