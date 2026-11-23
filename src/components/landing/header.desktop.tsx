@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LanguageSegmented } from "@/components/site/language-toggle";
 import { ThemeSegmented } from "@/components/site/theme-toggle";
 import type { HeaderViewProps } from "./header";
 import { useLandingContent } from "./landing-content";
@@ -31,6 +32,7 @@ export function LandingHeaderDesktop({ solid, onAnchor }: HeaderViewProps) {
         </nav>
       </div>
       <div className="flex flex-none items-center gap-2">
+        <LanguageSegmented tone="overlay" size="md" />
         <ThemeSegmented tone="overlay" size="md" className="mr-1" />
         <Link href="/login" data-btn className={`${PILL} border border-(--hbd)`}>
           {nav.signIn}

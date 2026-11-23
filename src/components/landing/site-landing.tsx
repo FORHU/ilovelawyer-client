@@ -50,7 +50,10 @@ export function SiteLanding({ copy }: { copy: SiteLandingCopy }) {
 
       <footer className="border-t border-(--line) px-4 py-8 md:px-8">
         <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-4 text-[14px] md:flex-row md:items-center md:justify-between">
-          <span className="max-w-[460px] text-(--muted)">{copy.disclaimer}</span>
+          <div className="flex max-w-[460px] flex-col gap-2 text-(--muted)">
+            <span>{copy.disclaimer}</span>
+            <span className="text-[13px]">{copy.legalNote}</span>
+          </div>
           <nav aria-label={copy.legal.label} className="flex flex-wrap gap-x-5 gap-y-2">
             <Link href="/terms">{copy.legal.terms}</Link>
             <Link href="/privacy">{copy.legal.privacy}</Link>

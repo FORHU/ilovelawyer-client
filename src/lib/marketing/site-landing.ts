@@ -1,5 +1,6 @@
 import type { TenantCode } from "@/lib/tenant/client-tenant";
 import type { Lang } from "@/lib/i18n/translate";
+import { OPERATOR_NOTE } from "./copy";
 
 /**
  * The landing page of a site whose lawyers and AI chat aren't open yet (PH; see lib/tenant/sites.ts).
@@ -18,6 +19,8 @@ export interface SiteLandingCopy {
   features: { title: string; body: string; soon?: boolean }[];
   soon: string;
   disclaimer: string;
+  /** Who runs the site (FORHU Inc.), in the footer. */
+  legalNote: string;
   legal: { label: string; terms: string; privacy: string; refunds: string };
   seo: { title: string; description: string };
 }
@@ -37,6 +40,7 @@ const COPY: Partial<Record<TenantCode, Partial<Record<Lang, SiteLandingCopy>>>> 
     ],
     soon: "Coming soon",
     disclaimer: "ilovelawyer is not a law firm and does not give legal advice.",
+    legalNote: OPERATOR_NOTE,
     legal: { label: "Legal", terms: "Terms", privacy: "Privacy", refunds: "Refunds" },
     seo: {
       title: "ilovelawyer Philippines: legal trouble, made clear",
