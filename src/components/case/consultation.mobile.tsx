@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { ArrowUp, FileText, Mic, Paperclip, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
@@ -16,8 +17,9 @@ import { PROMPTS, type Consultation } from "./use-consultation";
 
 export function ConsultationMobile({ c, consultation }: { c: Case; consultation: Consultation }) {
   const {
-    recorder, out, thinking, messages, documentById, scroller, missing, openRequest, lastFailed, latestAnswer, connected, loadError, notice, credits, attachedIds, failedAttachedIds, removeAttached, input, setInput, onPaste, textareaRef, attach, upload, attachmentPending, sendableAttachedIds, send, stop, canStop,
+    recorder, out, thinking, messages, documentById, scroller, missing, missingGaps, suggestions, openRequest, lastFailed, latestAnswer, connected, loadError, notice, credits, attachedIds, failedAttachedIds, removeAttached, input, setInput, onPaste, textareaRef, attach, upload, attachmentPending, sendableAttachedIds, send, stop, canStop, askAbout,
   } = consultation;
+  const [showMissing, setShowMissing] = useState(false);
 
   return (
     <ChatScreen>
@@ -32,8 +34,31 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
         <div ref={scroller} role="log" aria-label="Interview" aria-live="polite" className="min-h-0 flex-1 overflow-y-auto">
           <div className="flex flex-col gap-4 px-4 py-4">
             {missing > 0 && !thinking && (
-              <div className="self-center rounded-full bg-chip px-3 py-1.5 text-center text-[12.5px] leading-[1.35] text-ink-2">
-                {missing} thing{missing === 1 ? "" : "s"} still to cover. See the Overview tab
+              <div className="flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowMissing((v) => !v)}
+                  aria-expanded={showMissing}
+                  data-no-tap
+                  className="self-center rounded-full bg-chip px-3 py-1.5 text-center text-[12.5px] leading-[1.35] text-ink-2"
+                >
+                  {missing} thing{missing === 1 ? "" : "s"} still to cover. See the Overview tab, or tap to ask here
+                </button>
+                {showMissing && (
+                  <div role="group" aria-label="Still to cover" className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4">
+                    {missingGaps.map((gap) => (
+                      <button
+                        key={gap.id}
+                        type="button"
+                        onClick={() => askAbout(gap)}
+                        data-no-tap
+                        className="shrink-0 whitespace-nowrap rounded-full border border-dashed border-line-input bg-white px-3.5 py-1.5 text-[12.5px] text-ink active:bg-chip"
+                      >
+                        {gap.question}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
             {messages.map((m) =>
@@ -114,6 +139,23 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
                 className="min-h-9 shrink-0 whitespace-nowrap rounded-full border border-line-chip bg-subtle px-3.5 text-[13px] font-medium text-ink active:bg-chip disabled:opacity-40"
               >
                 {p}
+              </button>
+            ))}
+          </div>
+        )}
+        {/* #158: CW's suggested replies for the question just asked — tap to send as-is, or
+           type/speak a different answer instead. Nothing renders when there are none. */}
+        {suggestions.length > 0 && !out && (
+          <div role="group" aria-label="Suggested replies" className="no-scrollbar -mx-3 mb-2 flex gap-1.5 overflow-x-auto px-3">
+            {suggestions.map((s, i) => (
+              <button
+                key={`${s}-${i}`}
+                type="button"
+                onClick={() => send(s)}
+                data-no-tap
+                className="min-h-9 shrink-0 whitespace-nowrap rounded-full border border-line-chip bg-subtle px-3.5 text-[13px] font-medium text-ink active:bg-chip"
+              >
+                {s}
               </button>
             ))}
           </div>
