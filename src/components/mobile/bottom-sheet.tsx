@@ -64,7 +64,7 @@ function Sheet({ onClose, title, children, className }: { onClose: () => void; t
         onClick={(e) => e.stopPropagation()}
         style={{ transform: drag ? `translateY(${drag}px)` : undefined, transition: pulling ? "none" : "transform .2s ease" }}
         className={cn(
-          "flex max-h-[88dvh] w-full flex-col rounded-t-3xl bg-white pb-[max(16px,env(safe-area-inset-bottom))] shadow-modal outline-none motion-safe:animate-[sheet-up_.22s_ease-out]",
+          "flex max-h-[88dvh] w-full flex-col rounded-t-3xl bg-surface pb-[max(16px,env(safe-area-inset-bottom))] shadow-modal outline-none motion-safe:animate-[sheet-up_.22s_ease-out]",
           className,
         )}
       >

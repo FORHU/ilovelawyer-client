@@ -35,7 +35,7 @@ export function ExportFlow({ onDone }: { onDone: (result: ActionResult) => void 
   };
 
   return (
-    <form onSubmit={submit} aria-label="Export my data" className="flex flex-col gap-3 rounded-card border border-line bg-white p-4">
+    <form onSubmit={submit} aria-label="Export my data" className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4">
       {check.isError ? (
         <>
           <ErrorBox message="I couldn't check your account just now." />

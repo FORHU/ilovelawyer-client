@@ -117,7 +117,7 @@ export function buildSections(intake: CaseIntake, running: boolean, sourceProps:
     intake.goals.length > 0 || intake.concerns.length > 0,
     <>Tell us what you&apos;re hoping for and what&apos;s worrying you, and we&apos;ll list it here for your lawyer.</>,
     () => (
-      <section className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-5 rounded-card border border-line bg-white px-5 py-[22px] md:px-6">
+      <section className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-5 rounded-card border border-line bg-surface px-5 py-[22px] md:px-6">
         {intake.goals.length > 0 && <BulletColumn title="What you want" items={intake.goals} sourceProps={sourceProps} />}
         {intake.concerns.length > 0 && <BulletColumn title="What worries you" items={intake.concerns} sourceProps={sourceProps} />}
       </section>

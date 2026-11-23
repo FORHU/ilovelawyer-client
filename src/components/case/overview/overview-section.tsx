@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { Eyebrow } from "@/components/ui/misc";
 
-const CARD = "flex flex-col gap-3 rounded-card border border-line bg-white px-5 py-[22px] md:px-6";
+const CARD = "flex flex-col gap-3 rounded-card border border-line bg-surface px-5 py-[22px] md:px-6";
 
 /**
  * One card of the Overview's main column: a small label (h3 — sequential under the panel's own
@@ -26,7 +26,7 @@ export function SectionCard({ title, aside, className, children }: { title: stri
 /** A card of the narrower side column: a plain heading, tighter padding. */
 export function AsideCard({ title, icon, className, children }: { title: string; icon?: ReactNode; className?: string; children: ReactNode }) {
   return (
-    <section className={cn("flex flex-col gap-3 rounded-card border border-line bg-white px-5 py-[18px]", className)}>
+    <section className={cn("flex flex-col gap-3 rounded-card border border-line bg-surface px-5 py-[18px]", className)}>
       <h3 className="flex items-center gap-1.5 text-[15px] font-semibold">
         {icon}
         {title}

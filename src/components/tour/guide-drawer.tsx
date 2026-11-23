@@ -34,7 +34,7 @@ export function GuideDrawer({ pathname, context: tourContext, onTourPage }: { pa
         aria-modal="true"
         aria-labelledby="guide-title"
         tabIndex={-1}
-        className="fixed inset-x-0 bottom-0 z-[9006] box-border flex max-h-[85dvh] flex-col gap-3 overflow-y-auto rounded-t-[20px] bg-white px-[22px] pb-[calc(24px+env(safe-area-inset-bottom,0px))] pt-5 shadow-[0_0_50px_rgb(0_0_0/0.2)] outline-none md:inset-x-auto md:inset-y-0 md:right-0 md:max-h-none md:w-[380px] md:rounded-none md:pb-6"
+        className="fixed inset-x-0 bottom-0 z-[9006] box-border flex max-h-[85dvh] flex-col gap-3 overflow-y-auto rounded-t-[20px] bg-surface px-[22px] pb-[calc(24px+env(safe-area-inset-bottom,0px))] pt-5 shadow-[0_0_50px_rgb(0_0_0/0.2)] outline-none md:inset-x-auto md:inset-y-0 md:right-0 md:max-h-none md:w-[380px] md:rounded-none md:pb-6"
       >
         <div className="flex items-center justify-between">
           <h2 id="guide-title" className="font-display text-[26px] tracking-[-0.01em]">
@@ -61,7 +61,7 @@ export function GuideDrawer({ pathname, context: tourContext, onTourPage }: { pa
                   type="button"
                   onClick={() => useTour.getState().startGuide(question, step)}
                   data-no-tap
-                  className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-line bg-white px-3.5 text-left text-[14.5px] hover:border-line-hover"
+                  className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3.5 text-left text-[14.5px] hover:border-line-hover"
                 >
                   {question}
                   <ArrowRight size={15} className="shrink-0 text-gold" aria-hidden />
@@ -78,7 +78,7 @@ export function GuideDrawer({ pathname, context: tourContext, onTourPage }: { pa
             useSupport.getState().openSupport({ audience: "SIGNED_IN" });
           }}
           data-no-tap
-          className="relative mt-auto flex min-h-12 items-center justify-between gap-3 rounded-xl border border-line bg-white px-3.5 text-left text-[14.5px] font-medium hover:border-line-hover"
+          className="relative mt-auto flex min-h-12 items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3.5 text-left text-[14.5px] font-medium hover:border-line-hover"
         >
           <span className="flex items-center gap-2.5">
             <MessageCircle size={16} className="text-gold" aria-hidden />

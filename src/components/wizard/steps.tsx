@@ -46,7 +46,7 @@ function Section({
   return (
     <section
       className={cn(
-        "flex flex-col rounded-modal border border-line bg-white p-5 md:p-8",
+        "flex flex-col rounded-modal border border-line bg-surface p-5 md:p-8",
         gap === 24 ? "gap-6" : "gap-5",
       )}
     >
@@ -237,7 +237,7 @@ export function OthersField({
               aria-label={t("Remove")}
               disabled={disabled}
               onClick={() => onRemove(o.id)}
-              className="flex size-12 shrink-0 items-center justify-center rounded-input border border-line bg-white text-muted disabled:opacity-40"
+              className="flex size-12 shrink-0 items-center justify-center rounded-input border border-line bg-surface text-muted disabled:opacity-40"
             >
               <X size={18} />
             </button>

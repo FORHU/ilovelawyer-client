@@ -9,7 +9,7 @@ export function CopyText({ text }: { text: string }) {
       {copyParts(text).map((part, i) => {
         if (part.kind === "placeholder") {
           return (
-            <span key={i} className="font-landing-mono rounded-md border border-dashed border-[#f3dcae]/55 bg-[rgb(201_154_46/0.16)] px-1.5 py-px text-[.84em] text-[#f3dcae]">
+            <span key={i} className="font-landing-mono rounded-md border border-dashed border-(--band-gold)/55 bg-[rgb(201_154_46/0.16)] px-1.5 py-px text-[.84em] text-(--band-gold)">
               {part.text}
             </span>
           );

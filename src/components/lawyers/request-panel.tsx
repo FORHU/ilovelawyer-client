@@ -146,7 +146,7 @@ export function RequestPanel({
               id={`request-case-${lawyer.id}`}
               value={caseId ?? ""}
               onChange={(e) => setChosen(e.target.value)}
-              className="h-11 rounded-input border border-line-input bg-white px-3.5 text-sm text-ink outline-none focus:border-ink-2"
+              className="h-11 rounded-input border border-line-input bg-surface px-3.5 text-sm text-ink outline-none focus:border-ink-2"
             >
               {cases.map((c) => (
                 <option key={c.id} value={c.id}>

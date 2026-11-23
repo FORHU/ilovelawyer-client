@@ -23,7 +23,7 @@ const toggleTrack = "flex items-center gap-1 rounded-full border border-line bg-
 const toggleButton = (active: boolean) =>
   cn(
     "h-8 rounded-full border px-4 text-[11px] font-semibold uppercase tracking-[1px] transition-colors",
-    active ? "border-line bg-white text-ink shadow-sm" : "border-transparent text-muted hover:text-ink",
+    active ? "border-line bg-surface text-ink shadow-sm" : "border-transparent text-muted hover:text-ink",
   );
 
 function SortHeader({ field, sort, onSort }: { field: SortField; sort: { field: SortField; order: SortOrder }; onSort: (f: SortField) => void }) {
@@ -103,7 +103,7 @@ export function CasesListDesktop() {
                 onChange={(e) => updateSearch(e.target.value)}
                 placeholder={t("Search your cases")}
                 aria-label={t("Search your cases")}
-                className="box-border h-11 w-full rounded-full border border-line-input bg-white pl-11 pr-9 text-base text-ink outline-none transition-colors hover:border-line-hover focus:border-ink-2 h-10 text-[13px]"
+                className="box-border h-11 w-full rounded-full border border-line-input bg-surface pl-11 pr-9 text-base text-ink outline-none transition-colors hover:border-line-hover focus:border-ink-2 h-10 text-[13px]"
               />
               {searching && (
                 <button

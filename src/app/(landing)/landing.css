@@ -1,5 +1,7 @@
-/* Landing page tokens. The design is always dark, and they stay on this wrapper so the app's own
-   theme is untouched. */
+/* Landing page tokens, on this wrapper so the app's own are untouched. Dark is the original design;
+   the light set below follows the site's theme (lib/theme.ts). The photo hero, "How it works" and
+   the closing photo stay dark in both: they are imagery, and their text sits on it. The --band
+   tokens are the text sections between them (trust, fees, FAQ, footer, the legal pages). */
 .landing-root {
   --bg: #0c0c0e;
   --surface: #17171a;
@@ -8,11 +10,27 @@
   --line: rgb(255 255 255 / 0.12);
   --nav: rgb(12 12 14 / 0.75);
   --focus: #f3f1ee;
+  --band: #050403;
+  --band-ink: #f5f3ef;
+  --band-gold: #e0bd6d;
 
   min-height: 100svh;
   overflow-x: clip;
   background: var(--bg);
   color: var(--ink);
+}
+
+:root[data-theme="light"] .landing-root {
+  --bg: #f6f3ec;
+  --surface: #fffdf9;
+  --ink: #1d1b18;
+  --muted: #68635b;
+  --line: rgb(29 27 24 / 0.12);
+  --nav: rgb(246 243 236 / 0.84);
+  --focus: #1d1b18;
+  --band: #f6f3ec;
+  --band-ink: #1d1b18;
+  --band-gold: #8a6200;
 }
 
 /* The app's links are gold and underlined; the landing page's are not. */
@@ -94,6 +112,26 @@
     linear-gradient(180deg, #050403 0%, rgb(5 4 3 / 0.9) 12%, rgb(5 4 3 / 0.5) 26%, rgb(5 4 3 / 0) 40%),
     radial-gradient(55% 70% at var(--gx1, 25%) 100%, rgb(201 154 46 / 0.2) 0%, rgb(140 98 24 / 0.08) 45%, rgb(0 0 0 / 0) 72%),
     radial-gradient(40% 60% at var(--gx2, 85%) 20%, rgb(180 128 30 / 0.1) 0%, rgb(0 0 0 / 0) 70%);
+}
+
+/* The black fades that melt one dark section into the next. In light mode the band sections are
+   paper, so a fade would only grey them: the edges stay clean instead. */
+:root[data-theme="light"] .landing-fade {
+  display: none;
+}
+
+/* The same glow on warm paper in light mode, softer. */
+:root[data-theme="light"] .landing-gold-a {
+  background-color: var(--band);
+  background-image:
+    radial-gradient(60% 50% at var(--gx1, 25%) var(--gy1, 85%), rgb(201 154 46 / 0.2) 0%, rgb(201 154 46 / 0.07) 45%, rgb(255 255 255 / 0) 72%),
+    radial-gradient(45% 40% at var(--gx2, 85%) var(--gy2, 30%), rgb(201 154 46 / 0.12) 0%, rgb(255 255 255 / 0) 70%);
+}
+:root[data-theme="light"] .landing-gold-footer {
+  background-color: var(--band);
+  background-image:
+    radial-gradient(55% 70% at var(--gx1, 25%) 100%, rgb(201 154 46 / 0.16) 0%, rgb(201 154 46 / 0.06) 45%, rgb(255 255 255 / 0) 72%),
+    radial-gradient(40% 60% at var(--gx2, 85%) 20%, rgb(201 154 46 / 0.1) 0%, rgb(255 255 255 / 0) 70%);
 }
 
 .landing-search::placeholder {

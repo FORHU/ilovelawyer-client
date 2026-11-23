@@ -44,10 +44,10 @@ type Kind = "PDF" | "DOC" | "XLS" | "IMG" | "TXT";
 
 const KIND_STYLE: Record<Kind, string> = {
   PDF: "bg-error-bg text-error-ink",
-  DOC: "bg-[#eef3fb] text-[#1d4f91]",
+  DOC: "bg-info-bg text-info-ink",
   XLS: "bg-success-bg text-success-ink",
   IMG: "bg-success-bg text-success-ink",
-  TXT: "bg-chip text-[#4a4a4a]",
+  TXT: "bg-chip text-ink-soft",
 };
 
 /** What a file is, from its extension, for the badge beside its name. */
@@ -162,7 +162,7 @@ export function DocumentRow({
       ref={rowRef}
       className={cn(
         "flex flex-col gap-2.5 border-b border-line px-[18px] py-3 text-sm transition-colors last:border-b-0",
-        selected ? "bg-chip shadow-[inset_3px_0_0_var(--color-gold)]" : "bg-white",
+        selected ? "bg-chip shadow-[inset_3px_0_0_var(--color-gold)]" : "bg-surface",
       )}
     >
       <div className={ROW_GRID}>

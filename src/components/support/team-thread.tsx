@@ -46,7 +46,7 @@ function ThreadMessage({ message }: { message: SupportThreadMessage }) {
       <p
         className={cn(
           "whitespace-pre-wrap break-words rounded-card px-3.5 py-2.5 text-[15px] leading-[1.5]",
-          mine ? "bg-gold text-white" : "border border-line-chip bg-white text-ink",
+          mine ? "bg-gold text-white" : "border border-line-chip bg-surface text-ink",
         )}
       >
         <span className="sr-only">{mine ? "You: " : "Support team: "}</span>
@@ -163,7 +163,7 @@ export function TeamThread({
         </ol>
       </div>
 
-      <div className="shrink-0 border-t border-line bg-white px-3 pb-[max(12px,env(safe-area-inset-bottom))] pt-2.5">
+      <div className="shrink-0 border-t border-line bg-surface px-3 pb-[max(12px,env(safe-area-inset-bottom))] pt-2.5">
         {error && (
           <div className="mb-2">
             <ErrorBox message={error} />

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "re
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import type { SupportMenuCard } from "@/lib/support/types";
 
-const arrow = "flex size-11 items-center justify-center rounded-full border border-line bg-white text-ink-2 hover:border-line-hover aria-disabled:opacity-30 aria-disabled:hover:border-line";
+const arrow = "flex size-11 items-center justify-center rounded-full border border-line bg-surface text-ink-2 hover:border-line-hover aria-disabled:opacity-30 aria-disabled:hover:border-line";
 
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -68,7 +68,7 @@ export function MenuCards({ cards, onPick }: { cards: SupportMenuCard[]; onPick:
               type="button"
               onClick={() => onPick(card)}
               onFocus={(e) => e.currentTarget.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "auto" })}
-              className="flex h-full min-h-28 w-full flex-col items-start gap-1 rounded-card border border-line bg-white p-4 text-left transition-colors hover:border-line-hover active:bg-chip"
+              className="flex h-full min-h-28 w-full flex-col items-start gap-1 rounded-card border border-line bg-surface p-4 text-left transition-colors hover:border-line-hover active:bg-chip"
             >
               <span className="text-[15px] font-semibold leading-snug text-ink">{card.title}</span>
               {card.subtitle && <span className="text-[13px] leading-snug text-ink-2">{card.subtitle}</span>}

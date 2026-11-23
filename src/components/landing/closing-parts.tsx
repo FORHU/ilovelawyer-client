@@ -72,19 +72,19 @@ export function TrustSection({ sidePad }: { sidePad: string }) {
   const section = useRef<HTMLElement>(null);
   useGoldDrift(section);
   return (
-    <section ref={section} id="trust" className={`landing-gold-a relative z-1 pb-24 pt-[120px] text-[#f5f3ef] ${sidePad}`}>
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[280px]" style={{ background: "linear-gradient(180deg, #000 0%, rgba(0,0,0,.85) 30%, rgba(0,0,0,.45) 65%, rgba(0,0,0,0) 100%)" }} />
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 -bottom-px h-80" style={{ background: `linear-gradient(0deg, ${FADE_STOPS})` }} />
+    <section ref={section} id="trust" className={`landing-gold-a relative z-1 pb-24 pt-[120px] text-(--band-ink) ${sidePad}`}>
+      <div aria-hidden className="landing-fade pointer-events-none absolute inset-x-0 top-0 h-[280px]" style={{ background: "linear-gradient(180deg, #000 0%, rgba(0,0,0,.85) 30%, rgba(0,0,0,.45) 65%, rgba(0,0,0,0) 100%)" }} />
+      <div aria-hidden className="landing-fade pointer-events-none absolute inset-x-0 -bottom-px h-80" style={{ background: `linear-gradient(0deg, ${FADE_STOPS})` }} />
       <div className="relative mx-auto flex max-w-[1180px] flex-col gap-14">
         <div data-reveal className="flex max-w-[640px] flex-col gap-[18px]">
-          <span className="font-landing-mono text-[11px] uppercase tracking-widest text-[#f5f3ef]/74">{trust.eyebrow}</span>
+          <span className="font-landing-mono text-[11px] uppercase tracking-widest text-(--band-ink)/74">{trust.eyebrow}</span>
           <h2 className={`${SECTION_TITLE} text-balance`}>{trust.title}</h2>
         </div>
         <div data-reveal className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-4">
           {trust.cards.map((c) => (
-            <article key={c.title} className="flex flex-col gap-4 rounded-3xl border border-white/14 bg-white/[0.045] px-[26px] py-7">
+            <article key={c.title} className="flex flex-col gap-4 rounded-3xl border border-(--band-ink)/14 bg-(--band-ink)/[0.045] px-[26px] py-7">
               <h3 className="font-archivo m-0 text-balance text-[26px] font-normal leading-[1.1] tracking-[-0.02em]">{c.title}</h3>
-              <p className="m-0 text-pretty text-[16px] leading-[1.6] text-[#f5f3ef]/84">
+              <p className="m-0 text-pretty text-[16px] leading-[1.6] text-(--band-ink)/84">
                 <CopyText text={c.body} />
               </p>
             </article>
@@ -100,19 +100,19 @@ export function FeesSection({ sidePad }: { sidePad: string }) {
   const { fees } = useLandingContent();
   if (!fees) return null;
   return (
-    <section id="fees" className={`relative z-1 bg-[#050403] pb-24 pt-12 text-[#f5f3ef] ${sidePad}`}>
+    <section id="fees" className={`relative z-1 bg-(--band) pb-24 pt-12 text-(--band-ink) ${sidePad}`}>
       <div className="relative mx-auto flex max-w-[1180px] flex-col gap-14">
         <div data-reveal className="flex max-w-[640px] flex-col gap-[18px]">
-          <span className="font-landing-mono text-[11px] uppercase tracking-widest text-[#f5f3ef]/74">{fees.eyebrow}</span>
+          <span className="font-landing-mono text-[11px] uppercase tracking-widest text-(--band-ink)/74">{fees.eyebrow}</span>
           <h2 className={`${SECTION_TITLE} text-balance`}>{fees.title}</h2>
-          <p className="m-0 max-w-[56ch] text-pretty text-[17px] leading-[1.6] text-[#f5f3ef]/84">{fees.lede}</p>
+          <p className="m-0 max-w-[56ch] text-pretty text-[17px] leading-[1.6] text-(--band-ink)/84">{fees.lede}</p>
         </div>
         <div data-reveal className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-4">
           {fees.cards.map((card, i) => (
-            <article key={card.title} className="flex flex-col gap-4 rounded-3xl border border-white/14 bg-white/[0.045] px-[26px] py-7">
-              <span className="font-landing-mono text-[11px] tracking-widest text-[#e0bd6d]">{String(i + 1).padStart(2, "0")}</span>
+            <article key={card.title} className="flex flex-col gap-4 rounded-3xl border border-(--band-ink)/14 bg-(--band-ink)/[0.045] px-[26px] py-7">
+              <span className="font-landing-mono text-[11px] tracking-widest text-(--band-gold)">{String(i + 1).padStart(2, "0")}</span>
               <h3 className="font-archivo m-0 text-balance text-[26px] font-normal leading-[1.1] tracking-[-0.02em]">{card.title}</h3>
-              <p className="m-0 text-pretty text-[16px] leading-[1.6] text-[#f5f3ef]/84">
+              <p className="m-0 text-pretty text-[16px] leading-[1.6] text-(--band-ink)/84">
                 <CopyText text={card.body} />
               </p>
             </article>
@@ -131,14 +131,14 @@ export function FaqSection({ sidePad, grid }: { sidePad: string; grid: string })
     ScrollTrigger.refresh();
   }, [open]);
   return (
-    <section id="faq" className={`relative z-1 bg-[#050403] pb-40 pt-12 text-[#f5f3ef] ${sidePad}`}>
+    <section id="faq" className={`relative z-1 bg-(--band) pb-40 pt-12 text-(--band-ink) ${sidePad}`}>
       <div className={`mx-auto grid max-w-[1180px] items-start ${grid}`}>
         <h2 className={SECTION_TITLE}>{faq.title}</h2>
-        <div className="flex flex-col border-t border-white/16">
+        <div className="flex flex-col border-t border-(--band-ink)/16">
           {faq.items.map((f, i) => {
             const isOpen = open === i;
             return (
-              <div key={f.q} className="border-b border-white/16">
+              <div key={f.q} className="border-b border-(--band-ink)/16">
                 <h3 className="m-0">
                   <button
                     type="button"
@@ -151,7 +151,7 @@ export function FaqSection({ sidePad, grid }: { sidePad: string; grid: string })
                     <span>{f.q}</span>
                     <span
                       aria-hidden
-                      className="flex size-[30px] flex-none items-center justify-center rounded-full border border-white/32 font-sans text-[17px] font-light transition-transform duration-300"
+                      className="flex size-[30px] flex-none items-center justify-center rounded-full border border-(--band-ink)/32 font-sans text-[17px] font-light transition-transform duration-300"
                       style={{ transform: isOpen ? "rotate(45deg)" : "rotate(0deg)" }}
                     >
                       +
@@ -159,7 +159,7 @@ export function FaqSection({ sidePad, grid }: { sidePad: string; grid: string })
                   </button>
                 </h3>
                 {isOpen && (
-                  <div id={`faq-p${i}`} role="region" aria-labelledby={`faq-b${i}`} className="max-w-[68ch] pb-[26px] pr-14 text-pretty text-[17px] leading-[1.6] text-[#f5f3ef]/84">
+                  <div id={`faq-p${i}`} role="region" aria-labelledby={`faq-b${i}`} className="max-w-[68ch] pb-[26px] pr-14 text-pretty text-[17px] leading-[1.6] text-(--band-ink)/84">
                     <CopyText text={f.a} />
                   </div>
                 )}
@@ -215,8 +215,8 @@ export function ClosingCta({ mob, shade, copyClass, copyStyle }: { mob: boolean;
         <div className="absolute" style={{ ...portrait, backgroundImage: `url("${closing.imageSrc}")` }} />
       </div>
       <div className="pointer-events-none absolute inset-0" style={{ background: shade }} />
-      <div className="pointer-events-none absolute inset-x-0 -top-px h-[38%]" style={{ background: `linear-gradient(180deg, ${FADE_STOPS})` }} />
-      <div className="pointer-events-none absolute inset-x-0 -bottom-px h-[42%]" style={{ background: `linear-gradient(0deg, ${FADE_STOPS})` }} />
+      <div className="landing-fade pointer-events-none absolute inset-x-0 -top-px h-[38%]" style={{ background: `linear-gradient(180deg, ${FADE_STOPS})` }} />
+      <div className="landing-fade pointer-events-none absolute inset-x-0 -bottom-px h-[42%]" style={{ background: `linear-gradient(0deg, ${FADE_STOPS})` }} />
       <div data-reveal className={`pointer-events-none absolute inset-0 flex flex-col gap-7 text-white ${copyClass}`} style={copyStyle}>
         <h2 className="font-archivo m-0 max-w-[9ch] text-balance text-[clamp(48px,7.5vw,132px)] font-[250] leading-[0.92] tracking-[-0.045em]">{closing.title}</h2>
         <p className="m-0 max-w-[400px] text-[17px] leading-normal">{closing.body}</p>
@@ -246,14 +246,14 @@ export function LandingFooterView({
   const { footer: text, nav } = useLandingContent();
   const footer = useRef<HTMLElement>(null);
   useGoldDrift(footer);
-  const heading = "text-[14px] text-[#f3f1ee]/60";
+  const heading = "text-[14px] text-(--band-ink)/60";
   return (
-    <footer ref={footer} className={`landing-gold-footer pb-8 pt-20 text-[#f3f1ee] ${className}`}>
+    <footer ref={footer} className={`landing-gold-footer pb-8 pt-20 text-(--band-ink) ${className}`}>
       <div className="mx-auto flex max-w-[1440px] flex-col gap-16">
         <div className={`grid text-[16px] leading-[1.4] ${grid}`}>
           <div className={`flex flex-col gap-3.5 ${brandClass}`}>
             <span className="font-display text-[24px] tracking-[-0.02em]">ilovelawyer</span>
-            <span className="max-w-[300px] text-[15px] leading-normal text-[#f3f1ee]/74">{text.disclaimer}</span>
+            <span className="max-w-[300px] text-[15px] leading-normal text-(--band-ink)/74">{text.disclaimer}</span>
           </div>
           <nav aria-label="Product" className="flex flex-col gap-3">
             <span className={heading}>{text.product}</span>
@@ -271,9 +271,9 @@ export function LandingFooterView({
             <a href={`mailto:${text.supportEmail}`} className="break-all">{text.supportEmail}</a>
           </div>
         </div>
-        <div className="flex flex-col gap-5 border-t border-white/12 pt-6">
+        <div className="flex flex-col gap-5 border-t border-(--band-ink)/12 pt-6">
           {text.legalNote && (
-            <p className="m-0 max-w-[900px] text-pretty text-[13px] leading-[1.6] text-[#f3f1ee]/60">
+            <p className="m-0 max-w-[900px] text-pretty text-[13px] leading-[1.6] text-(--band-ink)/60">
               <CopyText text={text.legalNote} />
             </p>
           )}

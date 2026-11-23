@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { Folder, Scale, SlidersHorizontal } from "lucide-react";
 import { SignOutButton } from "@/components/shell/sign-out-button";
 import { GuideButton } from "@/components/tour/guide-button";
+import { LanguageButton } from "@/components/site/language-toggle";
+import { ThemeCycleButton } from "@/components/site/theme-toggle";
 import { Avatar, Logo, initialsOf } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { useSite } from "@/components/site/site-provider";
@@ -23,8 +25,9 @@ export function isImmersive(pathname: string) {
   return pathname === "/cases/new" || /^\/cases\/[^/]+$/.test(pathname);
 }
 
-/** The phone's top bar on the main screens: the logo, the guide, sign out and who you are. The
- * pages themselves are one tap away in the tab bar, so they are not repeated here. */
+/** The phone's top bar on the main screens: the logo, the other language (on a site with two),
+ * light / dark mode, the guide, sign out and who you are. The pages themselves are one tap away in
+ * the tab bar, so they are not repeated here. */
 export function MobileTopBar({ name }: { name: string }) {
   const t = useT();
   return (
@@ -32,7 +35,9 @@ export function MobileTopBar({ name }: { name: string }) {
       <Link href="/cases" aria-label={t("ilovelawyer, your cases")} className="flex min-h-11 items-center">
         <Logo height={20} />
       </Link>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5">
+        <LanguageButton />
+        <ThemeCycleButton />
         <GuideButton variant="bar" />
         <SignOutButton compact />
         <Avatar initials={initialsOf(name || t("You"))} size={36} />
@@ -53,7 +58,7 @@ export function BottomTabBar() {
     <nav
       aria-label={t("Main")}
       data-tour="tab-bar"
-      className={cn("grid shrink-0 border-t border-line bg-white pb-[env(safe-area-inset-bottom)]", tabs.length === 3 ? "grid-cols-3" : "grid-cols-2")}
+      className={cn("grid shrink-0 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]", tabs.length === 3 ? "grid-cols-3" : "grid-cols-2")}
     >
       {tabs.map(({ href, label, Icon, match }) => {
         const on = match.test(pathname);

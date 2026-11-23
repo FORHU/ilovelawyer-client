@@ -3,17 +3,16 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 /** Wordmark. Source is 1070x266. `height` is in px (20-24 in the prototype). */
+/** The lockup: dark lettering, or white in dark mode (the theme's `dark:` variant picks one). Both
+ * are preloaded: either can be the first thing painted. */
 export function Logo({ height = 22, className }: { height?: number; className?: string }) {
+  const width = Math.round(height * (1070 / 266));
+  const style = { height, width: "auto" } as const;
   return (
-    <Image
-      src="/brand/lockup-light.png"
-      alt="ilovelawyer"
-      width={Math.round(height * (1070 / 266))}
-      height={height}
-      priority
-      className={className}
-      style={{ height, width: "auto" }}
-    />
+    <>
+      <Image src="/brand/lockup-light.png" alt="ilovelawyer" width={width} height={height} priority className={cn("dark:hidden", className)} style={style} />
+      <Image src="/brand/lockup-dark.png" alt="ilovelawyer" width={width} height={height} priority className={cn("hidden dark:block", className)} style={style} />
+    </>
   );
 }
 

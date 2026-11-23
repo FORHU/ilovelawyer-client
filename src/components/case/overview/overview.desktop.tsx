@@ -3,6 +3,7 @@
 import { ErrorBox } from "@/components/ui/banner";
 import { CaseDetails } from "@/components/case/overview/case-details";
 import { ReadinessBanner } from "@/components/case/overview/readiness-banner";
+import { DownloadSummaryButton } from "./download-summary";
 import { buildSections, GetLawyerCard, NothingYet } from "./overview-sections";
 import type { OverviewProps } from "./overview";
 import { useOverview } from "./use-overview";
@@ -48,6 +49,7 @@ export function OverviewDesktop({ c, onOpenDocument, onOpenChat }: OverviewProps
             </div>
 
             <aside aria-label="Next steps" className="flex min-w-0 flex-[1_1_300px] flex-col gap-4">
+              <DownloadSummaryButton c={c} />
               {stillNeeded}
               {doubleCheck}
               {deadlines}

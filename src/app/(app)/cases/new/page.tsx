@@ -32,6 +32,7 @@ import { usePricingQuery } from "@/lib/pricing";
 import { useApp } from "@/lib/store";
 import { useWizard } from "@/lib/wizard-store";
 import { useSite } from "@/components/site/site-provider";
+import { useT } from "@/components/site/language-provider";
 
 type ChatState = { chat: DraftChat; files: File[] };
 
@@ -40,6 +41,7 @@ const SAVE_MS = 400;
 function NewCase() {
   const router = useRouter();
   const device = useDevice();
+  const t = useT();
   const wiz = useWizard();
   const { data: pricing } = usePricingQuery();
   const included = pricing?.case.credits ?? "…";
@@ -244,13 +246,15 @@ function NewCase() {
               className="flex min-h-11 items-center gap-2 text-[10px] font-semibold uppercase tracking-[1.2px] text-ink-2 md:hidden"
             >
               <ArrowLeft size={14} aria-hidden="true" />
-              Cases
+              {t("Cases")}
             </button>
-            {/* The phone has no top bar on this screen, so the guide is here; on a desktop it is here too, where the chat is. */}
-            <div className="ml-auto flex items-center gap-2">
-              {device === "mobile" && <div ref={setActionsSlot} className="flex items-center gap-2" />}
-              <GuideButton variant={device === "mobile" ? "bar" : "pill"} />
-            </div>
+            {/* The phone has no top bar on this screen, so the guide is here. A desktop has it in the app header. */}
+            {device === "mobile" && (
+              <div className="ml-auto flex items-center gap-2">
+                <div ref={setActionsSlot} className="flex items-center gap-2" />
+                <GuideButton variant="bar" />
+              </div>
+            )}
           </div>
           <TourHint className="mt-3" />
         </div>

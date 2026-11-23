@@ -17,7 +17,7 @@ export function SettingsMobile({ section }: { section: Section | undefined }) {
         <div className="flex flex-col gap-4 px-4 pb-6 pt-5">
           <h1 className="font-display text-[30px] leading-tight">{t("Settings")}</h1>
           <nav aria-label={t("Settings")}>
-            <ul className="overflow-hidden rounded-card border border-line bg-white">
+            <ul className="overflow-hidden rounded-card border border-line bg-surface">
               {sections.map((s) => (
                 <li key={s.slug} className="border-b border-line last:border-b-0">
                   <Link
@@ -39,7 +39,7 @@ export function SettingsMobile({ section }: { section: Section | undefined }) {
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      <header className="sticky top-0 z-10 flex min-h-[52px] items-center gap-1 border-b border-line bg-white px-2">
+      <header className="sticky top-0 z-10 flex min-h-[52px] items-center gap-1 border-b border-line bg-surface px-2">
         <Link
           href="/settings"
           aria-label={t("Back to Settings")}

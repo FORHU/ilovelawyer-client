@@ -84,7 +84,7 @@ export function DeleteAccountFlow({ safetyCopy, onDone }: { safetyCopy: string[]
 
   if (check.isError && !check.data) {
     return (
-      <div className="flex flex-col gap-3 rounded-card border border-line bg-white p-4">
+      <div className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4">
         <ErrorBox message="I couldn't check your account just now." />
         <Button variant="soft" size="lg" onClick={() => void check.refetch()}>
           Try again
@@ -104,7 +104,7 @@ export function DeleteAccountFlow({ safetyCopy, onDone }: { safetyCopy: string[]
         else confirm();
       }}
       aria-labelledby="support-delete-title"
-      className="flex flex-col gap-3 rounded-card border border-error-line bg-white p-4"
+      className="flex flex-col gap-3 rounded-card border border-error-line bg-surface p-4"
     >
       <h3 id="support-delete-title" ref={heading} tabIndex={-1} className="text-[15px] font-semibold text-ink outline-none">
         {HEADINGS[step]}
