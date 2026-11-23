@@ -3,15 +3,18 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { landingContentFor, type LandingContent } from "../content";
 import { KR_CONTENT } from "../content/kr";
+import { KR_EN_CONTENT } from "../content/kr-en";
 import { UK_CONTENT } from "../content/uk";
-import { copyParts, FAQS, TRUST_CARDS } from "../copy";
+import { copyParts, FAQS, PRIVACY_SECTIONS, SUPPORT_EMAIL, TRUST_CARDS } from "../copy";
 import { HOW_HEADING_TIMES, TERMINAL_CAPTION_COUNT } from "../how-timeline";
 import { heroImageSrc, matchProblem } from "../problems";
+import { siteLandingCopy } from "../site-landing";
 
 const publicFile = (src: string) => path.join(process.cwd(), "public", src);
 const sites: [string, LandingContent][] = [
   ["UK", UK_CONTENT],
   ["KR", KR_CONTENT],
+  ["KR in English", KR_EN_CONTENT],
 ];
 
 describe("landingContentFor", () => {
@@ -19,6 +22,14 @@ describe("landingContentFor", () => {
     expect(landingContentFor("KR")).toBe(KR_CONTENT);
     expect(landingContentFor("UK")).toBe(UK_CONTENT);
     expect(landingContentFor("PH")).toBe(UK_CONTENT);
+  });
+
+  it("gives the Korean site Korean, or English when the visitor switched, and every other site English", () => {
+    expect(landingContentFor("KR", "ko")).toBe(KR_CONTENT);
+    expect(landingContentFor("KR", "en")).toBe(KR_EN_CONTENT);
+    expect(landingContentFor("KR")).toBe(KR_CONTENT);
+    expect(landingContentFor("UK", "ko")).toBe(UK_CONTENT);
+    expect(landingContentFor("UK", "en")).toBe(UK_CONTENT);
   });
 
   it("keeps the UK page's trust cards and questions exactly as the legal wording has them", () => {
@@ -114,10 +125,8 @@ describe("the Korean page", () => {
     expect(KR_CONTENT.mock.quotes.directFee).toBeTruthy();
   });
 
-  it("leaves its open decisions as placeholders that show as chips", () => {
-    const placeholders = copyParts(KR_CONTENT.trust.cards[0].body).filter((p) => p.kind === "placeholder");
-    expect(placeholders.length).toBeGreaterThan(0);
-    expect(copyParts(KR_CONTENT.footer.legalNote ?? "").some((p) => p.kind === "placeholder")).toBe(true);
+  it("still shows a [bracketed] decision as a chip, should one be added before launch", () => {
+    expect(copyParts("문장 [확정 후 기재] 문장").some((p) => p.kind === "placeholder")).toBe(true);
   });
 
   it("links the Korean names of the policies", () => {
@@ -128,5 +137,121 @@ describe("the Korean page", () => {
   it("dates its sample papers the way the design does", () => {
     expect(KR_CONTENT.paper.date(0)).toBe("2026년 10월 1일");
     expect(UK_CONTENT.paper.date(0)).toBe("0 October 2026");
+  });
+});
+
+describe("the KR page's launch-blocking wording", () => {
+  const all = JSON.stringify(KR_CONTENT);
+
+  it("has no quote or matching language (Attorney-at-Law Act Art. 34)", () => {
+    expect(all).not.toContain("견적");
+  });
+
+  it("has no placeholders left to go live", () => {
+    expect(all).not.toContain("확정 후 기재");
+    for (const chip of ["[상호]", "[번호]", "[주소]", "[이름]"]) expect(all).not.toContain(chip);
+  });
+});
+
+describe("the KR footer's operator details (confirmed 20–23 Nov 2026)", () => {
+  const note = KR_CONTENT.footer.legalNote ?? "";
+
+  it("names FORHU Inc. with its registration, representative and address", () => {
+    for (const fact of ["FORHU Inc.", "File No. 10371682", "Jungkwan Shin", "30 Wall Street, 8th Floor, New York, NY 10005, USA"]) {
+      expect(note).toContain(fact);
+    }
+  });
+
+  it("gives the customer contact, and not the UK site's old address", () => {
+    expect(KR_CONTENT.footer.supportEmail).toBe("ilovelawyer@forhu.ai");
+    expect(note).toContain("ilovelawyer@forhu.ai");
+    expect(JSON.stringify(KR_CONTENT)).not.toContain("forhu.com");
+  });
+});
+
+describe("the operator's details on every site (confirmed 20–23 Nov 2026)", () => {
+  const facts = ["FORHU Inc.", "10371682", "Jungkwan Shin", "30 Wall Street, 8th Floor, New York, NY 10005, USA", "ilovelawyer@forhu.ai"];
+
+  it("uses one customer contact, and not the old help address", () => {
+    expect(SUPPORT_EMAIL).toBe("ilovelawyer@forhu.ai");
+    for (const [site, content] of sites) expect(content.footer.supportEmail, site).toBe(SUPPORT_EMAIL);
+  });
+
+  it("names the operator in the UK footer", () => {
+    for (const fact of facts) expect(UK_CONTENT.footer.legalNote, fact).toContain(fact);
+  });
+
+  it("names the operator in the Philippine footer", () => {
+    const ph = siteLandingCopy("PH", "en");
+    for (const fact of facts) expect(ph?.legalNote, fact).toContain(fact);
+  });
+
+  it("names the operator as the UK Privacy Policy's controller, with no company placeholder left", () => {
+    const who = PRIVACY_SECTIONS.find((s) => s.title === "Who we are")?.blocks.join(" ") ?? "";
+    for (const fact of facts) expect(who, fact).toContain(fact);
+    const policy = JSON.stringify(PRIVACY_SECTIONS);
+    for (const gone of ["[Company name]", "[England and Wales]", "[privacy email]", "[number]", "[address]"]) expect(policy).not.toContain(gone);
+  });
+});
+
+describe("the Korean site in English", () => {
+  // What a visitor reads: every string value, but not the keys (the mock's are named `quotes`) and not
+  // the problems' search keywords, which stay bilingual on purpose so a Korean query still finds a card.
+  const strings = (node: unknown, key = ""): string[] => {
+    if (typeof node === "string") return key === "keywords" ? [] : [node];
+    if (Array.isArray(node)) return node.flatMap((n) => strings(n, key));
+    if (node && typeof node === "object") return Object.entries(node).flatMap(([k, v]) => strings(v, k === "keywords" ? k : ""));
+    return [];
+  };
+  const shown = strings(KR_EN_CONTENT).join(" | ");
+
+  it("says its language", () => {
+    expect(KR_EN_CONTENT.htmlLang).toBe("en");
+    expect(KR_EN_CONTENT.meta.ogLocale).toBe("en_US");
+  });
+
+  it("has no quote or matching language (Attorney-at-Law Act Art. 34), as the Korean page has none", () => {
+    expect(shown).not.toMatch(/\b(quote|quotes|quoted|quoting|estimate|estimates|bid|bids)\b/i);
+    expect(shown).not.toContain("견적");
+  });
+
+  it("has no placeholders left to go live, and no Korean text left untranslated", () => {
+    expect(shown).not.toMatch(/\[[^\[\]]+\]/);
+    expect(shown).not.toMatch(/[\u3131-\u318E\uAC00-\uD7A3]/);
+  });
+
+  it("makes no promise the Korean page doesn't, and no fee beyond the lawyer's own", () => {
+    expect(shown).not.toMatch(/platform fee|referral fee|3 lawyers|up to three/i);
+    expect(KR_EN_CONTENT.mock.quotes.directFee).toBeTruthy();
+    expect(KR_EN_CONTENT.mock.lawyers).toHaveLength(1);
+  });
+
+  it("carries the generative-AI notice and the operator's details", () => {
+    expect(KR_EN_CONTENT.hero.disclaimer).toContain("generative AI");
+    expect(KR_EN_CONTENT.footer.disclaimer).toBe(KR_EN_CONTENT.hero.disclaimer);
+    for (const fact of ["FORHU Inc.", "10371682", "Jungkwan Shin", "30 Wall Street, 8th Floor, New York, NY 10005, USA", "ilovelawyer@forhu.ai"]) {
+      expect(KR_EN_CONTENT.footer.legalNote, fact).toContain(fact);
+    }
+  });
+
+  it("covers the same problems, photos and FAQ topics as the Korean page", () => {
+    expect(KR_EN_CONTENT.problems.map((p) => p.slug)).toEqual(KR_CONTENT.problems.map((p) => p.slug));
+    expect(KR_EN_CONTENT.problems.map((p) => [p.fx, p.fy, p.width, p.height])).toEqual(KR_CONTENT.problems.map((p) => [p.fx, p.fy, p.width, p.height]));
+    expect(KR_EN_CONTENT.faq.items).toHaveLength(KR_CONTENT.faq.items.length);
+    expect(KR_EN_CONTENT.trust.cards).toHaveLength(KR_CONTENT.trust.cards.length);
+    expect(KR_EN_CONTENT.fees?.cards).toHaveLength(KR_CONTENT.fees!.cards.length);
+    expect(KR_EN_CONTENT.how.headings).toHaveLength(KR_CONTENT.how.headings.length);
+  });
+
+  it("finds the problem an English search describes, and still a Korean one", () => {
+    const labelFor = (q: string) => KR_EN_CONTENT.problems[matchProblem(q, KR_EN_CONTENT.problems)]?.label;
+    expect(labelFor("my landlord won't return my deposit")).toBe("Jeonse deposit return");
+    expect(labelFor("police summons")).toBe("Police summons");
+    expect(labelFor("퇴직금")).toBe("Severance pay");
+  });
+
+  it("links the policies it names", () => {
+    expect(copyParts(KR_EN_CONTENT.faq.items.at(-1)!.a)).toContainEqual({ kind: "link", text: "Privacy Policy", href: "/privacy" });
+    expect(copyParts(KR_EN_CONTENT.faq.items.find((i) => i.q === "Can I get a refund?")!.a)).toContainEqual({ kind: "link", text: "Refunds Policy", href: "/refunds" });
   });
 });

@@ -1,38 +1,43 @@
 // The Korean site's landing page (kr.ilovelawyer.com), from the design ilovelawyer Client KR v1.
-// DRAFT: a Korean lawyer must review all of it before launch. [Square brackets] are facts or
-// decisions still to come; they show as dashed chips and must all be gone before the page goes
-// public.
+// DRAFT: a Korean lawyer must review all of it before launch. No [square-bracket] placeholders
+// remain; a test fails if one comes back.
 //
 // Pricing follows the Korean model (copy review, 19 Nov 2026): creating a case is free and credits
 // are paid, but ilovelawyer takes no fee for introducing or hiring a lawyer. The client picks one
 // lawyer and agrees and pays that lawyer's fee directly with them; ilovelawyer earns from credits and
 // lawyers' software subscriptions. The Attorney-at-Law Act bars paid referrals and fee sharing. This
-// copy is only true once the app and API drop the platform fee and multi-lawyer quotes, so it ships in
-// the same release as that change.
+// copy is only true once the app and API drop the platform fee and multi-lawyer quotes (KAN-31,
+// KAN-32), so the revenue card (trust.cards[2]) and the lawyer-fee card (fees.cards[1]) ship in the
+// same release as that change.
+//
+// Round 2 (#160, 20 Nov review): no "quote" or matching language, no promises the product can't back
+// up, and the footer names the operator. The Korean is a translation of the review's English
+// suggestions and still needs Edda's and a Korean lawyer's review.
 
-import { SUPPORT_EMAIL } from "../copy";
+import { COMPANY, SUPPORT_EMAIL } from "../copy";
 import { KR_PROBLEMS, KR_START_PROBLEM } from "./kr-problems";
 import type { LandingContent } from "./types";
 
-const TITLE = "ilovelawyer: 법률 문제, 명확하게";
+const TITLE = "ilovelawyer: 사실부터 시작하세요";
 const DESCRIPTION =
-  "내 법률 문제를 먼저 이해하고, 대한변협에 등록된 변호사에게 견적을 받아 보세요. 사건 생성은 무료이며, 모든 비용은 결제 전에 표시됩니다. AI 안내는 법률 자문이 아닙니다.";
-const DISCLAIMER = "AI 안내는 일반 법률 정보이며 법률 자문이 아닙니다. 자문은 직접 선택한 변호사가 제공합니다.";
+  "무슨 일이 있었는지 내 말로 설명하면 AI 도구가 수정할 수 있는 요약을 함께 만듭니다. 독립된 변호사에게 자문을 구할지는 직접 정하세요. 사건 생성은 무료이며, 모든 비용은 결제 전에 표시됩니다. AI 안내는 법률 자문이 아닙니다.";
+const DISCLAIMER =
+  "이 서비스는 생성형 AI를 사용합니다. AI 답변은 참고용 정보이며 오류가 있을 수 있고 법률 자문이 아닙니다. 법원 기일이나 기한은 AI 답변에 의존하지 마세요.";
 
 export const KR_CONTENT: LandingContent = {
   htmlLang: "ko",
   meta: { title: TITLE, description: DESCRIPTION, ogLocale: "ko_KR", siteName: "ilovelawyer" },
   nav: { how: "이용 방법", faq: "자주 묻는 질문", signIn: "로그인", start: "사건 시작하기", menu: "메뉴" },
   hero: {
-    sectionLabel: "법률 문제, 명확하게",
+    sectionLabel: "사실부터 시작하세요",
     groupLabel: "법률 문제 선택",
-    defaultHeadline: ["법률 문제,", "명확하게."],
-    defaultHeadlineLabel: "법률 문제, 명확하게.",
+    defaultHeadline: ["사실부터", "시작하세요."],
+    defaultHeadlineLabel: "사실부터 시작하세요.",
     searchLabel: "법률 문제를 설명해 주세요",
     searchFocusPlaceholder: "법률 문제를 설명해 주세요",
     submitLabel: "이 내용으로 사건 시작하기",
     noMatch: "잘 모르겠다면, 사건을 시작하고 직접 설명해 보세요",
-    tagline: "내 법률 문제를 먼저 이해하고, 대한변협에 등록된 변호사에게 견적을 받아 보세요.",
+    tagline: "무슨 일이 있었는지 내 말로 설명하세요. AI 도구가 수정할 수 있는 요약을 함께 만들고, 독립된 변호사에게 자문을 구할지는 직접 정합니다.",
     cta: "사건 시작하기",
     disclaimer: DISCLAIMER,
     play: "움직임 재생",
@@ -45,29 +50,29 @@ export const KR_CONTENT: LandingContent = {
     intro: {
       left: "혼자 짐작하지",
       right: "마세요.",
-      sub: "지금 겪는 일을 편하게 말해 주세요. 쉬운 말로 정리해 드리고, 대한변협에 등록된 변호사가 견적을 보냅니다.",
+      sub: "지금 겪는 일을 편하게 말해 주세요. 사실관계를 명확한 요약으로 정리하도록 도와드리고, 독립된 변호사에게 자문을 구할지는 직접 정할 수 있습니다.",
     },
     cta: "사건 시작하기",
     headings: [
       "휴대폰으로 시작하고, PC에서 이어가세요.",
       "사건은 정리되고, 변호사는 준비됩니다.",
-      "대한변협 등록 변호사에게 견적을 받으세요.",
-      "믿을 수 있는 변호사를 직접 고르세요. 모든 변호사의 대한변협 등록을 확인합니다.",
+      "요약을 준비하고, 변호사에게 연락할지 직접 정하세요.",
+      "참여 중인 독립 변호사의 정보를 살펴보고, 연락할지 직접 정하세요.",
       "변호사와 한곳에서 대화하세요.",
-      "서류를 올리면, 날짜와 요청 사항을 정리해 드립니다.",
+      "서류를 올리면 시간순 정리와 서류 목록 초안을 만듭니다. 추출된 날짜와 이름은 직접 확인하세요.",
       "정리된 사건은, 직접 고른 변호사가 이어받습니다.",
     ],
     captions: [
       { label: "01 / 04 · 의뢰인 요약", text: "사실관계, 날짜, 수사·소송 단계, 합의 상태가 정리된 채로 전달됩니다." },
       { label: "02 / 04 · 증거 목록", text: "내용증명, 임대차계약서, 카카오톡 대화, 계좌이체 내역을 종류별로 분류합니다." },
-      { label: "03 / 04 · 타임라인", text: "사건 순서와 함께 출석일, 합의 기한, 소송 기한이 표시됩니다." },
-      { label: "04 / 04 · 사건 현황", text: "변호사가 강점, 부족한 증거, 모든 기한을 한눈에 봅니다." },
+      { label: "03 / 04 · 타임라인", text: "서류에서 가져온 날짜가 타임라인에 표시될 수 있습니다. 법적 기한을 계산하거나 확정하지는 않습니다." },
+      { label: "04 / 04 · 사건 현황", text: "의뢰인이 허락한 변호사가 정리된 사실관계와 서류를 검토할 수 있습니다." },
     ],
     clientLabel: "의뢰인",
     solicitorLabel: "변호사",
     clientPhotos: [
       { src: "/landing/kr/people/pair-c0.webp", alt: "소파에 앉아 태블릿으로 사건 요약을 읽는 의뢰인" },
-      { src: "/landing/kr/people/pair-c1.webp", alt: "버스에서 휴대폰으로 견적을 확인하는 의뢰인" },
+      { src: "/landing/kr/people/pair-c1.webp", alt: "버스에서 휴대폰으로 변호사의 답변을 확인하는 의뢰인" },
       { src: "/landing/kr/people/pair-c2.webp", alt: "주방 식탁에서 메시지를 입력하는 의뢰인" },
       { src: "/landing/kr/people/pair-c3.webp", alt: "주방 식탁에서 서류와 휴대폰을 들고 있는 의뢰인" },
     ],
@@ -220,11 +225,11 @@ export const KR_CONTENT: LandingContent = {
     cards: [
       {
         title: "대한변협 등록 확인",
-        body: "모든 변호사는 견적을 보내기 전에 대한변호사협회 등록 여부를 확인합니다. 대한변협 홈페이지에서 직접 조회할 수도 있습니다. [추가 확인 절차: 확정 후 기재]",
+        body: "변호사 프로필을 보여 주기 전에 공식 기록으로 대한변호사협회 등록 여부를 확인합니다. 대한변협 홈페이지에서 직접 조회할 수도 있습니다. 등록 확인은 변호사의 서비스를 추천하거나 보증하는 것이 아닙니다.",
       },
       {
         title: "변호사가 볼 수 있는 정보",
-        body: "변호사는 먼저 이름과 서류를 뺀 익명 요약만 봅니다. 의뢰인이 직접 고른 변호사는 이해충돌 여부를 확인하기 위해 사건에 등장하는 사람과 기관의 이름도 볼 수 있습니다. 그 변호사가 의뢰를 수락한 뒤에만 사건, 서류, AI와의 대화를 열람할 수 있습니다.",
+        body: "공유하기 전에 어떤 변호사에게 어떤 정보가 왜 전달되는지 보여 드리고, 의뢰인이 확인한 뒤에만 보냅니다. 서류와 AI와의 대화는 직접 고른 변호사가 의뢰를 수락한 뒤에만 열람할 수 있습니다.",
       },
       {
         title: "ilovelawyer 수익 구조",
@@ -232,7 +237,7 @@ export const KR_CONTENT: LandingContent = {
       },
       {
         title: "AI와 개인정보",
-        body: "AI는 사건 요약을 만드는 데 사용됩니다. 정보는 서비스 제공에만 쓰이고 판매되지 않으며, 언제든 열람과 삭제를 요청할 수 있습니다. [국내 서버 보관 여부: 확정 후 기재] 자세한 내용은 개인정보처리방침을 확인하세요.",
+        body: "AI는 사건 요약을 만드는 데 사용됩니다. 개인정보는 개인정보처리방침에 정한 목적과 기간 동안 처리하며, 판매하지 않습니다. 법령상 보존 의무가 있는 경우를 제외하고 열람, 정정, 삭제를 요청할 수 있습니다.",
       },
     ],
   },
@@ -243,15 +248,15 @@ export const KR_CONTENT: LandingContent = {
     cards: [
       {
         title: "사건 생성은 무료",
-        body: "사건을 만들고 변호사를 요청하는 데는 비용이 들지 않으며, 새 사건에는 채팅 크레딧이 포함됩니다. 더 필요하면 결제 전에 표시된 가격으로 구매할 수 있습니다.",
+        body: "사건 요약 만들기는 무료입니다. 추가 AI 크레딧은 구매 전에 가격, 단위, 유효기간, 환불 조건을 표시합니다.",
       },
       {
-        title: "변호사 견적",
+        title: "변호사 보수",
         body: "변호사를 직접 고르고, 보수는 그 변호사와 직접 약정하고 결제합니다. ilovelawyer는 변호사 보수에서 어떤 수수료도 받지 않습니다.",
       },
       {
         title: "결제와 환불",
-        body: "결제한 뒤 환불이 필요하면 환불 정책에 따릅니다. [청약철회 기간: 확정 후 기재]",
+        body: "사용하지 않은 AI 크레딧은 구매 후 7일 이내에 청약철회를 요청할 수 있습니다. 이미 사용한 부분과 법령이 정한 예외는 제외될 수 있으며, 정확한 조건은 결제 전에 표시됩니다.",
       },
     ],
   },
@@ -272,7 +277,7 @@ export const KR_CONTENT: LandingContent = {
       },
       {
         q: "변호사 등록은 정말 확인하나요?",
-        a: "네. 변호사가 요청을 받거나 견적을 보내기 전에 우리 팀이 대한변호사협회 등록 여부를 확인합니다. 이름이 일치하는지, 현재 활동 중인지도 살펴봅니다. [추가 확인 절차: 확정 후 기재]",
+        a: "네. 변호사 프로필을 보여 주기 전에 우리 팀이 공식 기록으로 대한변호사협회 등록 여부를 확인합니다. 등록 확인은 변호사의 서비스를 추천하거나 보증하는 것이 아닙니다.",
       },
       {
         q: "경찰 출석요구서를 받았어요. 빨리 도움을 받을 수 있나요?",
@@ -284,11 +289,11 @@ export const KR_CONTENT: LandingContent = {
       },
       {
         q: "변호사가 내 이름을 보나요?",
-        a: "처음에는 보지 않습니다. 익명 처리된 요약만 봅니다. 의뢰인이 직접 고른 변호사는 이해충돌을 확인하기 위해 사건에 등장하는 사람과 기관의 이름을 볼 수 있습니다. 그 변호사가 의뢰를 수락하면 사건, 서류, AI와의 대화를 열람할 수 있고, 변호사의 기록 보관 의무에 따라 사본을 보관할 수 있습니다.",
+        a: "요청을 보내기 전에 어떤 변호사에게 어떤 정보가 왜 전달되는지 보여 드리고 동의를 받습니다. 사건, 서류, AI와의 대화는 직접 고른 변호사가 의뢰를 수락한 뒤에만 열람할 수 있고, 변호사의 기록 보관 의무에 따라 사본을 보관할 수 있습니다.",
       },
       {
         q: "비용은 얼마인가요?",
-        a: "사건 생성은 무료이며, 새 사건에는 채팅 크레딧이 포함됩니다. 크레딧이 더 필요하면 결제 전에 표시된 가격으로 구매할 수 있습니다. 변호사 요청도 무료입니다. 변호사 보수는 선택한 변호사와 직접 약정합니다. [부가가치세 표시 방식: 확정 후 기재]",
+        a: "사건 생성은 무료이며, 새 사건에는 채팅 크레딧이 포함됩니다. 크레딧이 더 필요하면 결제 전에 표시된 가격으로 구매할 수 있습니다. 변호사 요청도 무료입니다. 변호사 보수는 선택한 변호사와 직접 약정합니다.",
       },
       {
         q: "ilovelawyer는 어떻게 수익을 얻나요?",
@@ -296,11 +301,7 @@ export const KR_CONTENT: LandingContent = {
       },
       {
         q: "환불받을 수 있나요?",
-        a: "네, 환불 정책에 안내된 경우에 가능합니다. [청약철회 기간: 확정 후 기재]",
-      },
-      {
-        q: "마음에 드는 견적이 없으면요?",
-        a: "하나를 꼭 선택하지 않아도 되며, 견적을 받는 데 드는 비용은 없습니다. 의뢰를 수락한 변호사만 사건 전체를 볼 수 있습니다.",
+        a: "네. 사용하지 않은 AI 크레딧은 구매 후 7일 이내에 관련 법령과 환불 정책에 따라 청약철회와 환불을 요청할 수 있습니다. 이미 사용한 부분과 법령이 정한 예외는 제외될 수 있으며, 정확한 조건은 결제 전에 표시됩니다.",
       },
       {
         q: "어떤 사건을 다루나요?",
@@ -308,7 +309,7 @@ export const KR_CONTENT: LandingContent = {
       },
       {
         q: "내 정보는 안전한가요?",
-        a: "[전송·저장 시 암호화: 확정 후 기재] 개인정보 보호법에 따라 처리합니다. 자세한 내용은 개인정보처리방침을 확인하세요.",
+        a: "개인정보 보호법에 따라 처리합니다. 자세한 내용은 개인정보처리방침을 확인하세요.",
       },
     ],
   },
@@ -317,7 +318,7 @@ export const KR_CONTENT: LandingContent = {
     imageSrc: "/landing/kr/cta.webp",
     imageFace: { fx: 0.69, fy: 0.27, width: 2000, height: 1116 },
     title: "준비되면, 시작하세요.",
-    body: "상황 설명에 10분 정도 걸립니다. 저장하고 언제든 이어갈 수 있습니다.",
+    body: "사건에 따라 다르지만, 시작하는 데 10분 정도 걸릴 수 있습니다. 저장하고 나중에 이어갈 수 있습니다.",
     cta: "사건 시작하기",
   },
   footer: {
@@ -330,6 +331,6 @@ export const KR_CONTENT: LandingContent = {
     refunds: "환불 정책",
     supportEmail: SUPPORT_EMAIL,
     legalNote:
-      "ilovelawyer는 [상호]의 서비스입니다. 사업자등록번호 [번호], 주소 [주소], 대표 [이름], 통신판매업 신고 [번호]. ilovelawyer는 법률사무소가 아니며 법률 자문을 제공하지 않습니다. 플랫폼의 변호사는 대한변호사협회에 등록된 독립 변호사입니다.",
+      `ilovelawyer는 ${COMPANY.name}(미국 델라웨어주 법인, File No. ${COMPANY.fileNo})가 운영합니다. 대표: ${COMPANY.representative} · 주소: ${COMPANY.address} · 고객 문의: ${SUPPORT_EMAIL}. ilovelawyer는 법률사무소가 아니며 법률 자문을 제공하지 않습니다. 플랫폼의 변호사는 대한변호사협회에 등록된 독립 변호사입니다.`,
   },
 };
