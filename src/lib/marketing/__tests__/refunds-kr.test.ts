@@ -32,7 +32,7 @@ describe.each([
   });
 
   it("names the operator and the contact", () => {
-    for (const fact of [COMPANY.name, COMPANY.fileNo, COMPANY.representative, COMPANY.address, SUPPORT_EMAIL]) expect(all).toContain(fact);
+    for (const fact of [COMPANY.name, COMPANY.fileNo, COMPANY.representative, COMPANY.address, COMPANY.krBusinessNo, SUPPORT_EMAIL]) expect(all).toContain(fact);
   });
 
   it("gives every section a unique id", () => {

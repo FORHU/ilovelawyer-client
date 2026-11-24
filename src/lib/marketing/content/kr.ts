@@ -331,6 +331,6 @@ export const KR_CONTENT: LandingContent = {
     refunds: "환불 정책",
     supportEmail: SUPPORT_EMAIL,
     legalNote:
-      `ilovelawyer는 ${COMPANY.name}(미국 델라웨어주 법인, File No. ${COMPANY.fileNo})가 운영합니다. 대표: ${COMPANY.representative} · 주소: ${COMPANY.address} · 고객 문의: ${SUPPORT_EMAIL}. ilovelawyer는 법률사무소가 아니며 법률 자문을 제공하지 않습니다. 플랫폼의 변호사는 대한변호사협회에 등록된 독립 변호사입니다.`,
+      `ilovelawyer는 ${COMPANY.name}(미국 델라웨어주 법인, File No. ${COMPANY.fileNo})가 운영합니다. 대표: ${COMPANY.representative} · 주소: ${COMPANY.address} · 사업자등록번호: ${COMPANY.krBusinessNo} · 고객 문의: ${SUPPORT_EMAIL}. ilovelawyer는 법률사무소가 아니며 법률 자문을 제공하지 않습니다. 플랫폼의 변호사는 대한변호사협회에 등록된 독립 변호사입니다.`,
   },
 };

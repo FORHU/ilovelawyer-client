@@ -8,7 +8,7 @@
 // revenue card (trust.cards[2]) and the lawyer-fee card (fees.cards[1]) are only true once the
 // platform fee and intro fee are off for Korea (KAN-31, KAN-32).
 
-import { OPERATOR_NOTE, SUPPORT_EMAIL } from "../copy";
+import { COMPANY, SUPPORT_EMAIL } from "../copy";
 import { KR_PROBLEMS_EN } from "./kr-problems-en";
 import { KR_START_PROBLEM } from "./kr-problems";
 import type { LandingContent } from "./types";
@@ -334,6 +334,8 @@ export const KR_EN_CONTENT: LandingContent = {
     privacy: "Privacy Policy",
     refunds: "Refunds Policy",
     supportEmail: SUPPORT_EMAIL,
-    legalNote: `${OPERATOR_NOTE} ilovelawyer is not a law firm and does not give legal advice. The lawyers on the platform are independent lawyers registered with the Korean Bar Association.`,
+    // Its own operator line, not the UK and PH sites' OPERATOR_NOTE: only Korea shows the Korean
+    // business registration number (#179).
+    legalNote: `ilovelawyer is operated by ${COMPANY.name}, a Delaware corporation (File No. ${COMPANY.fileNo}). Representative: ${COMPANY.representative}. ${COMPANY.address}. Business registration number: ${COMPANY.krBusinessNo}. Contact: ${SUPPORT_EMAIL}. ilovelawyer is not a law firm and does not give legal advice. The lawyers on the platform are independent lawyers registered with the Korean Bar Association.`,
   },
 };

@@ -93,13 +93,15 @@ export const FAQS = [
 ];
 
 /** FORHU Inc. (US) runs the UK, Korean and Philippine sites. Confirmed 20-23 Nov 2026: these go in
- * every footer and Privacy Policy. Still open, so not here: the representative's title, the Korean
- * VAT and mail-order numbers, and a UK GDPR representative's address. */
+ * every footer and Privacy Policy. `krBusinessNo` (received 24 Nov 2026, #179) goes only on the KR
+ * site's footer and Refunds Policy. Still open, so not here: the representative's title, the Korean
+ * mail-order (통신판매업) number, and a UK GDPR representative's address. */
 export const COMPANY = {
   name: "FORHU Inc.",
   fileNo: "10371682",
   representative: "Jungkwan Shin",
   address: "30 Wall Street, 8th Floor, New York, NY 10005, USA",
+  krBusinessNo: "18-4-62010-476646",
 } as const;
 
 /** The customer contact for every site. */

@@ -5,7 +5,7 @@ import { landingContentFor, type LandingContent } from "../content";
 import { KR_CONTENT } from "../content/kr";
 import { KR_EN_CONTENT } from "../content/kr-en";
 import { UK_CONTENT } from "../content/uk";
-import { copyParts, FAQS, PRIVACY_SECTIONS, SUPPORT_EMAIL, TRUST_CARDS } from "../copy";
+import { COMPANY, copyParts, FAQS, PRIVACY_SECTIONS, SUPPORT_EMAIL, TRUST_CARDS } from "../copy";
 import { HOW_HEADING_TIMES, TERMINAL_CAPTION_COUNT } from "../how-timeline";
 import { heroImageSrc, matchProblem } from "../problems";
 import { siteLandingCopy } from "../site-landing";
@@ -168,6 +168,10 @@ describe("the KR footer's operator details (confirmed 20–23 Nov 2026)", () => 
     }
   });
 
+  it("shows the Korean business registration number (#179)", () => {
+    expect(note).toContain("사업자등록번호: 18-4-62010-476646");
+  });
+
   it("gives the customer contact, and not the UK site's old address", () => {
     expect(KR_CONTENT.footer.supportEmail).toBe("ilovelawyer@forhu.ai");
     expect(note).toContain("ilovelawyer@forhu.ai");
@@ -190,6 +194,11 @@ describe("the operator's details on every site (confirmed 20–23 Nov 2026)", ()
   it("names the operator in the Philippine footer", () => {
     const ph = siteLandingCopy("PH", "en");
     for (const fact of facts) expect(ph?.legalNote, fact).toContain(fact);
+  });
+
+  it("shows the Korean business registration number on the Korean site only (#179)", () => {
+    expect(UK_CONTENT.footer.legalNote).not.toContain(COMPANY.krBusinessNo);
+    expect(siteLandingCopy("PH", "en")?.legalNote).not.toContain(COMPANY.krBusinessNo);
   });
 
   it("names the operator as the UK Privacy Policy's controller, with no company placeholder left", () => {
@@ -240,7 +249,7 @@ describe("the Korean site in English", () => {
   it("carries the generative-AI notice and the operator's details", () => {
     expect(KR_EN_CONTENT.hero.disclaimer).toContain("generative AI");
     expect(KR_EN_CONTENT.footer.disclaimer).toBe(KR_EN_CONTENT.hero.disclaimer);
-    for (const fact of ["FORHU Inc.", "10371682", "Jungkwan Shin", "30 Wall Street, 8th Floor, New York, NY 10005, USA", "ilovelawyer@forhu.ai"]) {
+    for (const fact of ["FORHU Inc.", "10371682", "Jungkwan Shin", "30 Wall Street, 8th Floor, New York, NY 10005, USA", "Business registration number: 18-4-62010-476646", "ilovelawyer@forhu.ai"]) {
       expect(KR_EN_CONTENT.footer.legalNote, fact).toContain(fact);
     }
   });

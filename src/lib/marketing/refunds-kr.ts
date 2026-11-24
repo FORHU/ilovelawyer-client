@@ -71,7 +71,7 @@ export const REFUNDS_SECTIONS_KO: LegalSection[] = [
   },
   {
     title: "9. 사업자 정보",
-    blocks: [`ilovelawyer는 ${COMPANY.name}(미국 델라웨어주 법인, File No. ${COMPANY.fileNo})가 운영합니다. 대표: ${COMPANY.representative} · 주소: ${COMPANY.address} · 고객 문의: ${SUPPORT_EMAIL}`],
+    blocks: [`ilovelawyer는 ${COMPANY.name}(미국 델라웨어주 법인, File No. ${COMPANY.fileNo})가 운영합니다. 대표: ${COMPANY.representative} · 주소: ${COMPANY.address} · 사업자등록번호: ${COMPANY.krBusinessNo} · 고객 문의: ${SUPPORT_EMAIL}`],
   },
 ];
 
@@ -128,6 +128,6 @@ export const REFUNDS_SECTIONS_KR_EN: LegalSection[] = [
   },
   {
     title: "9. Who we are",
-    blocks: [`ilovelawyer is operated by ${COMPANY.name}, a Delaware corporation (File No. ${COMPANY.fileNo}). Representative: ${COMPANY.representative}. Address: ${COMPANY.address}. Contact: ${SUPPORT_EMAIL}.`],
+    blocks: [`ilovelawyer is operated by ${COMPANY.name}, a Delaware corporation (File No. ${COMPANY.fileNo}). Representative: ${COMPANY.representative}. Address: ${COMPANY.address}. Business registration number: ${COMPANY.krBusinessNo}. Contact: ${SUPPORT_EMAIL}.`],
   },
 ];
