@@ -9,25 +9,22 @@ import { AiMark } from "@/components/ui/misc";
 import { AfterAnswer } from "@/components/case/after-answer";
 import { CitationText } from "@/components/case/citation-text";
 import { DeleteConfirm, MessageMenu } from "@/components/case/message-actions";
-import { useSite } from "@/components/site/site-provider";
 import { usePayment } from "@/lib/payment-store";
-import { caseRegion, type Case } from "@/lib/types";
+import type { Case } from "@/lib/types";
 import { PROMPTS, type Consultation } from "./use-consultation";
 
 export function ConsultationDesktop({ c, consultation }: { c: Case; consultation: Consultation }) {
   const {
     credits, openRequest, loadError, upload, connected, input, setInput, notice, dragging, scroller, textareaRef, recorder,
-    messages, documentById, thinking, out, lastFailed, latestAnswer, missing, missingGaps, suggestions, attachmentPending, failedAttachedIds,
+    messages, documentById, thinking, out, lastFailed, latestAnswer, missing, missingGaps, attachmentPending, failedAttachedIds,
     sendableAttachedIds, attachedIds, removeAttached, send, attach, onDrop, onDragEnter, onDragLeave, onPaste, askAbout,
     stop, canStop,
   } = consultation;
   const [showMissing, setShowMissing] = useState(false);
-  // AfterAnswer already shows its own dedicated RegionPrompt card whenever the case has no part
-  // of the UK yet — the exact same question CW's own #158 suggestions ask for the jurisdiction
-  // question. Suppressing the chips in that one case, not the feature generally: a later,
-  // different open question still gets its own suggestions normally.
-  const { regionQuestion } = useSite();
-  const regionPromptShowing = regionQuestion && caseRegion(c) === "";
+  const askInComposer = (text: string) => {
+    setInput(text);
+    textareaRef.current?.focus();
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -130,7 +127,7 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
               </div>
             )}
             {latestAnswer && !thinking && !openRequest && (
-              <AfterAnswer c={c} latestAnswerId={latestAnswer.id} />
+              <AfterAnswer c={c} latestAnswerId={latestAnswer.id} onAsk={askInComposer} />
             )}
             {thinking && (
               <div className="flex gap-3" role="status" aria-label="The assistant is typing">
@@ -178,23 +175,6 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
                   className="min-h-8 rounded-full border border-line-chip bg-subtle px-3 text-[12.5px] font-medium text-ink transition-colors hover:border-gold disabled:opacity-40"
                 >
                   {p}
-                </button>
-              ))}
-            </div>
-          )}
-          {/* #158: CW's suggested replies for the question just asked — tap to send as-is, or
-             type/speak a different answer instead. Nothing renders when there are none. */}
-          {suggestions.length > 0 && !out && !regionPromptShowing && (
-            <div role="group" aria-label="Suggested replies" className="flex flex-wrap justify-center gap-1.5">
-              {suggestions.map((s, i) => (
-                <button
-                  key={`${s}-${i}`}
-                  type="button"
-                  onClick={() => send(s)}
-                  data-no-tap
-                  className="min-h-8 rounded-full border border-line-chip bg-subtle px-3 text-[12.5px] font-medium text-ink transition-colors hover:border-gold"
-                >
-                  {s}
                 </button>
               ))}
             </div>

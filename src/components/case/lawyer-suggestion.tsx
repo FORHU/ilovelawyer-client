@@ -8,16 +8,32 @@ import { lawyerKind, useLawyerReadinessQuery } from "@/lib/cases/readiness";
 import { useLawyerRequestForm } from "@/lib/lawyer-requests/api";
 
 import { useT } from "@/components/site/language-provider";
+
+/** A short lead-in for each unmet criterion, by its key (lawyer-readiness-jev.ts's
+ * READINESS_CRITERIA) — filled into the composer, never sent on the client's behalf, same as
+ * use-consultation.ts's askAbout for #157's missing-gap chips. Worded as a fragment the client
+ * finishes themselves, not a full question, since these are topics a solicitor still needs
+ * covered rather than single-answer questions. */
+const CRITERION_PROMPTS: Record<string, string> = {
+  problem: "The kind of problem this is: ",
+  place: "This happened in: ",
+  otherSide: "The other side is: ",
+  events: "What happened, and roughly when: ",
+  goal: "What I want to get out of this: ",
+  status: "What's happened since, and where things stand now: ",
+};
+
 /**
  * Under the chat, after the AI's latest answer: suggests a lawyer once the case has what a lawyer
  * needs (checked by the API, see lib/cases/readiness.ts), and until then shows what's still
  * missing, so it's never a mystery why we haven't. With the check switched off on the API, offers a
- * lawyer as before.
+ * lawyer as before. Each unmet item is tappable — it starts that answer in the composer rather
+ * than sitting as a read-only status list.
  *
  * On a phone the card is full width with a full-width button under its text; on desktop it lines
  * up with the AI's text, past the avatar, with the button beside it.
  */
-export function LawyerSuggestion({ caseId, latestAnswerId }: { caseId: string; latestAnswerId: string }) {
+export function LawyerSuggestion({ caseId, latestAnswerId, onAsk }: { caseId: string; latestAnswerId: string; onAsk: (text: string) => void }) {
   const t = useT();
   const mobile = useDevice() === "mobile";
   const openForm = () => useLawyerRequestForm.getState().openFor(caseId);
@@ -80,12 +96,26 @@ export function LawyerSuggestion({ caseId, latestAnswerId }: { caseId: string; l
         {missing.length === 1 ? t("To suggest the right lawyer, tell me a little more about this:") : t("To suggest the right lawyer, tell me a little more about these:")}
       </div>
       <ul className="flex flex-col gap-1">
-        {r.criteria.map((c) => (
-          <li key={c.key} className={`flex items-center gap-2 text-[13px] ${c.met ? "text-muted" : "text-ink"}`}>
-            {c.met ? <Check size={13} className="text-success" /> : <Circle size={11} className="text-muted" />}
-            {c.label}
-          </li>
-        ))}
+        {r.criteria.map((c) =>
+          c.met ? (
+            <li key={c.key} className="flex items-center gap-2 text-[13px] text-muted">
+              <Check size={13} className="text-success" />
+              {c.label}
+            </li>
+          ) : (
+            <li key={c.key}>
+              <button
+                type="button"
+                onClick={() => onAsk(CRITERION_PROMPTS[c.key] ?? `${c.label}: `)}
+                data-no-tap
+                className="flex min-h-8 items-center gap-2 text-[13px] text-ink underline decoration-dotted underline-offset-2 hover:text-gold"
+              >
+                <Circle size={11} className="shrink-0 text-muted" />
+                {c.label}
+              </button>
+            </li>
+          ),
+        )}
       </ul>
     </div>
   );
