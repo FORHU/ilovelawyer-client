@@ -139,6 +139,31 @@ const BASE_SECTIONS: TermsSection[] = [
   },
 ];
 
+// The KR site's English for the sections Korean consumer law needs worded differently (#178): a
+// deletion is a request with a 30-day grace period, not a promise to delete "at any time", and says
+// what stays; unused paid credits are refunded automatically once a closure is final, as the KR
+// Refunds Policy (refunds-kr.ts) says. terms-ko.ts is the Korean of these. UK and PH keep BASE_SECTIONS.
+// DRAFT pending review by Korean counsel.
+const KR_EN_PARAGRAPHS: Record<string, string[]> = {
+  "Section 04": [
+    "Creating a case is free, and each new case includes a number of chat credits, shown before you create it. Each question you ask the AI uses one credit. You can buy more credits for a case at any time, at the price shown before you pay. Prices may change, but never for a payment you have already made.",
+    "Credits belong to the case they were bought for and can't be moved to another case. They can't be exchanged for cash, except for refunds under the Refunds Policy and Section 09. Attaching documents and requesting a lawyer don't use credits.",
+    "Refunds follow the refund policy shown at checkout and any rights you have under consumer law.",
+  ],
+  "Section 07": [
+    "You keep ownership of everything you upload. You give us permission to store and process it only to run the Platform for you, including the AI processing described above.",
+    "Only upload documents you have the right to share. You can ask us to delete a case and its documents. A deletion takes effect after a 30-day grace period, and you can cancel it before then.",
+    "After a deletion, some information may remain: records the law requires us to keep (for example, contract, cancellation and payment records, kept for 5 years under the Act on the Consumer Protection in Electronic Commerce), copies in our backups until their regular cycle ends, and the case details and documents a lawyer who accepted your request has already received. That lawyer may keep their copy as the law and their professional duties require, and we can't delete it.",
+    "Our Privacy Policy explains what we collect, how long we keep it, and your rights.",
+  ],
+  "Section 09": [
+    "You can ask to close your account from your account settings. Any open lawyer request must be withdrawn or ended first. Closing starts a 30-day grace period, and signing in again during it cancels the closure. We may suspend or close an account that breaks these Terms. Where we can, we will tell you why first.",
+    "When the grace period ends, the closure is final and we delete the account's cases and documents, except for what Section 07 says may remain.",
+    "When the closure is final, we automatically refund your unused paid credits to your original payment method, based on the amount you actually paid, as the Refunds Policy explains. Credits included free with a case aren't refunded. If you cancel the closure during the grace period, your credits stay. A cancellation within 7 days of purchase is handled under the Refunds Policy whether or not you close your account.",
+    "If we close an account because it broke these Terms, we still refund its unused paid credits on the same basis. Amounts linked to fraudulent payments or payment disputes are reviewed separately.",
+  ],
+};
+
 /** The Terms for the client app on `tenant`'s site. Governing law follows the Tenant; with none
  * (an unmapped host), the section names the law of the site the account was opened on. In Korean
  * on the KR site when the page is (terms-ko.ts); the English is what's agreed to everywhere else. */
@@ -151,11 +176,12 @@ export function getClientTerms(tenant: TenantCode | null, lang: Lang = "en"): Cl
     };
   }
   const law = (tenant && GOVERNING_LAW[tenant]) || null;
+  const base = tenant === "KR" ? BASE_SECTIONS.map((s) => ({ ...s, paragraphs: KR_EN_PARAGRAPHS[s.number] ?? s.paragraphs })) : BASE_SECTIONS;
   return {
     title: "Terms of Service",
     effectiveDate: law ? `${EFFECTIVE} Governing law: ${law.label}.` : EFFECTIVE,
     sections: [
-      ...BASE_SECTIONS,
+      ...base,
       {
         number: "Section 10",
         title: "Governing Law",

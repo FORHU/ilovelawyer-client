@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Responsive } from "@/components/device/responsive";
 import { ThemeSegmented } from "@/components/site/theme-toggle";
+import { LanguageButton, LanguageSegmented } from "@/components/site/language-toggle";
 import { DISCLAIMER, legalSectionId, type LegalSection } from "@/lib/marketing/copy";
 import { landingContentFor } from "@/lib/marketing/content";
 import { CopyText } from "./copy-text";
@@ -82,16 +83,24 @@ export function LegalPage({ title, updated, sections }: { title: string; updated
           ilovelawyer
         </Link>
         <div className="flex items-center gap-2">
+          {/* The language switch shows only on a site with two languages (KR); the page re-renders in
+              the chosen one, as the landing's does. */}
           <Responsive
             desktop={
               <>
+                <LanguageSegmented tone="band" size="md" />
                 <ThemeSegmented tone="band" size="md" className="mr-1" />
                 <Link href="/login" data-btn className="inline-flex h-9 items-center whitespace-nowrap rounded-full border border-(--band-ink)/70 px-4 text-[14px]">
                   {t("Sign in")}
                 </Link>
               </>
             }
-            mobile={<ThemeSegmented tone="band" size="md" />}
+            mobile={
+              <>
+                <LanguageButton className="text-(--band-ink)/80! active:bg-(--band-ink)/8!" />
+                <ThemeSegmented tone="band" size="md" />
+              </>
+            }
           />
           <Link href="/signup" data-btn className="inline-flex h-9 items-center whitespace-nowrap rounded-full bg-(--band-ink) px-4 text-[14px] font-medium text-(--band)!">
             {t("Start your case")}

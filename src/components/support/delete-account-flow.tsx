@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
+import { useT } from "@/components/site/language-provider";
+import { useSite } from "@/components/site/site-provider";
 import { useDeleteAccountMutation } from "@/lib/auth/mutations";
 import type { ActionResult } from "@/lib/support/actions";
 import { downloadMyData } from "@/lib/support/actions-api";
@@ -40,8 +42,17 @@ export function DeleteAccountFlow({ safetyCopy, onDone }: { safetyCopy: string[]
     heading.current?.focus();
   }, [step]);
 
+  const t = useT();
+  const kr = useSite().code === "KR";
   const hasPassword = check.data?.hasPassword ?? false;
   const credits = check.data?.creditsRemaining ?? 0;
+  // The KR site refunds unused paid credits once the deletion is final (its Terms and Refunds Policy,
+  // #178); the other sites don't.
+  const creditNote = kr
+    ? credits === 1
+      ? t("You have {n} unused chat credit. Unused paid credits are refunded automatically to your original payment method once the deletion is final, after 30 days. Credits included free with a case aren't refunded.", { n: credits })
+      : t("You have {n} unused chat credits. Unused paid credits are refunded automatically to your original payment method once the deletion is final, after 30 days. Credits included free with a case aren't refunded.", { n: credits })
+    : `You have ${credits} unused Chat ${credits === 1 ? "Credit" : "Credits"}, and they won't be refunded.`;
 
   const cont = async () => {
     setBusy(true);
@@ -162,8 +173,8 @@ export function DeleteAccountFlow({ safetyCopy, onDone }: { safetyCopy: string[]
       {(step === "PASSWORD" || step === "CONFIRM") && (
         <>
           <p className="text-[14px] leading-[1.5] text-ink">
-            Your account will be deleted in 30 days. Until then, signing in again cancels it.
-            {credits > 0 && ` You have ${credits} unused Chat ${credits === 1 ? "Credit" : "Credits"}, and they won't be refunded.`}
+            {t("Your account will be deleted in 30 days. Until then, signing in again cancels it.")}
+            {credits > 0 && ` ${creditNote}`}
           </p>
           {step === "PASSWORD" && (
             <PasswordField id="support-delete-password" value={password} onChange={setPassword} error={error} hint="We ask for your password so nobody else can close your account." />

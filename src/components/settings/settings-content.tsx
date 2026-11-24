@@ -10,6 +10,7 @@ import { useSession } from "@/lib/auth/session";
 import { useSensitiveInfoStatus, useSetSensitiveInfoMutation } from "@/lib/consent/sensitive-info";
 import { useDisconnectGmailMutation } from "@/lib/gmail/queries";
 import { setLanguage, useLanguage, useT } from "@/components/site/language-provider";
+import { useSite } from "@/components/site/site-provider";
 import { RadioCard } from "@/components/ui/radio-card";
 import { LANG_LABELS } from "@/lib/i18n/translate";
 import { msg } from "@/lib/i18n/msg";
@@ -89,6 +90,8 @@ export function sectionOf(slug: string | null): Section | undefined {
 function AccountTab() {
   const logout = useLogoutMutation();
   const t = useT();
+  // The KR site refunds unused paid credits once a closure is final (its Terms and Refunds Policy, #178).
+  const kr = useSite().code === "KR";
   return (
     <div className="flex flex-col gap-5">
       <section className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-line bg-surface px-6 py-5">
@@ -103,7 +106,9 @@ function AccountTab() {
       <section className="flex flex-col items-start gap-3 rounded-card border border-error-line bg-surface px-6 py-5">
         <h2 className="text-[15px] font-semibold text-error-ink">{t("Close your account")}</h2>
         <p className="text-sm leading-[1.6] text-ink-2">
-          {t("Deletes your cases, documents and AI history after 30 days. Signing in again before then cancels it. Open lawyer requests must be withdrawn or ended first, and unused chat credits aren’t refunded.")}
+          {kr
+            ? t("Deletes your cases, documents and AI history after 30 days. Signing in again before then cancels it. Open lawyer requests must be withdrawn or ended first. Unused paid chat credits are refunded automatically once the closure is final; credits included free with a case aren’t.")
+            : t("Deletes your cases, documents and AI history after 30 days. Signing in again before then cancels it. Open lawyer requests must be withdrawn or ended first, and unused chat credits aren’t refunded.")}
         </p>
         <Button
           variant="danger"
