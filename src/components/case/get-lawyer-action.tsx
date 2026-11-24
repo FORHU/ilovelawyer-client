@@ -19,8 +19,9 @@ export const NOT_AVAILABLE_TEXT = {
 /**
  * The case header's lawyer button, decided by the API (GET /api/client/lawyer-requests/eligibility):
  * "Get a lawyer" on a UK case, "Not available yet" outside the UK, "Part of the UK?" while nobody has
- * said which part (the chat asks, see RegionPrompt), and a short explanation for personal injury. Nothing while there's already a request, or while the case is missing what a
- * lawyer needs (lib/cases/readiness.ts).
+ * said which part (the chat asks — consultation.*.tsx's #158 suggestion chips), and a short
+ * explanation for personal injury. Nothing while there's already a request, or while the case is
+ * missing what a lawyer needs (lib/cases/readiness.ts).
  */
 export function GetLawyerAction({ caseId }: { caseId: string }) {
   const t = useT();

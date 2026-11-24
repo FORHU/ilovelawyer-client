@@ -9,9 +9,8 @@ import { AiMark } from "@/components/ui/misc";
 import { AfterAnswer } from "@/components/case/after-answer";
 import { CitationText } from "@/components/case/citation-text";
 import { DeleteConfirm, MessageMenu } from "@/components/case/message-actions";
-import { useSite } from "@/components/site/site-provider";
 import { usePayment } from "@/lib/payment-store";
-import { caseRegion, type Case } from "@/lib/types";
+import type { Case } from "@/lib/types";
 import { PROMPTS, type Consultation } from "./use-consultation";
 
 export function ConsultationDesktop({ c, consultation }: { c: Case; consultation: Consultation }) {
@@ -22,12 +21,6 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
     stop, canStop,
   } = consultation;
   const [showMissing, setShowMissing] = useState(false);
-  // RegionPrompt shows its own three jurisdiction options whenever the case has none yet, under
-  // the AI's message — the exact same question #158's suggestions would ask here. Suppressing
-  // the chips only in that one case (not the feature generally) keeps the two from duplicating
-  // each other; a later, different open question still gets its own suggestions normally.
-  const { regionQuestion } = useSite();
-  const regionPromptShowing = regionQuestion && caseRegion(c) === "";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -130,13 +123,14 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
               </div>
             )}
             {latestAnswer && !thinking && !openRequest && (
-              <AfterAnswer c={c} latestAnswerId={latestAnswer.id} onAnswered={send} />
+              <AfterAnswer c={c} latestAnswerId={latestAnswer.id} />
             )}
             {/* #158: CW's suggested replies for the question just asked, in the thread itself
                rather than pinned to the composer — tap to send as-is, or type/speak a different
-               answer instead. Nothing renders when there are none. Suppressed while RegionPrompt
-               is showing: that card already covers this exact question. */}
-            {suggestions.length > 0 && !thinking && !out && !regionPromptShowing && (
+               answer instead. Nothing renders when there are none. This is also the UK-part
+               question's only answer control now (no separate RegionPrompt card): CW's own
+               deterministic suggestions already return exactly the three real jurisdictions. */}
+            {suggestions.length > 0 && !thinking && !out && (
               <div role="group" aria-label="Suggested replies" className="ml-[38px] flex flex-wrap gap-1.5">
                 {suggestions.map((s, i) => (
                   <button
