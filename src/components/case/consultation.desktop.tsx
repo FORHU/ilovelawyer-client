@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { FilePicker } from "@/components/ui/file-picker";
 import { AiMark } from "@/components/ui/misc";
-import { AfterAnswer } from "@/components/case/after-answer";
+import { PromptChip } from "@/components/ui/chip";
+import { AfterAnswer, isJurisdictionQuestion } from "@/components/case/after-answer";
 import { CitationText } from "@/components/case/citation-text";
 import { DeleteConfirm, MessageMenu } from "@/components/case/message-actions";
 import { useSite } from "@/components/site/site-provider";
@@ -22,12 +23,13 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
     stop, canStop,
   } = consultation;
   const [showMissing, setShowMissing] = useState(false);
-  // RegionPrompt shows its own three jurisdiction options whenever the case has none yet, under
-  // the AI's message — the exact same question #158's suggestions would ask here. Suppressing
-  // the chips only in that one case (not the feature generally) keeps the two from duplicating
-  // each other; a later, different open question still gets its own suggestions normally.
+  // RegionPrompt shows its own three jurisdiction options only while the case has none yet AND
+  // the AI's latest message is actually the jurisdiction question (see AfterAnswer) — the exact
+  // same question #158's suggestions would ask here. Suppressing the chips only in that one case
+  // (not the feature generally) keeps the two from duplicating each other; a later, different
+  // open question still gets its own suggestions normally.
   const { regionQuestion } = useSite();
-  const regionPromptShowing = regionQuestion && caseRegion(c) === "";
+  const regionPromptShowing = regionQuestion && caseRegion(c) === "" && isJurisdictionQuestion(suggestions);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -130,7 +132,7 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
               </div>
             )}
             {latestAnswer && !thinking && !openRequest && (
-              <AfterAnswer c={c} latestAnswerId={latestAnswer.id} onAnswered={send} />
+              <AfterAnswer c={c} latestAnswerId={latestAnswer.id} suggestions={suggestions} onAnswered={send} />
             )}
             {/* #158: CW's suggested replies for the question just asked, in the thread itself
                rather than pinned to the composer — tap to send as-is, or type/speak a different
@@ -139,15 +141,9 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
             {suggestions.length > 0 && !thinking && !out && !regionPromptShowing && (
               <div role="group" aria-label="Suggested replies" className="ml-[38px] flex flex-wrap gap-1.5">
                 {suggestions.map((s, i) => (
-                  <button
-                    key={`${s}-${i}`}
-                    type="button"
-                    onClick={() => send(s)}
-                    data-no-tap
-                    className="min-h-8 rounded-full border border-line-chip bg-subtle px-3 text-[12.5px] font-medium text-ink transition-colors hover:border-gold"
-                  >
+                  <PromptChip key={`${s}-${i}`} onClick={() => send(s)} data-no-tap>
                     {s}
-                  </button>
+                  </PromptChip>
                 ))}
               </div>
             )}

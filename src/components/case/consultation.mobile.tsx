@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { FilePicker } from "@/components/ui/file-picker";
 import { AiMark } from "@/components/ui/misc";
+import { PromptChip } from "@/components/ui/chip";
 import { TypingDots } from "@/components/ui/typing-dots";
 import { ChatBar, ChatScreen, ComposerButton, ComposerPill } from "@/components/mobile/chat";
-import { AfterAnswer } from "@/components/case/after-answer";
+import { AfterAnswer, isJurisdictionQuestion } from "@/components/case/after-answer";
 import { CitationText } from "@/components/case/citation-text";
 import { DeleteConfirm, MessageMenu } from "@/components/case/message-actions";
 import { useSite } from "@/components/site/site-provider";
@@ -22,10 +23,11 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
     recorder, out, thinking, messages, documentById, scroller, missing, missingGaps, suggestions, openRequest, lastFailed, latestAnswer, connected, loadError, notice, credits, attachedIds, failedAttachedIds, removeAttached, input, setInput, onPaste, textareaRef, attach, upload, attachmentPending, sendableAttachedIds, send, stop, canStop, askAbout,
   } = consultation;
   const [showMissing, setShowMissing] = useState(false);
-  // See consultation.desktop.tsx's identical note: RegionPrompt's own three jurisdiction options
-  // already cover that one question, so #158's chips are suppressed only for that collision.
+  // See consultation.desktop.tsx's identical note: RegionPrompt only shows while the case has no
+  // region AND the AI's latest message is actually the jurisdiction question; #158's chips are
+  // suppressed only for that exact collision, not whenever the region happens to be unset.
   const { regionQuestion } = useSite();
-  const regionPromptShowing = regionQuestion && caseRegion(c) === "";
+  const regionPromptShowing = regionQuestion && caseRegion(c) === "" && isJurisdictionQuestion(suggestions);
 
   return (
     <ChatScreen>
@@ -118,7 +120,7 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
             )}
             {lastFailed && !thinking && <div className="ml-[38px] text-[14px] text-error">That didn&apos;t go through, so it didn&apos;t use a credit. Try asking again.</div>}
             {latestAnswer && !thinking && !openRequest && (
-              <AfterAnswer c={c} latestAnswerId={latestAnswer.id} onAnswered={send} />
+              <AfterAnswer c={c} latestAnswerId={latestAnswer.id} suggestions={suggestions} onAnswered={send} />
             )}
             {/* #158: CW's suggested replies for the question just asked, in the thread itself
                rather than pinned to the composer — tap to send as-is, or type/speak a different
@@ -127,15 +129,9 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
             {suggestions.length > 0 && !thinking && !out && !regionPromptShowing && (
               <div role="group" aria-label="Suggested replies" className="ml-[38px] flex flex-wrap gap-1.5">
                 {suggestions.map((s, i) => (
-                  <button
-                    key={`${s}-${i}`}
-                    type="button"
-                    onClick={() => send(s)}
-                    data-no-tap
-                    className="min-h-9 shrink-0 whitespace-nowrap rounded-full border border-line-chip bg-subtle px-3.5 text-[13px] font-medium text-ink active:bg-chip"
-                  >
+                  <PromptChip key={`${s}-${i}`} onClick={() => send(s)} data-no-tap className="shrink-0 whitespace-nowrap">
                     {s}
-                  </button>
+                  </PromptChip>
                 ))}
               </div>
             )}
