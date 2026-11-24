@@ -8,7 +8,7 @@ import { useLandingContent } from "./landing-content";
 
 /** Every control in the bar stands 36px tall, the nav links on the left included, so the row reads
  * as one line. */
-const LINK = "inline-flex h-9 items-center px-2.5 text-[15px]";
+const LINK = "inline-flex h-9 items-center whitespace-nowrap px-2.5 text-[15px]";
 const PILL = "inline-flex h-9 items-center whitespace-nowrap rounded-full px-4 text-[14px]";
 
 export function LandingHeaderDesktop({ solid, onAnchor }: HeaderViewProps) {
@@ -33,7 +33,9 @@ export function LandingHeaderDesktop({ solid, onAnchor }: HeaderViewProps) {
       </div>
       <div className="flex flex-none items-center gap-2">
         <LanguageSegmented tone="overlay" size="md" />
-        <ThemeSegmented tone="overlay" size="md" className="mr-1" />
+        {/* Below 1024px the bar can't hold every control on one line with the language switch, so the
+            theme switch, the least needed, steps out. The theme already chosen still applies. */}
+        <ThemeSegmented tone="overlay" size="md" className="mr-1 hidden lg:flex" />
         <Link href="/login" data-btn className={`${PILL} border border-(--hbd)`}>
           {nav.signIn}
         </Link>

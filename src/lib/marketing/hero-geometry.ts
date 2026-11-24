@@ -212,11 +212,16 @@ export function selectedPaperDesktop(w: number, h: number, W: number, H: number,
   const fitX = ((left ? copy.l : W - copy.r) - gap - 16) / w;
   const fitY = (H - padB - (copy.b + gap)) / h;
   const scale = Math.min(1, Math.max(fitX, fitY, 0.7), (H - 106) / h);
-  return {
-    x: left ? 16 + (w * scale) / 2 : W - 16 - (w * scale) / 2,
-    y: H - padB - (h * scale) / 2,
-    scale,
-  };
+  const x = left ? 16 + (w * scale) / 2 : W - 16 - (w * scale) / 2;
+  const y = H - padB - (h * scale) / 2;
+  // On a narrow portrait screen (a tablet) it fits neither beside nor below the copy at that size and
+  // would cover the end of the copy, the AI notice included. It goes below the copy instead, centred
+  // (clear of the pause button) and smaller.
+  const onCopy = Math.abs(x - copy.l - copy.w / 2) < (w * scale + copy.w) / 2 && y - (h * scale) / 2 < copy.b + gap;
+  if (!onCopy) return { x, y, scale };
+  const top = copy.b + gap;
+  const below = Math.min(scale, Math.max(0.55, (H - 16 - top) / h));
+  return { x: W / 2, y: top + (h * below) / 2, scale: below };
 }
 
 /** The selected paper on a phone: centred below the copy. */

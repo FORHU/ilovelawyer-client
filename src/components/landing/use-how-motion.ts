@@ -48,7 +48,8 @@ export function useHowMotion(
           W: stage.clientWidth,
           H: stage.clientHeight,
           mob,
-          headingH: headings[1]?.offsetHeight ?? 60,
+          // The tallest heading above the laptop, so a long one (three lines on a phone) never runs into the photos.
+          headingH: Math.max(0, ...headings.filter((_, i) => !HOW_HEADING_TIMES[i]?.over).map((h) => h.offsetHeight)) || 60,
           leftW: left?.offsetWidth ?? 300,
           rightW: right?.offsetWidth ?? 300,
         };

@@ -145,7 +145,7 @@ export function howPose(d: number, { W, H, mob, headingH, leftW, rightW }: HowLa
   const deskS1 = deskW1 / 940;
   const deskCy = (s: number) =>
     mob
-      ? 130 + 128 * centred + 310 * s
+      ? 130 + (128 + Math.max(0, headingH - 52)) * centred + 310 * s
       : Math.max(80 + headingH + 36 + 310 * s, (H - (headingH + 36 + 730 * s)) / 2 + 24 + headingH + 36 + 310 * s);
   const cx1 = mob ? W / 2 : W / 2 + W * 0.13;
   const cx = cx1 + (W / 2 - cx1) * centred;
