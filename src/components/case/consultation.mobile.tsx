@@ -11,16 +11,21 @@ import { ChatBar, ChatScreen, ComposerButton, ComposerPill } from "@/components/
 import { AfterAnswer } from "@/components/case/after-answer";
 import { CitationText } from "@/components/case/citation-text";
 import { DeleteConfirm, MessageMenu } from "@/components/case/message-actions";
+import { useSite } from "@/components/site/site-provider";
 import { cn } from "@/lib/cn";
 import { usePayment } from "@/lib/payment-store";
-import type { Case } from "@/lib/types";
+import { caseRegion, type Case } from "@/lib/types";
 import { PROMPTS, type Consultation } from "./use-consultation";
 
 export function ConsultationMobile({ c, consultation }: { c: Case; consultation: Consultation }) {
   const {
-    recorder, out, thinking, messages, documentById, scroller, missing, missingGaps, openRequest, lastFailed, latestAnswer, connected, loadError, notice, credits, attachedIds, failedAttachedIds, removeAttached, input, setInput, onPaste, textareaRef, attach, upload, attachmentPending, sendableAttachedIds, send, stop, canStop, askAbout,
+    recorder, out, thinking, messages, documentById, scroller, missing, missingGaps, suggestions, openRequest, lastFailed, latestAnswer, connected, loadError, notice, credits, attachedIds, failedAttachedIds, removeAttached, input, setInput, onPaste, textareaRef, attach, upload, attachmentPending, sendableAttachedIds, send, stop, canStop, askAbout,
   } = consultation;
   const [showMissing, setShowMissing] = useState(false);
+  // See consultation.desktop.tsx's identical note: RegionPrompt's own three jurisdiction options
+  // already cover that one question, so #158's chips are suppressed only for that collision.
+  const { regionQuestion } = useSite();
+  const regionPromptShowing = regionQuestion && caseRegion(c) === "";
 
   return (
     <ChatScreen>
@@ -114,6 +119,25 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
             {lastFailed && !thinking && <div className="ml-[38px] text-[14px] text-error">That didn&apos;t go through, so it didn&apos;t use a credit. Try asking again.</div>}
             {latestAnswer && !thinking && !openRequest && (
               <AfterAnswer c={c} latestAnswerId={latestAnswer.id} onAnswered={send} />
+            )}
+            {/* #158: CW's suggested replies for the question just asked, in the thread itself
+               rather than pinned to the composer — tap to send as-is, or type/speak a different
+               answer instead. Suppressed while RegionPrompt is showing: that card already covers
+               this exact question. */}
+            {suggestions.length > 0 && !thinking && !out && !regionPromptShowing && (
+              <div role="group" aria-label="Suggested replies" className="ml-[38px] flex flex-wrap gap-1.5">
+                {suggestions.map((s, i) => (
+                  <button
+                    key={`${s}-${i}`}
+                    type="button"
+                    onClick={() => send(s)}
+                    data-no-tap
+                    className="min-h-9 shrink-0 whitespace-nowrap rounded-full border border-line-chip bg-subtle px-3.5 text-[13px] font-medium text-ink active:bg-chip"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
             )}
             {thinking && (
               <div className="flex gap-2.5" role="status" aria-label="The assistant is typing">

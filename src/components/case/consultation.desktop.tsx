@@ -9,18 +9,25 @@ import { AiMark } from "@/components/ui/misc";
 import { AfterAnswer } from "@/components/case/after-answer";
 import { CitationText } from "@/components/case/citation-text";
 import { DeleteConfirm, MessageMenu } from "@/components/case/message-actions";
+import { useSite } from "@/components/site/site-provider";
 import { usePayment } from "@/lib/payment-store";
-import type { Case } from "@/lib/types";
+import { caseRegion, type Case } from "@/lib/types";
 import { PROMPTS, type Consultation } from "./use-consultation";
 
 export function ConsultationDesktop({ c, consultation }: { c: Case; consultation: Consultation }) {
   const {
     credits, openRequest, loadError, upload, connected, input, setInput, notice, dragging, scroller, textareaRef, recorder,
-    messages, documentById, thinking, out, lastFailed, latestAnswer, missing, missingGaps, attachmentPending, failedAttachedIds,
+    messages, documentById, thinking, out, lastFailed, latestAnswer, missing, missingGaps, suggestions, attachmentPending, failedAttachedIds,
     sendableAttachedIds, attachedIds, removeAttached, send, attach, onDrop, onDragEnter, onDragLeave, onPaste, askAbout,
     stop, canStop,
   } = consultation;
   const [showMissing, setShowMissing] = useState(false);
+  // RegionPrompt shows its own three jurisdiction options whenever the case has none yet, under
+  // the AI's message — the exact same question #158's suggestions would ask here. Suppressing
+  // the chips only in that one case (not the feature generally) keeps the two from duplicating
+  // each other; a later, different open question still gets its own suggestions normally.
+  const { regionQuestion } = useSite();
+  const regionPromptShowing = regionQuestion && caseRegion(c) === "";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -124,6 +131,25 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
             )}
             {latestAnswer && !thinking && !openRequest && (
               <AfterAnswer c={c} latestAnswerId={latestAnswer.id} onAnswered={send} />
+            )}
+            {/* #158: CW's suggested replies for the question just asked, in the thread itself
+               rather than pinned to the composer — tap to send as-is, or type/speak a different
+               answer instead. Nothing renders when there are none. Suppressed while RegionPrompt
+               is showing: that card already covers this exact question. */}
+            {suggestions.length > 0 && !thinking && !out && !regionPromptShowing && (
+              <div role="group" aria-label="Suggested replies" className="ml-[38px] flex flex-wrap gap-1.5">
+                {suggestions.map((s, i) => (
+                  <button
+                    key={`${s}-${i}`}
+                    type="button"
+                    onClick={() => send(s)}
+                    data-no-tap
+                    className="min-h-8 rounded-full border border-line-chip bg-subtle px-3 text-[12.5px] font-medium text-ink transition-colors hover:border-gold"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
             )}
             {thinking && (
               <div className="flex gap-3" role="status" aria-label="The assistant is typing">
