@@ -10,6 +10,7 @@ import { inputClass, WizardLabel } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
 import type { IntakeMessage } from "@/lib/cases/use-intake-chat";
 import { sideLabel } from "@/lib/types";
+import { LiveDictationStatus } from "./live-dictation-status";
 import { useT } from "@/components/site/language-provider";
 import { REGIONS, STARTERS, type IntakeViewProps } from "./use-intake-controller";
 
@@ -104,36 +105,29 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
           "flex items-center gap-1.5 rounded-[28px] border border-line-input bg-surface p-2 shadow-[0_2px_14px_rgb(0_0_0/0.06)] transition-colors focus-within:border-ink-2",
         )}
       >
-        {empty && recorder.phase === "recording" ? (
+        {empty && recorder.phase !== "idle" ? (
           <>
             <button
               type="button"
               onClick={recorder.cancel}
               aria-label={t("Cancel recording")}
               data-no-tap
-              className="flex size-11 shrink-0 items-center justify-center rounded-full border border-line-input text-ink-2 hover:border-line-hover hover:text-ink"
+              className="flex size-11 shrink-0 items-center justify-center self-end rounded-full border border-line-input text-ink-2 hover:border-line-hover hover:text-ink"
             >
               <X size={18} aria-hidden="true" />
             </button>
-            <div role="status" aria-label={t("Recording")} className="flex min-h-11 flex-1 items-center justify-center gap-2.5 text-[14px]">
-              <span aria-hidden className="size-2.5 rounded-full bg-error motion-safe:animate-pulse" />
-              <span className="text-ink-2">{t("Recording")}</span>
-            </div>
+            <LiveDictationStatus phase={recorder.phase} seconds={recorder.seconds} transcript={recorder.transcript} before={text} />
             <button
               type="button"
               onClick={recorder.stop}
-              aria-label={t("Stop and send")}
+              disabled={recorder.phase !== "recording"}
+              aria-label={t("Stop recording")}
               data-no-tap
-              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gold text-white hover:bg-gold-hover"
+              className="flex size-11 shrink-0 items-center justify-center self-end rounded-full bg-gold text-white hover:bg-gold-hover disabled:bg-chip disabled:text-muted"
             >
               <Square size={14} className="fill-current" aria-hidden="true" />
             </button>
           </>
-        ) : empty && recorder.phase === "transcribing" ? (
-          <div role="status" aria-label={t("Transcribing")} className="flex min-h-11 flex-1 items-center justify-center gap-2.5 text-[14px]">
-            <span aria-hidden className="size-2.5 rounded-full bg-gold motion-safe:animate-pulse" />
-            <span className="text-ink-2">{t("Transcribing…")}</span>
-          </div>
         ) : (
           <>
           <FilePicker onPick={addFiles}>
@@ -169,7 +163,7 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
             <button
               type="button"
               onClick={recorder.start}
-              disabled={creating || recorder.phase === "transcribing"}
+              disabled={creating}
               aria-label={t("Record a voice message")}
               data-no-tap
               className="flex size-11 shrink-0 items-center justify-center self-end rounded-full text-ink-2 transition-colors hover:bg-chip hover:text-ink disabled:opacity-40"

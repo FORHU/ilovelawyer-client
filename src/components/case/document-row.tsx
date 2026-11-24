@@ -10,6 +10,7 @@ import { cn } from "@/lib/cn";
 import { DocumentPreviewModal } from "./document-preview-modal";
 import type { CaseDocument, DocumentStatus } from "@/lib/types";
 import { useT } from "@/components/site/language-provider";
+import { useSensitiveInfoStatus } from "@/lib/consent/sensitive-info";
 import { msg } from "@/lib/i18n/msg";
 import { tr, type T } from "@/lib/i18n/translate";
 
@@ -33,6 +34,16 @@ export const DOCUMENT_STATUS: Record<DocumentStatus, { text: string; className: 
   PENDING: { text: msg("Reading…"), className: "bg-warn-bg text-warn-ink" },
   FAILED: { text: msg("Couldn't read"), className: "bg-error-bg text-error-ink" },
 };
+
+/** The status to show for a document. One still waiting to be read is held back, not slow, when the
+ * client hasn't agreed to the AI reading sensitive information (#173): it is read once they do. */
+export function useDocumentStatus(d: CaseDocument) {
+  const consent = useSensitiveInfoStatus();
+  if (d.status === "PENDING" && (consent === "withdrawn" || consent === "not_set")) {
+    return { text: msg("Waiting for your agreement"), className: "bg-chip text-ink-2" };
+  }
+  return DOCUMENT_STATUS[d.status];
+}
 
 /** "Used in 2 items", "Not used yet", or `none` while it isn't ready. */
 export function usedLabel(t: T, usedIn: number, ready: boolean, none: string) {
@@ -148,7 +159,7 @@ export function DocumentRow({
   }, [confirming]);
 
   const t = useT();
-  const status = DOCUMENT_STATUS[d.status];
+  const status = useDocumentStatus(d);
   const error = remove.error ?? retry.error;
   const used = usedLabel(t, usedIn, d.status === "READY", "—");
 

@@ -2,6 +2,7 @@
 
 import { useState, type MouseEvent } from "react";
 import Link from "next/link";
+import { LanguageSegmented } from "@/components/site/language-toggle";
 import { ThemeSegmented } from "@/components/site/theme-toggle";
 import type { HeaderViewProps } from "./header";
 import { useLandingContent } from "./landing-content";
@@ -56,6 +57,7 @@ export function LandingHeaderMobile({ solid, onAnchor }: HeaderViewProps) {
             {nav.signIn}
           </Link>
           <div className="flex flex-wrap items-center gap-2 border-t border-(--band-ink)/12 px-3 pb-2 pt-3">
+            <LanguageSegmented tone="band" size="lg" />
             <ThemeSegmented tone="band" size="lg" />
           </div>
         </nav>

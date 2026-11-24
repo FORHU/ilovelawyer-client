@@ -8,7 +8,8 @@ import { msg } from "@/lib/i18n/msg";
 import type { DraftChat } from "@/lib/cases/drafts";
 import { checkFiles, useLimitsQuery } from "@/lib/cases/limits";
 import { type IntakeDraft, useIntakeChat } from "@/lib/cases/use-intake-chat";
-import { useDictation } from "@/lib/voice/use-dictation";
+import { appendSpoken } from "@/lib/voice/live-dictation";
+import { useLiveDictation } from "@/lib/voice/use-live-dictation";
 import type { CaseRegion } from "@/lib/types";
 import { UK_JURISDICTIONS } from "@/lib/types";
 import { useFileDrop } from "@/lib/use-file-drop";
@@ -19,7 +20,7 @@ export type IntakeChatProps = {
   creating: boolean;
   error: string;
   /** The client's very first message — goes straight to the real case, no scripted Q&A first.
-   * Also what a spoken first message becomes once transcribed — there's no separate voice path. */
+   * A spoken one lands in the composer first and is sent like a typed one — no separate voice path. */
   onFirstMessage: (text: string, files: File[]) => void;
   onCreate: (draft: IntakeDraft, files: File[]) => void;
   onEditDetails: (draft: IntakeDraft, files: File[]) => void;
@@ -81,10 +82,25 @@ export function useIntakeController({ onFirstMessage, initial, onChange }: Pick<
   useEffect(() => {
     if (!typing) onChange?.({ chat: { messages, step, draft, asked: askedSteps(), text }, files });
   }, [messages, step, draft, text, files, typing, askedSteps, onChange]);
-  // The mic (shown only on the empty, pre-first-message screen) records, transcribes, and sends
-  // straight away — a spoken first message goes to onFirstMessage exactly like a typed one, never
-  // into `chat`'s own scripted Q&A.
-  const recorder = useDictation({ onText: (text) => submitFirst(text) });
+  const box = useRef<HTMLTextAreaElement>(null);
+  // The mic (shown only on the empty, pre-first-message screen) streams what the client says and
+  // shows the words as they come. Once stopped, the words go into the composer after anything
+  // already typed, to read over and edit; sending is still the client's tap, and then a spoken
+  // first message goes to onFirstMessage exactly like a typed one.
+  const [spokenAt, setSpokenAt] = useState(0);
+  const recorder = useLiveDictation({
+    onText: (spoken) => {
+      setText((typed) => appendSpoken(typed, spoken));
+      setSpokenAt((n) => n + 1);
+    },
+  });
+  // Back in the composer after speaking, with the cursor after the words, ready to edit or send.
+  useEffect(() => {
+    const el = box.current;
+    if (!spokenAt || !el) return;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+  }, [spokenAt]);
   const [rejected, setRejected] = useState<string[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -161,7 +177,6 @@ export function useIntakeController({ onFirstMessage, initial, onChange }: Pick<
   const regionMissing = regionQuestion && !draft.region;
 
   // Grows with what's typed, up to a cap, like the composers people already know.
-  const box = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     const el = box.current;
     if (!el) return;

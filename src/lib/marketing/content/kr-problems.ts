@@ -8,7 +8,10 @@ import type { Problem } from "../problems";
 /** What the "how we help" line ends with: the client can ask a lawyer they choose to review it. */
 const QUOTE_TAIL = " 이후 직접 고른 변호사에게 검토를 요청할 수 있습니다.";
 
-interface Row {
+/** Several cards quote deadlines, so each says the examples promise no remedy and no lawyer. */
+const EXAMPLE_NOTE = " 예시는 상황 설명을 돕기 위한 것이며, 특정 구제 수단이나 변호사를 보장하지 않으며, 법원 기일이나 기한은 반드시 직접 확인해야 합니다.";
+
+export interface KrProblemRow {
   /** The photo's name, at /landing/kr/hero/<slug>.webp. */
   slug: string;
   at: number;
@@ -24,7 +27,7 @@ interface Row {
 
 // "대포통장 · 계좌 정지" (frozen account, at 10 in the design) is left out: its photo isn't in the
 // bundle. It comes back once supplied, at its own place.
-const ROWS: Row[] = [
+export const KR_PROBLEM_ROWS: KrProblemRow[] = [
   { slug: "jeonse-deposit", at: 0, tag: "주거", label: "전세보증금 반환", h: "전세보증금을 못 돌려받고 있나요?", ex: "임차권등기명령, 지급명령, 보증금반환소송이 각각 어떤 절차인지와 일반적인 기한을 안내해 드립니다.", say: "계약이 끝났는데 집주인이 보증금을 안 돌려줘요", keywords: ["보증금", "전세", "집주인", "임대인", "계약 만료", "deposit", "jeonse", "landlord"] },
   { slug: "jeonse-fraud", at: 1, tag: "주거", label: "전세사기", h: "전세사기 피해가 의심되나요?", ex: "피해자 결정 신청, 경매 절차, 보증보험 청구 등 지금 할 수 있는 일을 정리해 드립니다.", say: "집주인이 연락이 끊기고 집이 경매에 넘어갔어요", keywords: ["전세사기", "사기", "연락두절", "깡통", "fraud"] },
   { slug: "online-defamation", at: 2, tag: "형사", label: "사이버 명예훼손", h: "온라인 글 때문에 고소를 당했나요?", ex: "사실을 적어도 명예훼손이 될 수 있는 경우와 경찰 조사 전에 준비할 것을 설명해 드립니다.", say: "리뷰를 썼는데 명예훼손으로 고소당했어요", keywords: ["명예훼손", "리뷰", "게시글", "후기", "defam", "review", "post"] },
@@ -43,22 +46,41 @@ const ROWS: Row[] = [
   { slug: "payment-order", at: 16, tag: "민사", label: "지급명령 받음", h: "법원에서 지급명령을 받았나요?", ex: "지급명령은 송달 후 2주 안에 이의신청하지 않으면 확정됩니다. 이의신청 방법을 설명해 드립니다.", say: "법원에서 지급명령 서류가 왔어요", keywords: ["지급명령", "법원", "독촉", "이의신청", "payment order", "court"] },
 ];
 
-export const KR_PROBLEMS: Problem[] = ROWS.map((r) => ({
-  label: r.label,
-  slug: r.slug,
-  imageDir: "kr/hero",
-  tag: r.tag,
-  h: r.h,
-  help: r.ex + QUOTE_TAIL,
-  brief: r.ex,
-  say: r.say,
-  keywords: r.keywords,
-  // The photos are of people in the situation, not of the problem; this says what each is for.
-  alt: `${r.label} 상황의 사진`,
-  fx: r.at % 2 ? 0.68 : 0.35,
-  fy: r.slug === "unfair-dismissal" ? 0.27 : 0.3,
-  ...(r.slug === "unfair-dismissal" ? { width: 2752, height: 1536 } : {}),
-}));
+/** The words around a row's own text, which differ by language. */
+export interface KrProblemWords {
+  /** What follows what we explain: the client can ask a lawyer they choose to review it. */
+  tail: string;
+  /** The line saying the examples promise no remedy and no lawyer. */
+  note: string;
+  /** The photo's alt text. The photos are of people in the situation, not of the problem. */
+  alt: (label: string) => string;
+}
+
+/** The problems in one language. The photo, its crop and the keywords come from the row, so the
+ * Korean and English pages show the same people in the same places. */
+export function buildKrProblems(rows: KrProblemRow[], words: KrProblemWords): Problem[] {
+  return rows.map((r) => ({
+    label: r.label,
+    slug: r.slug,
+    imageDir: "kr/hero",
+    tag: r.tag,
+    h: r.h,
+    help: r.ex + words.tail + words.note,
+    brief: r.ex,
+    say: r.say,
+    keywords: r.keywords,
+    alt: words.alt(r.label),
+    fx: r.at % 2 ? 0.68 : 0.35,
+    fy: r.slug === "unfair-dismissal" ? 0.27 : 0.3,
+    ...(r.slug === "unfair-dismissal" ? { width: 2752, height: 1536 } : {}),
+  }));
+}
+
+export const KR_PROBLEMS: Problem[] = buildKrProblems(KR_PROBLEM_ROWS, {
+  tail: QUOTE_TAIL,
+  note: EXAMPLE_NOTE,
+  alt: (label) => `${label} 상황의 사진`,
+});
 
 /** The problem selected when the page opens. */
 export const KR_START_PROBLEM = 0;

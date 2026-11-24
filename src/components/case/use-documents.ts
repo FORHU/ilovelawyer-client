@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { checkFiles, useLimitsQuery } from "@/lib/cases/limits";
+import { useSensitiveInfoGate } from "@/lib/consent/sensitive-info";
 import { citationsByDocument } from "@/lib/cases/citations";
 import { useIntakeQuery, useUploadDocumentsMutation, useUploadForGapMutation, useUploadingFiles } from "@/lib/cases/queries";
 import { applyDocumentView, filterTests, type FilterKey, type SortKey } from "@/lib/documents/filter-sort";
@@ -16,6 +17,7 @@ import { useOpenDocument } from "./document-row";
 export function useDocuments(c: Case, focusDocumentId?: string | null, onFocused?: () => void) {
   const upload = useUploadDocumentsMutation(c.id);
   const uploadForGapMutation = useUploadForGapMutation(c.id);
+  const ensureAgreed = useSensitiveInfoGate();
   const { data: limits } = useLimitsQuery();
   const { data: intake } = useIntakeQuery(c.id, c.documents.some((d) => d.status === "PENDING"));
   const { data: missingEvidence } = useMissingEvidenceQuery(c.id);
@@ -50,10 +52,13 @@ export function useDocuments(c: Case, focusDocumentId?: string | null, onFocused
     return () => clearTimeout(timer);
   }, [focusDocumentId, onFocused]);
 
-  const add = (picked: File[]) => {
+  const add = async (picked: File[]) => {
     const { accepted, rejected } = checkFiles(picked, limits);
     setFailed(rejected);
     if (!accepted.length) return;
+    // Asked once, before the first file would reach the AI (#173). Without agreeing it still uploads,
+    // and waits, unread, until they do.
+    await ensureAgreed();
     upload.mutate(accepted, { onSuccess: (r) => setFailed((prev) => [...prev, ...r.failed.map((f) => f.reason)]) });
   };
 
@@ -85,7 +90,12 @@ export function useDocuments(c: Case, focusDocumentId?: string | null, onFocused
   // #159: CW's pick of the single most useful thing to upload next, from the case's open
   // CaseMissingEvidence gaps — not CaseIntake.missing, see evidence-gaps.ts's own note on why.
   const nextGap = nextSuggestedGap(missingEvidence);
-  const uploadForGap = (gapId: string, file: File) => uploadForGapMutation.mutate({ file, missingEvidenceId: gapId });
+  const uploadForGap = async (gapId: string, file: File) => {
+    // Same consent gate as `add` above (#173): a gap-targeted upload reaches the AI exactly the
+    // same way a plain one does, so it needs the same wait, not a second path that skips it.
+    await ensureAgreed();
+    uploadForGapMutation.mutate({ file, missingEvidenceId: gapId });
+  };
 
   return {
     upload, limits, failed, citations, opener, leftOver, uploading, confirmingId, setConfirmingId, filter, setFilter, sort, setSort,

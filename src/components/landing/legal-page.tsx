@@ -5,8 +5,9 @@ import Link from "next/link";
 import { Responsive } from "@/components/device/responsive";
 import { ThemeSegmented } from "@/components/site/theme-toggle";
 import { DISCLAIMER, legalSectionId, type LegalSection } from "@/lib/marketing/copy";
+import { landingContentFor } from "@/lib/marketing/content";
 import { CopyText } from "./copy-text";
-import { useT } from "@/components/site/language-provider";
+import { useLanguage, useT } from "@/components/site/language-provider";
 import { useSite } from "@/components/site/site-provider";
 
 const LABEL = "font-landing-mono text-[11px] uppercase tracking-widest text-(--band-ink)/70";
@@ -64,8 +65,16 @@ function ContentsMobile({ sections }: { sections: LegalSection[] }) {
 /** The Terms, Privacy and Refunds pages. `updated` may hold a [placeholder] until the date is set. */
 export function LegalPage({ title, updated, sections }: { title: string; updated: string; sections: LegalSection[] }) {
   const t = useT();
-  // The UK disclaimer speaks of the AI and a solicitor; a site without them says only what's true there.
-  const disclaimer = useSite().intakeChat === "open" ? DISCLAIMER : t("ilovelawyer isn't a law firm and doesn't give legal advice.");
+  const { lang } = useLanguage();
+  const site = useSite();
+  // The UK disclaimer speaks of the AI and a solicitor. Korea's pages repeat its landing's AI notice, in
+  // the page's language; a site without the AI says only what's true there.
+  const disclaimer =
+    site.code === "KR"
+      ? landingContentFor("KR", lang).footer.disclaimer
+      : site.intakeChat === "open"
+        ? DISCLAIMER
+        : t("ilovelawyer isn't a law firm and doesn't give legal advice.");
   return (
     <div className="flex min-h-svh flex-col bg-(--band) text-(--band-ink)" style={{ backgroundImage: "radial-gradient(50% 30% at 85% 0%, rgba(201,154,46,.14) 0%, rgba(0,0,0,0) 70%)" }}>
       <header className="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-(--band-ink)/10 bg-(--band)/82 px-4 py-3.5 backdrop-blur-[14px] md:px-8">

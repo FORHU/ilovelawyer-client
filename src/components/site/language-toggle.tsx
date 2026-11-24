@@ -10,7 +10,17 @@ import { SEGMENTED_TONES, type SegmentedTone } from "./segmented-tones";
 /** The site's languages side by side, each named in itself (English · 한국어), the current one
  * marked: the app header's, the sign-in pages' and the landing's. Nothing on a site with one
  * language. */
-export function LanguageSegmented({ className, tone = "app" }: { className?: string; tone?: SegmentedTone }) {
+export function LanguageSegmented({
+  className,
+  tone = "app",
+  size = "sm",
+}: {
+  className?: string;
+  tone?: SegmentedTone;
+  /** The same three sizes as ThemeSegmented, so the two sit level: sm in the app's header, md in the
+   * landing header's row of controls, lg a thumb-sized one in the landing's phone menu. */
+  size?: "sm" | "md" | "lg";
+}) {
   const { lang, offered, t } = useLanguage();
   const router = useRouter();
   if (offered.length < 2) return null;
@@ -33,7 +43,8 @@ export function LanguageSegmented({ className, tone = "app" }: { className?: str
             }}
             data-no-tap
             className={cn(
-              "h-7 rounded-full px-2.5 text-[12px] font-medium transition-colors",
+              "rounded-full font-medium transition-colors",
+              size === "lg" ? "h-10 px-4 text-[14px]" : size === "md" ? "h-[30px] px-3 text-[13px]" : "h-7 px-2.5 text-[12px]",
               on ? colors.on : colors.off,
             )}
           >

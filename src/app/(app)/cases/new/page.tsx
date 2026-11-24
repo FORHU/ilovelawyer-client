@@ -28,6 +28,7 @@ import {
 import { useFailedUploads } from "@/lib/failed-uploads";
 import { useCreateCaseFromWizard, useStillHere } from "@/lib/cases/new-case";
 import { uploadAll, useCreateCaseMutation } from "@/lib/cases/queries";
+import { useSensitiveInfoGate } from "@/lib/consent/sensitive-info";
 import { usePricingQuery } from "@/lib/pricing";
 import { useApp } from "@/lib/store";
 import { useWizard } from "@/lib/wizard-store";
@@ -47,6 +48,7 @@ function NewCase() {
   const included = pricing?.case.credits ?? "…";
   const { create, creating, error } = useCreateCaseFromWizard();
   const createCaseDirect = useCreateCaseMutation();
+  const ensureAgreed = useSensitiveInfoGate();
   const { data: caseAreas } = useCaseAreasQuery();
   const stillHere = useStillHere();
   const [chatCreating, setChatCreating] = useState(false);
@@ -205,6 +207,13 @@ function NewCase() {
     if (chatCreating || !text.trim()) return;
     setChatCreating(true);
     setChatError("");
+    // The first message goes to the AI, so the step for sensitive information comes first (#173). If it
+    // isn't agreed to, nothing is created and what they typed stays in the box.
+    if (!(await ensureAgreed({ askAgain: true }))) {
+      setChatCreating(false);
+      setChatError(t("The AI can’t read your message until you agree to how sensitive information is handled. You can also fill in the form instead, which the AI doesn’t need to read."));
+      return;
+    }
     const id = draftId.current;
     let created;
     try {

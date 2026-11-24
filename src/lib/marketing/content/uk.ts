@@ -2,7 +2,7 @@
 // cards, questions and disclaimer are in lib/marketing/copy.ts, next to the legal pages that share
 // them; the hero's problems are in lib/marketing/problems.ts.
 
-import { DISCLAIMER, FAQS, SUPPORT_EMAIL, TRUST_CARDS } from "../copy";
+import { DISCLAIMER, FAQS, OPERATOR_NOTE, SUPPORT_EMAIL, TRUST_CARDS } from "../copy";
 import { HOW_HEADINGS, TERMINAL_CAPTIONS } from "../how-timeline";
 import { DEFAULT_HEADLINE, PROBLEMS, START_PROBLEM } from "../problems";
 import type { LandingContent } from "./types";
@@ -217,5 +217,6 @@ export const UK_CONTENT: LandingContent = {
     privacy: "Privacy",
     refunds: "Refunds",
     supportEmail: SUPPORT_EMAIL,
+    legalNote: OPERATOR_NOTE,
   },
 };

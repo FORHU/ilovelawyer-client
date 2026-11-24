@@ -92,7 +92,21 @@ export const FAQS = [
   },
 ];
 
-export const SUPPORT_EMAIL = "ilovelawyer.help@forhu.com";
+/** FORHU Inc. (US) runs the UK, Korean and Philippine sites. Confirmed 20-23 Nov 2026: these go in
+ * every footer and Privacy Policy. Still open, so not here: the representative's title, the Korean
+ * VAT and mail-order numbers, and a UK GDPR representative's address. */
+export const COMPANY = {
+  name: "FORHU Inc.",
+  fileNo: "10371682",
+  representative: "Jungkwan Shin",
+  address: "30 Wall Street, 8th Floor, New York, NY 10005, USA",
+} as const;
+
+/** The customer contact for every site. */
+export const SUPPORT_EMAIL = "ilovelawyer@forhu.ai";
+
+/** The English footer line saying who runs the site, for the UK and Philippine pages. */
+export const OPERATOR_NOTE = `ilovelawyer is operated by ${COMPANY.name}, a Delaware corporation (File No. ${COMPANY.fileNo}). Representative: ${COMPANY.representative}. ${COMPANY.address}. Contact: ${SUPPORT_EMAIL}.`;
 
 /** A block is a paragraph, or a list of items. */
 export interface LegalSection {
@@ -103,7 +117,7 @@ export interface LegalSection {
 export const PRIVACY_SECTIONS: LegalSection[] = [
   {
     title: "Who we are",
-    blocks: ["[Company name], registered in [England and Wales], company number [number], registered office [address]. We are the data controller. Contact: [privacy email]. [ICO registration number: REQUIRED if applicable.]"],
+    blocks: [`${COMPANY.name}, a Delaware corporation (File No. ${COMPANY.fileNo}), ${COMPANY.address}. Representative: ${COMPANY.representative}. We are the data controller. Contact: ${SUPPORT_EMAIL}. [UK GDPR representative address: CONFIRM.] [ICO registration number: REQUIRED if applicable.]`],
   },
   {
     title: "What we collect",
@@ -141,7 +155,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   },
   {
     title: "Your rights",
-    blocks: ["You can ask to access, correct, delete, restrict or move your data, and object to how we use it. You can withdraw consent at any time. Email [privacy email]. We aim to respond within one month."],
+    blocks: [`You can ask to access, correct, delete, restrict or move your data, and object to how we use it. You can withdraw consent at any time. Email ${SUPPORT_EMAIL}. We aim to respond within one month.`],
   },
   {
     title: "Complaints",

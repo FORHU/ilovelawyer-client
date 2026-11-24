@@ -8,6 +8,7 @@ import {
   paperHomePosition,
   selectedPaperDesktop,
   selectedPaperMobile,
+  type Oval,
   type Rect,
 } from "../hero-geometry";
 import { matchProblem, PROBLEMS, START_PROBLEM, twoLines } from "../problems";
@@ -116,6 +117,16 @@ describe("papers", () => {
     expect(r.x - (360 * r.scale) / 2).toBeGreaterThanOrEqual(0);
     expect(r.x + (360 * r.scale) / 2).toBeLessThanOrEqual(W);
     expect(r.x > W / 2).toBe(face.x <= W / 2);
+  });
+
+  it("never lets the selected paper cover the copy on a portrait tablet", () => {
+    // 768 x 1000, measured: the copy (with its AI notice) leaves no room beside it or below it.
+    const tabletCopy: Rect = { l: 206, r: 546, t: 230, b: 704, w: 340, h: 474 };
+    const tabletFace: Oval = { x: 300, y: 250, rx: 160, ry: 200 };
+    const r = selectedPaperDesktop(360, 450, 768, 1000, tabletFace, tabletCopy);
+    expect(r.y - (450 * r.scale) / 2).toBeGreaterThanOrEqual(tabletCopy.b);
+    expect(r.y + (450 * r.scale) / 2).toBeLessThanOrEqual(1000);
+    expect(r.scale).toBeGreaterThanOrEqual(0.55);
   });
 
   it("places the selected paper below the copy on a phone", () => {
