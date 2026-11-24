@@ -1,8 +1,10 @@
-import { useCallback } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiError, apiFetch } from "@/lib/api/fetch";
 import { useSession } from "@/lib/auth/session";
+import { consentKeys, useConsents, type ConsentState } from "@/lib/consent/consents";
 import { msg } from "@/lib/i18n/msg";
+
+export { useRefreshConsents } from "@/lib/consent/consents";
 
 // Email-import consent (EPIC #982, #989): the client agrees before connecting Gmail, through the
 // API's general consent endpoint (purpose EMAIL_IMPORT, opt-in). Withdrawing it, or disconnecting
@@ -19,23 +21,9 @@ export const EMAIL_IMPORT_CONSENT_POINTS = [
   msg("You can disconnect at any time. That ends our access and stops all reading. Documents already added stay in your case until you delete them."),
 ] as const;
 
-interface ConsentState {
-  purpose: string;
-  status: "granted" | "withdrawn" | "not_set";
-  outdated: boolean;
-}
-
-const consentKeys = { all: (userId: string | undefined) => ["consents", userId ?? "signed-out"] as const };
-
 /** Whether the client has agreed to the current email-import text. Undefined while loading. */
 export function useEmailImportConsent(): boolean | undefined {
-  const userId = useSession((s) => s.user?.id);
-  const { data } = useQuery({
-    queryKey: consentKeys.all(userId),
-    queryFn: () => apiFetch<ConsentState[]>("/api/consents"),
-    enabled: !!userId,
-    staleTime: 5 * 60_000,
-  });
+  const { data } = useConsents();
   if (!data) return undefined;
   const state = data.find((c) => c.purpose === "EMAIL_IMPORT");
   return state?.status === "granted" && !state.outdated;
@@ -50,13 +38,6 @@ export function useAgreeToEmailImportMutation() {
       apiFetch<ConsentState[]>("/api/consents/EMAIL_IMPORT", { method: "PUT", body: JSON.stringify({ granted: true, source: "gmail" }) }),
     onSuccess: (list) => queryClient.setQueryData(consentKeys.all(userId), list),
   });
-}
-
-/** Re-reads the consent answers, after something that changes them (Disconnect withdraws it). */
-export function useRefreshConsents() {
-  const queryClient = useQueryClient();
-  const userId = useSession((s) => s.user?.id);
-  return useCallback(() => queryClient.invalidateQueries({ queryKey: consentKeys.all(userId) }), [queryClient, userId]);
 }
 
 /** The API refused because email-import consent is missing (given elsewhere and withdrawn, or an

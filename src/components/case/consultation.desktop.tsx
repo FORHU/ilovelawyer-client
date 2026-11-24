@@ -6,6 +6,7 @@ import { ErrorBox } from "@/components/ui/banner";
 import { FilePicker } from "@/components/ui/file-picker";
 import { AiMark } from "@/components/ui/misc";
 import { AfterAnswer } from "@/components/case/after-answer";
+import { SensitiveInfoNotice } from "@/components/consent/sensitive-info-notice";
 import { DeleteConfirm, MessageMenu } from "@/components/case/message-actions";
 import { usePayment } from "@/lib/payment-store";
 import type { Case } from "@/lib/types";
@@ -147,6 +148,7 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
             </div>
           )}
           {loadError && <ErrorBox message={loadError.message} />}
+          <SensitiveInfoNotice />
           {notice && <div className="text-center text-[12.5px] text-ink-2">{notice}</div>}
           {recorder.error && <div className="text-center text-[12.5px] text-error">{recorder.error}</div>}
           {out && (

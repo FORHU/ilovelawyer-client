@@ -8,11 +8,12 @@ import casePage from "./case.json";
 import wizard from "./wizard.json";
 import documents from "./documents.json";
 import gmail from "./gmail.json";
+import consent from "./consent.json";
 import payment from "./payment.json";
 import settings from "./settings.json";
 import tour from "./tour.json";
 import lawyers from "./lawyers.json";
 
-export const KO_FILES: Record<string, Record<string, string>> = { common, auth, shell, cases, case: casePage, wizard, documents, gmail, payment, settings, tour, lawyers };
+export const KO_FILES: Record<string, Record<string, string>> = { common, auth, shell, cases, case: casePage, wizard, documents, gmail, consent, payment, settings, tour, lawyers };
 
 export const KO: Record<string, string> = Object.assign({}, ...Object.values(KO_FILES));

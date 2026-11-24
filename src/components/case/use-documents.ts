@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { checkFiles, useLimitsQuery } from "@/lib/cases/limits";
+import { useSensitiveInfoGate } from "@/lib/consent/sensitive-info";
 import { citationsByDocument } from "@/lib/cases/citations";
 import { useIntakeQuery, useUploadDocumentsMutation, useUploadingFiles } from "@/lib/cases/queries";
 import { applyDocumentView, filterTests, type FilterKey, type SortKey } from "@/lib/documents/filter-sort";
@@ -14,6 +15,7 @@ import { useOpenDocument } from "./document-row";
  * only decide how it is laid out. */
 export function useDocuments(c: Case, focusDocumentId?: string | null, onFocused?: () => void) {
   const upload = useUploadDocumentsMutation(c.id);
+  const ensureAgreed = useSensitiveInfoGate();
   const { data: limits } = useLimitsQuery();
   const { data: intake } = useIntakeQuery(c.id, c.documents.some((d) => d.status === "PENDING"));
   const [failed, setFailed] = useState<string[]>([]);
@@ -47,10 +49,13 @@ export function useDocuments(c: Case, focusDocumentId?: string | null, onFocused
     return () => clearTimeout(timer);
   }, [focusDocumentId, onFocused]);
 
-  const add = (picked: File[]) => {
+  const add = async (picked: File[]) => {
     const { accepted, rejected } = checkFiles(picked, limits);
     setFailed(rejected);
     if (!accepted.length) return;
+    // Asked once, before the first file would reach the AI (#173). Without agreeing it still uploads,
+    // and waits, unread, until they do.
+    await ensureAgreed();
     upload.mutate(accepted, { onSuccess: (r) => setFailed((prev) => [...prev, ...r.failed.map((f) => f.reason)]) });
   };
 

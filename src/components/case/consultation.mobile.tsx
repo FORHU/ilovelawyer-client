@@ -2,6 +2,7 @@
 
 import { ArrowUp, FileText, Mic, Paperclip, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SensitiveInfoNotice } from "@/components/consent/sensitive-info-notice";
 import { ErrorBox } from "@/components/ui/banner";
 import { FilePicker } from "@/components/ui/file-picker";
 import { AiMark } from "@/components/ui/misc";
@@ -119,6 +120,9 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
           </div>
         )}
         {loadError && <ErrorBox message={loadError.message} />}
+        <div className="mb-2 empty:hidden">
+          <SensitiveInfoNotice />
+        </div>
         {notice && <div className="mb-2 px-1 text-[13px] leading-[1.4] text-ink-2">{notice}</div>}
         {out && (
           <div className="mb-2.5 flex flex-col gap-3 rounded-card border border-line bg-subtle p-4">

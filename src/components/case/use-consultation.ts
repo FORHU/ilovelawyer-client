@@ -10,6 +10,9 @@ import {
   useUploadDocumentsMutation,
 } from "@/lib/cases/queries";
 import { canDeleteMessage, pendingTurnId, stopNotice } from "@/lib/cases/chat-actions";
+import { useRefreshConsents } from "@/lib/consent/consents";
+import { isSensitiveInfoConsentError, useSensitiveInfoGate } from "@/lib/consent/sensitive-info";
+import { tr } from "@/lib/i18n/translate";
 import { useDictation } from "@/lib/voice/use-dictation";
 import { useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
 import { useSocketConnected } from "@/lib/socket";
@@ -38,6 +41,10 @@ export function useConsultation(c: Case) {
   const remove = useDeleteMessageMutation(c.id);
   // The reply arrives over the socket, so while it's down the wait is the connection's, not the AI's.
   const connected = useSocketConnected();
+  // Sensitive information is agreed to before anything reaches the AI (#173).
+  const ensureAgreed = useSensitiveInfoGate();
+  const refreshConsents = useRefreshConsents();
+  const asking = useRef(false);
 
   const [input, setInput] = useState("");
   const [notice, setNotice] = useState("");
@@ -91,9 +98,19 @@ export function useConsultation(c: Case) {
 
   const removeAttached = (id: string) => setAttachedIds((prev) => prev.filter((x) => x !== id));
 
-  const send = (raw: string) => {
+  const send = async (raw: string) => {
     const text = raw.trim();
-    if ((!text && sendableAttachedIds.length === 0) || thinking || credits <= 0 || attachmentPending) return;
+    if ((!text && sendableAttachedIds.length === 0) || thinking || credits <= 0 || attachmentPending || asking.current) return;
+    // The step that asks, if the client hasn't agreed yet. Sending is what the answer is needed for, so
+    // it asks again after a decline too; what was typed stays in the box until they have.
+    asking.current = true;
+    const agreed = await ensureAgreed({ askAgain: true }).finally(() => {
+      asking.current = false;
+    });
+    if (!agreed) {
+      setNotice(tr("The AI can’t read your message until you agree to how sensitive information is handled. You can change this in Settings under AI use."));
+      return;
+    }
     const documentIds = sendableAttachedIds;
     // Restored in full on error below, including a failed attachment that was still showing as
     // its own chip — not just what was actually sendable.
@@ -118,6 +135,12 @@ export function useConsultation(c: Case) {
         onError: (err) => {
           setInput(text);
           setAttachedIds(allAttachedIds);
+          if (isSensitiveInfoConsentError(err)) {
+            // The API says it hasn't been agreed to: read the answer again, so the next send asks.
+            void refreshConsents();
+            setNotice(tr("The AI can’t read your message until you agree to how sensitive information is handled. Try sending again."));
+            return;
+          }
           setNotice(err instanceof Error ? err.message : "Couldn't send that. Try again.");
         },
       },
@@ -147,9 +170,12 @@ export function useConsultation(c: Case) {
 
   const canDelete = (m: ChatMessage) => canDeleteMessage(m, thinking);
 
-  const attach = (files: File[]) => {
+  const attach = async (files: File[]) => {
     if (!files.length) return;
     setNotice("");
+    // Asked once, before the first file would reach the AI. Without agreeing the file is still added;
+    // it waits, unread, until they do.
+    await ensureAgreed();
     upload.mutate(files, {
       onSuccess: ({ added, failed }) => {
         const parts: string[] = [];

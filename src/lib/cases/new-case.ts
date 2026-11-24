@@ -7,6 +7,7 @@ import { budgetFromDraft, type BudgetDraft } from "@/lib/cases/budget";
 import { removeDraft } from "@/lib/cases/drafts";
 import { composeNotes } from "@/lib/cases/notes";
 import { uploadAll, useCreateCaseMutation } from "@/lib/cases/queries";
+import { useSensitiveInfoGate } from "@/lib/consent/sensitive-info";
 import { useFailedUploads } from "@/lib/failed-uploads";
 import { useApp } from "@/lib/store";
 import { regionFields, type CaseRegion, type OtherParty, type Side } from "@/lib/types";
@@ -64,6 +65,7 @@ export function useStillHere() {
 export function useCreateCaseFromWizard() {
   const router = useRouter();
   const createCase = useCreateCaseMutation();
+  const ensureAgreed = useSensitiveInfoGate();
   const stillHere = useStillHere();
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
@@ -72,6 +74,9 @@ export function useCreateCaseFromWizard() {
     if (creating) return;
     setCreating(true);
     setError("");
+    // Asked before what they wrote or attached could reach the AI (#173). Declining still makes the
+    // case; the AI just doesn't read it.
+    await ensureAgreed();
     const w = useWizard.getState();
     const { round, draftId } = w;
     let created;
