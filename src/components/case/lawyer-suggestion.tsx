@@ -1,6 +1,5 @@
 "use client";
 
-import { Check, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDevice } from "@/components/device/device-provider";
 import { cn } from "@/lib/cn";
@@ -9,31 +8,19 @@ import { useLawyerRequestForm } from "@/lib/lawyer-requests/api";
 
 import { useT } from "@/components/site/language-provider";
 
-/** A short lead-in for each unmet criterion, by its key (lawyer-readiness-jev.ts's
- * READINESS_CRITERIA) — filled into the composer, never sent on the client's behalf, same as
- * use-consultation.ts's askAbout for #157's missing-gap chips. Worded as a fragment the client
- * finishes themselves, not a full question, since these are topics a solicitor still needs
- * covered rather than single-answer questions. */
-const CRITERION_PROMPTS: Record<string, string> = {
-  problem: "The kind of problem this is: ",
-  place: "This happened in: ",
-  otherSide: "The other side is: ",
-  events: "What happened, and roughly when: ",
-  goal: "What I want to get out of this: ",
-  status: "What's happened since, and where things stand now: ",
-};
-
 /**
  * Under the chat, after the AI's latest answer: suggests a lawyer once the case has what a lawyer
- * needs (checked by the API, see lib/cases/readiness.ts), and until then shows what's still
- * missing, so it's never a mystery why we haven't. With the check switched off on the API, offers a
- * lawyer as before. Each unmet item is tappable — it starts that answer in the composer rather
- * than sitting as a read-only status list.
+ * needs (checked by the API, see lib/cases/readiness.ts). Shows nothing while criteria are still
+ * unmet — intake itself asks for whatever's missing, one question at a time; this is not a second,
+ * parallel way to answer it, and showing a checklist here duplicated and sometimes contradicted
+ * the AI's own question (a criterion could read "met" from a field CW set outside the
+ * conversation, while the AI was still asking about it). With the check switched off on the API,
+ * offers a lawyer unconditionally, as before.
  *
  * On a phone the card is full width with a full-width button under its text; on desktop it lines
  * up with the AI's text, past the avatar, with the button beside it.
  */
-export function LawyerSuggestion({ caseId, latestAnswerId, onAsk }: { caseId: string; latestAnswerId: string; onAsk: (text: string) => void }) {
+export function LawyerSuggestion({ caseId, latestAnswerId }: { caseId: string; latestAnswerId: string }) {
   const t = useT();
   const mobile = useDevice() === "mobile";
   const openForm = () => useLawyerRequestForm.getState().openFor(caseId);
@@ -89,34 +76,6 @@ export function LawyerSuggestion({ caseId, latestAnswerId, onAsk }: { caseId: st
     );
   }
 
-  const missing = r.criteria.filter((c) => !c.met);
-  return (
-    <div className={cn(indent, "flex flex-col gap-2 rounded-card border border-dashed border-line py-3.5", mobile ? "px-4" : "px-[18px]")}>
-      <div className="text-[13px] font-semibold">
-        {missing.length === 1 ? t("To suggest the right lawyer, tell me a little more about this:") : t("To suggest the right lawyer, tell me a little more about these:")}
-      </div>
-      <ul className="flex flex-col gap-1">
-        {r.criteria.map((c) =>
-          c.met ? (
-            <li key={c.key} className="flex items-center gap-2 text-[13px] text-muted">
-              <Check size={13} className="text-success" />
-              {c.label}
-            </li>
-          ) : (
-            <li key={c.key}>
-              <button
-                type="button"
-                onClick={() => onAsk(CRITERION_PROMPTS[c.key] ?? `${c.label}: `)}
-                data-no-tap
-                className="flex min-h-8 items-center gap-2 text-[13px] text-ink underline decoration-dotted underline-offset-2 hover:text-gold"
-              >
-                <Circle size={11} className="shrink-0 text-muted" />
-                {c.label}
-              </button>
-            </li>
-          ),
-        )}
-      </ul>
-    </div>
-  );
+  // Still incomplete: nothing to show here. Intake itself asks for what's missing.
+  return null;
 }

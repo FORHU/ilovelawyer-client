@@ -21,10 +21,6 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
     recorder, out, thinking, messages, documentById, scroller, missing, missingGaps, openRequest, lastFailed, latestAnswer, connected, loadError, notice, credits, attachedIds, failedAttachedIds, removeAttached, input, setInput, onPaste, textareaRef, attach, upload, attachmentPending, sendableAttachedIds, send, stop, canStop, askAbout,
   } = consultation;
   const [showMissing, setShowMissing] = useState(false);
-  const askInComposer = (text: string) => {
-    setInput(text);
-    textareaRef.current?.focus();
-  };
 
   return (
     <ChatScreen>
@@ -117,7 +113,7 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
             )}
             {lastFailed && !thinking && <div className="ml-[38px] text-[14px] text-error">That didn&apos;t go through, so it didn&apos;t use a credit. Try asking again.</div>}
             {latestAnswer && !thinking && !openRequest && (
-              <AfterAnswer c={c} latestAnswerId={latestAnswer.id} onAsk={askInComposer} />
+              <AfterAnswer c={c} latestAnswerId={latestAnswer.id} />
             )}
             {thinking && (
               <div className="flex gap-2.5" role="status" aria-label="The assistant is typing">

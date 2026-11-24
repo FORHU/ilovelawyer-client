@@ -21,10 +21,6 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
     stop, canStop,
   } = consultation;
   const [showMissing, setShowMissing] = useState(false);
-  const askInComposer = (text: string) => {
-    setInput(text);
-    textareaRef.current?.focus();
-  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -127,7 +123,7 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
               </div>
             )}
             {latestAnswer && !thinking && !openRequest && (
-              <AfterAnswer c={c} latestAnswerId={latestAnswer.id} onAsk={askInComposer} />
+              <AfterAnswer c={c} latestAnswerId={latestAnswer.id} />
             )}
             {thinking && (
               <div className="flex gap-3" role="status" aria-label="The assistant is typing">
