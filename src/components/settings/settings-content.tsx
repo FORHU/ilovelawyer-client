@@ -4,8 +4,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { ConnectGmailButton } from "@/components/gmail/connect-gmail-button";
+import { SensitiveInfoPoints } from "@/components/consent/sensitive-info-modal";
 import { useLogoutMutation } from "@/lib/auth/mutations";
 import { useSession } from "@/lib/auth/session";
+import { useSensitiveInfoStatus, useSetSensitiveInfoMutation } from "@/lib/consent/sensitive-info";
 import { useDisconnectGmailMutation } from "@/lib/gmail/queries";
 import { setLanguage, useLanguage, useT } from "@/components/site/language-provider";
 import { RadioCard } from "@/components/ui/radio-card";
@@ -115,6 +117,74 @@ function AccountTab() {
   );
 }
 
+/** The client's agreement to the AI reading sensitive information in their cases (#173): what it
+ * covers, and a switch to give or withdraw it. Withdrawing stops the AI reading the case from then
+ * on (it can still be created, and documents still uploaded), so it asks first; agreeing again
+ * needs no warning. */
+function AiUseTab() {
+  const status = useSensitiveInfoStatus();
+  const set = useSetSensitiveInfoMutation();
+  const [confirming, setConfirming] = useState(false);
+  const t = useT();
+  const on = status === "granted";
+
+  return (
+    <div className="flex flex-col gap-5">
+      <section className="flex flex-col gap-4 rounded-card border border-line bg-surface px-6 py-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-0.5">
+            <h2 className="text-[15px] font-semibold">{t("Sensitive information")}</h2>
+            <p className="text-sm leading-[1.6] text-ink-2">
+              {on
+                ? t("You’ve agreed. The AI can read your messages and documents, including any sensitive information in them.")
+                : status === "withdrawn"
+                  ? t("You haven’t agreed. The AI doesn’t read your messages or documents, so the chat isn’t available.")
+                  : t("You haven’t answered yet. We’ll ask before the AI first reads your case.")}
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={on}
+            aria-label={t("Sensitive information")}
+            disabled={status === undefined || set.isPending}
+            onClick={() => {
+              set.reset();
+              if (on) setConfirming(true);
+              else set.mutate({ granted: true, source: "settings" });
+            }}
+            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-60 ${on ? "bg-gold" : "bg-line-input"}`}
+          >
+            <span className={`absolute left-0 top-0.5 size-5 rounded-full bg-surface shadow transition-transform ${on ? "translate-x-[22px]" : "translate-x-0.5"}`} />
+          </button>
+        </div>
+        {confirming && (
+          <div className="flex flex-col gap-3 rounded-input border border-line bg-subtle px-4 py-3.5">
+            <p className="text-sm text-ink">
+              {t("Withdraw your agreement? The AI will stop reading your messages and documents, so the chat won’t be available until you agree again. Your cases and documents stay as they are.")}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="danger"
+                size="sm"
+                disabled={set.isPending}
+                onClick={() => set.mutate({ granted: false, source: "settings" }, { onSuccess: () => setConfirming(false) })}
+              >
+                {set.isPending ? t("Saving…") : t("Withdraw my agreement")}
+              </Button>
+              <Button variant="soft" size="sm" disabled={set.isPending} onClick={() => setConfirming(false)}>
+                {t("Keep my agreement")}
+              </Button>
+            </div>
+          </div>
+        )}
+        {set.isError && <ErrorBox message={t("Couldn’t save your answer. Try again.")} />}
+        <SensitiveInfoPoints />
+      </section>
+    </div>
+  );
+}
+
 /** Gmail for email import (EPIC #982): connect, see which inbox, disconnect. Disconnecting
  * revokes our access at Google; documents already added to a case stay there. */
 function ConnectedAccountsTab() {
@@ -171,6 +241,7 @@ function ConnectedAccountsTab() {
 export function SettingsContent({ section }: { section: Section }) {
   const t = useT();
   if (section.slug === "account") return <AccountTab />;
+  if (section.slug === "ai-use") return <AiUseTab />;
   if (section.slug === "connected-accounts") return <ConnectedAccountsTab />;
   if (section.slug === "language") return <LanguageTab />;
   if (section.slug === "appearance") return <AppearanceTab />;

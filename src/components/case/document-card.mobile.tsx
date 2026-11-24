@@ -8,7 +8,7 @@ import { BottomSheet, SheetRow } from "@/components/mobile/bottom-sheet";
 import { useDeleteDocumentMutation, useRetryDocumentMutation } from "@/lib/cases/queries";
 import { cn } from "@/lib/cn";
 import type { CaseDocument } from "@/lib/types";
-import { DOCUMENT_STATUS, KindBadge, documentMeta, usedLabel } from "./document-row";
+import { KindBadge, documentMeta, useDocumentStatus, usedLabel } from "./document-row";
 import { useT } from "@/components/site/language-provider";
 
 /** One document on a phone: a card. Tapping it opens its details in a sheet; the "…" opens the
@@ -44,7 +44,7 @@ export function DocumentCardMobile({
   const [confirming, setConfirming] = useState(false);
 
   const t = useT();
-  const status = DOCUMENT_STATUS[d.status];
+  const status = useDocumentStatus(d);
   const used = usedLabel(t, usedIn, d.status === "READY", "");
   const close = () => {
     setSheet(null);
