@@ -5,7 +5,7 @@ import { landingContentFor, type LandingContent } from "../content";
 import { KR_CONTENT } from "../content/kr";
 import { KR_EN_CONTENT } from "../content/kr-en";
 import { UK_CONTENT } from "../content/uk";
-import { copyParts, FAQS, PRIVACY_SECTIONS, SUPPORT_EMAIL, TRUST_CARDS } from "../copy";
+import { COMPANY, copyParts, FAQS, PRIVACY_SECTIONS, SUPPORT_EMAIL, TRUST_CARDS } from "../copy";
 import { HOW_HEADING_TIMES, TERMINAL_CAPTION_COUNT } from "../how-timeline";
 import { heroImageSrc, matchProblem } from "../problems";
 import { siteLandingCopy } from "../site-landing";
@@ -147,6 +147,12 @@ describe("the KR page's launch-blocking wording", () => {
     expect(all).not.toContain("견적");
   });
 
+  it("doesn't call the summary anonymous, or say a lawyer is waiting (#180)", () => {
+    // The facts can identify the client, and no lawyer is ready until one accepts.
+    expect(all).not.toContain("익명");
+    expect(all).not.toContain("변호사는 준비");
+  });
+
   it("has no placeholders left to go live", () => {
     expect(all).not.toContain("확정 후 기재");
     for (const chip of ["[상호]", "[번호]", "[주소]", "[이름]"]) expect(all).not.toContain(chip);
@@ -160,6 +166,10 @@ describe("the KR footer's operator details (confirmed 20–23 Nov 2026)", () => 
     for (const fact of ["FORHU Inc.", "File No. 10371682", "Jungkwan Shin", "30 Wall Street, 8th Floor, New York, NY 10005, USA"]) {
       expect(note).toContain(fact);
     }
+  });
+
+  it("shows the Korean business registration number (#179)", () => {
+    expect(note).toContain("사업자등록번호: 18-4-62010-476646");
   });
 
   it("gives the customer contact, and not the UK site's old address", () => {
@@ -184,6 +194,11 @@ describe("the operator's details on every site (confirmed 20–23 Nov 2026)", ()
   it("names the operator in the Philippine footer", () => {
     const ph = siteLandingCopy("PH", "en");
     for (const fact of facts) expect(ph?.legalNote, fact).toContain(fact);
+  });
+
+  it("shows the Korean business registration number on the Korean site only (#179)", () => {
+    expect(UK_CONTENT.footer.legalNote).not.toContain(COMPANY.krBusinessNo);
+    expect(siteLandingCopy("PH", "en")?.legalNote).not.toContain(COMPANY.krBusinessNo);
   });
 
   it("names the operator as the UK Privacy Policy's controller, with no company placeholder left", () => {
@@ -220,6 +235,11 @@ describe("the Korean site in English", () => {
     expect(shown).not.toMatch(/[\u3131-\u318E\uAC00-\uD7A3]/);
   });
 
+  it("doesn't call the summary anonymous, or say a lawyer is waiting (#180)", () => {
+    expect(shown).not.toMatch(/anonymi[sz]/i);
+    expect(shown).not.toMatch(/lawyer is ready/i);
+  });
+
   it("makes no promise the Korean page doesn't, and no fee beyond the lawyer's own", () => {
     expect(shown).not.toMatch(/platform fee|referral fee|3 lawyers|up to three/i);
     expect(KR_EN_CONTENT.mock.quotes.directFee).toBeTruthy();
@@ -229,7 +249,7 @@ describe("the Korean site in English", () => {
   it("carries the generative-AI notice and the operator's details", () => {
     expect(KR_EN_CONTENT.hero.disclaimer).toContain("generative AI");
     expect(KR_EN_CONTENT.footer.disclaimer).toBe(KR_EN_CONTENT.hero.disclaimer);
-    for (const fact of ["FORHU Inc.", "10371682", "Jungkwan Shin", "30 Wall Street, 8th Floor, New York, NY 10005, USA", "ilovelawyer@forhu.ai"]) {
+    for (const fact of ["FORHU Inc.", "10371682", "Jungkwan Shin", "30 Wall Street, 8th Floor, New York, NY 10005, USA", "Business registration number: 18-4-62010-476646", "ilovelawyer@forhu.ai"]) {
       expect(KR_EN_CONTENT.footer.legalNote, fact).toContain(fact);
     }
   });

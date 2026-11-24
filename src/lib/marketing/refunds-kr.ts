@@ -50,15 +50,28 @@ export const REFUNDS_SECTIONS_KO: LegalSection[] = [
     blocks: ["청약철회가 접수되면 3영업일 이내에 결제한 수단으로 환불합니다(같은 법 제18조). 카드 결제는 카드사 사정에 따라 취소가 반영되기까지 시간이 더 걸릴 수 있습니다."],
   },
   {
-    title: "7. 문의와 분쟁 해결",
+    title: "7. 계정을 해지할 때",
+    blocks: [
+      "계정 해지를 요청하면 30일의 유예 기간이 지난 뒤 해지가 확정됩니다. 해지가 확정되면 유료로 구매한 미사용 AI 크레딧을 따로 요청하지 않아도 자동으로 환불합니다. 유예 기간 중 다시 로그인해 해지를 취소하면 크레딧은 환불되지 않고 그대로 남습니다.",
+      [
+        "환불 금액은 실제 결제한 금액을 기준으로, 구매한 크레딧 중 사용하지 않은 비율만큼 계산합니다. 할인을 받아 구매했다면 할인된 결제 금액이 기준입니다. 예를 들어 크레딧 100개를 90,000원에 구매해 30개를 사용했다면 63,000원(90,000원 × 70/100)을 환불합니다.",
+        "사건에 무료로 포함된 크레딧은 환불되지 않습니다.",
+        `환불은 결제한 수단으로 진행합니다. 환불이 처리되지 않으면 ${SUPPORT_EMAIL}로 연락해 주세요. 본인 확인 후 다른 방법으로 환불해 드립니다.`,
+      ],
+      "회사가 약관 위반을 이유로 계정을 해지하는 경우에도 같은 기준으로 환불합니다. 부정 결제나 결제 분쟁과 관련된 금액은 따로 확인합니다.",
+      "구매 후 7일 이내의 청약철회(제2조)는 계정 해지와 관계없이 이 정책에 따라 처리됩니다.",
+    ],
+  },
+  {
+    title: "8. 문의와 분쟁 해결",
     blocks: [
       `환불 처리에 불만이 있으면 ${SUPPORT_EMAIL}로 알려 주세요. 한국소비자원(국번 없이 1372) 또는 전자거래분쟁조정위원회에 상담이나 분쟁조정을 신청할 수도 있습니다.`,
       "변호사의 서비스에 대한 불만은 해당 변호사 또는 대한변호사협회에 제기할 수 있습니다.",
     ],
   },
   {
-    title: "8. 사업자 정보",
-    blocks: [`ilovelawyer는 ${COMPANY.name}(미국 델라웨어주 법인, File No. ${COMPANY.fileNo})가 운영합니다. 대표: ${COMPANY.representative} · 주소: ${COMPANY.address} · 고객 문의: ${SUPPORT_EMAIL}`],
+    title: "9. 사업자 정보",
+    blocks: [`ilovelawyer는 ${COMPANY.name}(미국 델라웨어주 법인, File No. ${COMPANY.fileNo})가 운영합니다. 대표: ${COMPANY.representative} · 주소: ${COMPANY.address} · 사업자등록번호: ${COMPANY.krBusinessNo} · 고객 문의: ${SUPPORT_EMAIL}`],
   },
 ];
 
@@ -94,14 +107,27 @@ export const REFUNDS_SECTIONS_KR_EN: LegalSection[] = [
     blocks: ["Once we accept your cancellation, we refund you to your original payment method within 3 business days (Article 18 of the same Act). Card refunds can take longer to appear, depending on your card company."],
   },
   {
-    title: "7. Questions and disputes",
+    title: "7. When you close your account",
+    blocks: [
+      "When you ask to close your account, the closure becomes final after a 30-day grace period. Once it is final, we refund your unused paid AI credits automatically: you don't need to ask. If you sign in again during the grace period and cancel the closure, your credits stay and aren't refunded.",
+      [
+        "The refund is based on the amount you actually paid, for the share of the credits you bought that you haven't used. If you bought them at a discount, the discounted amount is what counts. For example, if you paid ₩90,000 for 100 credits and used 30, we refund ₩63,000 (₩90,000 × 70/100).",
+        "Credits included free with a case aren't refunded.",
+        `We refund you to your original payment method. If the refund can't be made, contact ${SUPPORT_EMAIL}. Once we have confirmed who you are, we refund you another way.`,
+      ],
+      "If we close an account because it broke our Terms, we refund on the same basis. Amounts linked to fraudulent payments or payment disputes are reviewed separately.",
+      "A cancellation within 7 days of purchase (section 2) is handled under this policy whether or not you close your account.",
+    ],
+  },
+  {
+    title: "8. Questions and disputes",
     blocks: [
       `If you're unhappy with how we handled a refund, tell us at ${SUPPORT_EMAIL}. You can also ask the Korea Consumer Agency (call 1372 in Korea) or the E-Commerce Mediation Committee for advice or mediation.`,
       "Complaints about a lawyer's service go to that lawyer or to the Korean Bar Association.",
     ],
   },
   {
-    title: "8. Who we are",
-    blocks: [`ilovelawyer is operated by ${COMPANY.name}, a Delaware corporation (File No. ${COMPANY.fileNo}). Representative: ${COMPANY.representative}. Address: ${COMPANY.address}. Contact: ${SUPPORT_EMAIL}.`],
+    title: "9. Who we are",
+    blocks: [`ilovelawyer is operated by ${COMPANY.name}, a Delaware corporation (File No. ${COMPANY.fileNo}). Representative: ${COMPANY.representative}. Address: ${COMPANY.address}. Business registration number: ${COMPANY.krBusinessNo}. Contact: ${SUPPORT_EMAIL}.`],
   },
 ];

@@ -25,8 +25,14 @@ describe.each([
     expect(all).toMatch(/haven't used|사용하지 않은/);
   });
 
+  it("refunds unused paid credits automatically once an account's closure is final (#178)", () => {
+    expect(all).toMatch(/계정을 해지할 때|When you close your account/);
+    expect(all).toMatch(/자동으로 환불|refund your unused paid AI credits automatically/);
+    expect(all).toMatch(/무료로 포함된 크레딧은 환불되지 않습니다|Credits included free with a case aren't refunded/);
+  });
+
   it("names the operator and the contact", () => {
-    for (const fact of [COMPANY.name, COMPANY.fileNo, COMPANY.representative, COMPANY.address, SUPPORT_EMAIL]) expect(all).toContain(fact);
+    for (const fact of [COMPANY.name, COMPANY.fileNo, COMPANY.representative, COMPANY.address, COMPANY.krBusinessNo, SUPPORT_EMAIL]) expect(all).toContain(fact);
   });
 
   it("gives every section a unique id", () => {

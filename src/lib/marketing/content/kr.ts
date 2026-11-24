@@ -55,7 +55,7 @@ export const KR_CONTENT: LandingContent = {
     cta: "사건 시작하기",
     headings: [
       "휴대폰으로 시작하고, PC에서 이어가세요.",
-      "사건은 정리되고, 변호사는 준비됩니다.",
+      "사건이 정리되어 변호사가 검토할 수 있습니다.",
       "요약을 준비하고, 변호사에게 연락할지 직접 정하세요.",
       "참여 중인 독립 변호사의 정보를 살펴보고, 연락할지 직접 정하세요.",
       "변호사와 한곳에서 대화하세요.",
@@ -147,7 +147,7 @@ export const KR_CONTENT: LandingContent = {
     request: {
       eyebrow: "요청 진행 상황",
       title: "변호사 요청",
-      sent: { label: "요청 전송", sub: "직접 고른 변호사에게 익명 요약 전달" },
+      sent: { label: "요청 전송", sub: "직접 고른 변호사에게 요약 전달" },
       finding: { label: "이해충돌 확인", sub: "사건에 등장하는 이름 확인" },
       reviewingSub: "요약을 읽고 답변 작성",
       quoteSub: "수락하면 변호사와 바로 대화를 시작합니다",
@@ -331,6 +331,6 @@ export const KR_CONTENT: LandingContent = {
     refunds: "환불 정책",
     supportEmail: SUPPORT_EMAIL,
     legalNote:
-      `ilovelawyer는 ${COMPANY.name}(미국 델라웨어주 법인, File No. ${COMPANY.fileNo})가 운영합니다. 대표: ${COMPANY.representative} · 주소: ${COMPANY.address} · 고객 문의: ${SUPPORT_EMAIL}. ilovelawyer는 법률사무소가 아니며 법률 자문을 제공하지 않습니다. 플랫폼의 변호사는 대한변호사협회에 등록된 독립 변호사입니다.`,
+      `ilovelawyer는 ${COMPANY.name}(미국 델라웨어주 법인, File No. ${COMPANY.fileNo})가 운영합니다. 대표: ${COMPANY.representative} · 주소: ${COMPANY.address} · 사업자등록번호: ${COMPANY.krBusinessNo} · 고객 문의: ${SUPPORT_EMAIL}. ilovelawyer는 법률사무소가 아니며 법률 자문을 제공하지 않습니다. 플랫폼의 변호사는 대한변호사협회에 등록된 독립 변호사입니다.`,
   },
 };

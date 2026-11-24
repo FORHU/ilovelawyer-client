@@ -1,8 +1,12 @@
 import type { TermsSection } from "./terms";
 
-// The client Terms in Korean, for the KR site. A translation of BASE_SECTIONS in terms.ts, section
-// for section: when the English changes, change this too. DRAFT pending review by Korean counsel,
-// with the English.
+// The client Terms in Korean, for the KR site. A translation of the KR site's English in terms.ts
+// (BASE_SECTIONS with KR_EN_PARAGRAPHS), section for section: when the English changes, change this
+// too. DRAFT pending review by Korean counsel, with the English.
+//
+// Deletion and closure (#178): deletion is a request with a 30-day grace period, not a promise to
+// delete "at any time", and says what stays; unused paid credits are refunded automatically once an
+// account's closure is final, in line with the KR Refunds Policy (refunds-kr.ts).
 
 export const KO_EFFECTIVE = "시행일: 2026년 10월 20일.";
 
@@ -40,7 +44,7 @@ export const KO_BASE_SECTIONS: TermsSection[] = [
     title: "사건, 결제 및 크레딧",
     paragraphs: [
       "사건은 무료로 만들 수 있으며, 새 사건마다 만들기 전에 표시되는 수의 채팅 크레딧이 포함됩니다. AI에게 하는 질문 하나에 크레딧 하나가 사용됩니다. 결제 전에 표시되는 가격으로 언제든지 사건에 크레딧을 추가로 구매할 수 있습니다. 가격은 바뀔 수 있지만, 이미 결제한 금액에는 영향을 주지 않습니다.",
-      "크레딧은 구매한 사건에 속하며 다른 사건으로 옮기거나 현금으로 바꿀 수 없습니다. 서류를 첨부하거나 변호사를 요청하는 데에는 크레딧이 사용되지 않습니다.",
+      "크레딧은 구매한 사건에 속하며 다른 사건으로 옮길 수 없습니다. 환불 정책과 제9조에 따른 환불을 제외하고는 현금으로 바꿀 수 없습니다. 서류를 첨부하거나 변호사를 요청하는 데에는 크레딧이 사용되지 않습니다.",
       "환불은 결제 시 안내되는 환불 정책과 소비자 관련 법령에 따른 이용자의 권리를 따릅니다.",
     ],
   },
@@ -66,7 +70,9 @@ export const KO_BASE_SECTIONS: TermsSection[] = [
     title: "서류와 개인정보",
     paragraphs: [
       "이용자가 올린 모든 자료의 소유권은 이용자에게 있습니다. 이용자는 위에서 설명한 AI 처리를 포함하여 플랫폼을 운영하는 목적으로만 회사가 자료를 저장하고 처리하도록 허락합니다.",
-      "공유할 권리가 있는 서류만 올리세요. 사건과 그 서류는 언제든지 삭제할 수 있습니다. 개인정보처리방침에서 회사가 수집하는 정보, 보관 기간, 이용자의 권리를 설명합니다.",
+      "공유할 권리가 있는 서류만 올리세요. 사건과 그 서류의 삭제를 요청할 수 있습니다. 삭제를 요청하면 30일의 유예 기간이 지난 후 삭제되며, 그 전에는 삭제를 취소할 수 있습니다.",
+      "삭제한 후에도 다음 정보는 남을 수 있습니다. 법령에 따라 보관해야 하는 기록(예: 「전자상거래 등에서의 소비자보호에 관한 법률」에 따른 계약·청약철회 및 대금결제 기록은 5년), 정해진 백업 주기가 끝날 때까지 백업에 남은 사본, 그리고 요청을 수락한 변호사가 이미 받은 사건 정보와 서류입니다. 변호사는 법령과 직무상 의무에 따라 그 사본을 보관할 수 있으며, 회사가 삭제할 수 없습니다.",
+      "개인정보처리방침에서 회사가 수집하는 정보, 보관 기간, 이용자의 권리를 설명합니다.",
     ],
   },
   {
@@ -84,8 +90,10 @@ export const KO_BASE_SECTIONS: TermsSection[] = [
     number: "제9조",
     title: "이용 정지 및 계정 해지",
     paragraphs: [
-      "이용자는 계정 설정에서 언제든지 계정을 해지할 수 있습니다. 회사는 이 약관을 위반한 계정을 정지하거나 해지할 수 있으며, 가능한 경우 먼저 그 이유를 알려 드립니다.",
-      "계정이 해지되면 법령상 보관해야 하는 기록을 제외하고, 개인정보처리방침에 정한 유예 기간이 지난 후 사건과 서류를 삭제합니다. 사용하지 않은 크레딧은 이월되지 않습니다.",
+      "이용자는 계정 설정에서 계정 해지를 요청할 수 있습니다. 진행 중인 변호사 요청이 있으면 먼저 취소하거나 종료해야 합니다. 해지를 요청하면 30일의 유예 기간이 시작되며, 그 기간 안에 다시 로그인하면 해지가 취소됩니다. 회사는 이 약관을 위반한 계정을 정지하거나 해지할 수 있으며, 가능한 경우 먼저 그 이유를 알려 드립니다.",
+      "유예 기간이 지나면 해지가 확정되고, 제7조에 따라 남는 정보를 제외하고 사건과 서류를 삭제합니다.",
+      "해지가 확정되면 유료로 구매한 미사용 크레딧은 환불 정책에 따라 실제 결제한 금액을 기준으로 계산해 결제한 수단으로 자동 환불합니다. 사건에 무료로 포함된 크레딧은 환불되지 않습니다. 유예 기간 중 해지를 취소하면 크레딧은 그대로 남습니다. 구매 후 7일 이내의 청약철회는 해지와 관계없이 환불 정책에 따라 처리됩니다.",
+      "회사가 약관 위반을 이유로 계정을 해지하는 경우에도 유료로 구매한 미사용 크레딧은 같은 기준으로 환불합니다. 다만 부정 결제나 결제 분쟁과 관련된 금액은 따로 확인합니다.",
     ],
   },
 ];
