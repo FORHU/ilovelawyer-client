@@ -19,7 +19,7 @@ export function OverviewDesktop({ c, onOpenDocument, onOpenChat }: OverviewProps
     return error ? <div className="p-6 text-sm text-ink-2">{t("Couldn't load your overview.")}</div> : null;
   }
 
-  const { summary, timeline, facts, people, goals, questions, stillNeeded, doubleCheck, deadlines, empties } = buildSections(
+  const { summary, caseDraft, timeline, facts, people, goals, questions, stillNeeded, doubleCheck, deadlines, empties } = buildSections(
     intake,
     !!running,
     { onOpenChat, onOpenDocument },
@@ -37,6 +37,7 @@ export function OverviewDesktop({ c, onOpenDocument, onOpenChat }: OverviewProps
           <div className="flex flex-wrap items-start gap-6">
             <div className="flex min-w-0 flex-[999_1_520px] flex-col gap-5">
               {summary}
+              {caseDraft}
               {timeline}
               {facts}
               {people}

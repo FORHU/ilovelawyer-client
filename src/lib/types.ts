@@ -211,6 +211,31 @@ export interface IntakeCompleteness {
   ready: boolean;
 }
 
+/** #157's named field groups, matching the ticket's own case-draft screenshot. Not a second AI
+ * call — parties/typeOfAction/venue are the case-creation form's own data; the rest are
+ * CaseIntake's own people/timeline/goals/relationship/roleAndTerms/reasonGiven, split out and
+ * relabeled. relationship/roleAndTerms/reasonGiven read naturally across practice areas (a
+ * tenancy's "tenant and landlord" / "rent and term" reads just as well as an employment case's
+ * "employee and employer" / "job title and salary") — see ilovelawyer-api's
+ * client-intake-extract.ts (deriveFormFields), which this mirrors. */
+export interface IntakeFormFields {
+  parties: IntakePerson[];
+  witnesses: IntakePerson[];
+  /** The case's own area names, e.g. "Employment" — set at case creation. */
+  typeOfAction: string[];
+  /** Jurisdiction or town, set at case creation; null when not chosen yet. */
+  venue: string | null;
+  timeline: IntakeEvent[];
+  clientGoals: IntakeItem[];
+  /** The nature of the relationship the claim arises from (employment, tenancy, contract, ...). */
+  relationship: IntakeItem[];
+  /** The client's role/position and the financial or contractual terms involved. */
+  roleAndTerms: IntakeItem[];
+  /** The reason the OTHER side gave for the disputed action, as stated — never inferred. */
+  reasonGiven: IntakeItem[];
+  missing: ("parties" | "witnesses" | "typeOfAction" | "venue" | "timeline" | "clientGoals" | "relationship" | "roleAndTerms" | "reasonGiven")[];
+}
+
 export interface CaseIntake {
   generatedAt: string | null;
   status: IntakeStatus;
@@ -228,6 +253,7 @@ export interface CaseIntake {
   conflicts: IntakeConflict[];
   /** From Lawyer Readiness when that check is enabled; null when it's off or hasn't run. */
   completeness: IntakeCompleteness | null;
+  formFields: IntakeFormFields;
 }
 
 export function sideLabel(side: Side | null) {
