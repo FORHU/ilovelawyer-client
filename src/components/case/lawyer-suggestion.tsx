@@ -1,6 +1,5 @@
 "use client";
 
-import { Check, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDevice } from "@/components/device/device-provider";
 import { cn } from "@/lib/cn";
@@ -8,11 +7,15 @@ import { lawyerKind, useLawyerReadinessQuery } from "@/lib/cases/readiness";
 import { useLawyerRequestForm } from "@/lib/lawyer-requests/api";
 
 import { useT } from "@/components/site/language-provider";
+
 /**
  * Under the chat, after the AI's latest answer: suggests a lawyer once the case has what a lawyer
- * needs (checked by the API, see lib/cases/readiness.ts), and until then shows what's still
- * missing, so it's never a mystery why we haven't. With the check switched off on the API, offers a
- * lawyer as before.
+ * needs (checked by the API, see lib/cases/readiness.ts). Shows nothing while criteria are still
+ * unmet — intake itself asks for whatever's missing, one question at a time; this is not a second,
+ * parallel way to answer it, and showing a checklist here duplicated and sometimes contradicted
+ * the AI's own question (a criterion could read "met" from a field CW set outside the
+ * conversation, while the AI was still asking about it). With the check switched off on the API,
+ * offers a lawyer unconditionally, as before.
  *
  * On a phone the card is full width with a full-width button under its text; on desktop it lines
  * up with the AI's text, past the avatar, with the button beside it.
@@ -73,20 +76,6 @@ export function LawyerSuggestion({ caseId, latestAnswerId }: { caseId: string; l
     );
   }
 
-  const missing = r.criteria.filter((c) => !c.met);
-  return (
-    <div className={cn(indent, "flex flex-col gap-2 rounded-card border border-dashed border-line py-3.5", mobile ? "px-4" : "px-[18px]")}>
-      <div className="text-[13px] font-semibold">
-        {missing.length === 1 ? t("To suggest the right lawyer, tell me a little more about this:") : t("To suggest the right lawyer, tell me a little more about these:")}
-      </div>
-      <ul className="flex flex-col gap-1">
-        {r.criteria.map((c) => (
-          <li key={c.key} className={`flex items-center gap-2 text-[13px] ${c.met ? "text-muted" : "text-ink"}`}>
-            {c.met ? <Check size={13} className="text-success" /> : <Circle size={11} className="text-muted" />}
-            {c.label}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
+  // Still incomplete: nothing to show here. Intake itself asks for what's missing.
+  return null;
 }

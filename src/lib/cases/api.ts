@@ -136,7 +136,9 @@ function contentTypeOf(file: File) {
 
 /** Uploads one file to the case: the API signs an S3 URL, the browser PUTs the file straight to
  * S3, then the API records it on the case and starts reading it. */
-export async function uploadDocument(caseId: string, file: File): Promise<CaseDocument> {
+/** `missingEvidenceId` set only when this upload is the client's direct answer to a suggested
+ * evidence gap (#159's "fill this gap" action) — an explicit link, never an AI guess. */
+export async function uploadDocument(caseId: string, file: File, missingEvidenceId?: string): Promise<CaseDocument> {
   const contentType = contentTypeOf(file);
   const { uploadUrl, key } = await post<{ uploadUrl: string; key: string }>(`/api/client/cases/${caseId}/documents/presign`, {
     filename: file.name,
@@ -150,5 +152,5 @@ export async function uploadDocument(caseId: string, file: File): Promise<CaseDo
   });
   if (put && !put.ok) console.error(`Upload of ${file.name} to S3 failed with ${put.status}`);
   if (!put?.ok) throw new Error(`Couldn't upload ${file.name}. Try again.`);
-  return post<CaseDocument>(`/api/client/cases/${caseId}/documents`, { key, name: file.name, contentType, fileSize: file.size });
+  return post<CaseDocument>(`/api/client/cases/${caseId}/documents`, { key, name: file.name, contentType, fileSize: file.size, missingEvidenceId });
 }

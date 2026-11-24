@@ -9,7 +9,7 @@ import { cn } from "@/lib/cn";
 import { deadlineStatus, urgentFirst } from "@/lib/cases/overview-urgency";
 import { formatDay, formatEventDate } from "@/lib/format";
 import { useEligibilityQuery, useLawyerRequestForm, useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
-import type { CaseIntake, IntakeItem } from "@/lib/types";
+import type { CaseIntake, IntakeFormFields, IntakeItem } from "@/lib/types";
 
 export type SourceProps = { onOpenChat: () => void; onOpenDocument: (id: string) => void };
 
@@ -51,6 +51,13 @@ export function buildSections(intake: CaseIntake, running: boolean, sourceProps:
         <p className="font-display text-[19px] leading-[1.5] tracking-[-0.01em] text-balance">{intake.summary}</p>
       </SectionCard>
     ),
+  );
+
+  const caseDraft = section(
+    "Case draft",
+    true,
+    null,
+    () => <SectionCard title="Case draft">{caseDraftRows(intake.formFields)}</SectionCard>,
   );
 
   const timelineItems = intake.timeline.map((t, i) => (
@@ -207,7 +214,34 @@ export function buildSections(intake: CaseIntake, running: boolean, sourceProps:
     ),
   );
 
-  return { summary, timeline, facts, people, goals, questions, stillNeeded, doubleCheck, deadlines, empties };
+  return { summary, caseDraft, timeline, facts, people, goals, questions, stillNeeded, doubleCheck, deadlines, empties };
+}
+
+/** #157: the ticket's own "case draft" view — each named field as a row, "Not yet known" where
+ * nothing's been said yet (never a guess). Timeline isn't repeated here: it already has its own
+ * dedicated section above. */
+function caseDraftRows(f: IntakeFormFields) {
+  const joined = (items: IntakeItem[]) => items.map((i) => i.text).join(" · ");
+  const rows: { label: string; value: string }[] = [
+    { label: "Type of action", value: f.typeOfAction.join(", ") },
+    { label: "Venue", value: f.venue ?? "" },
+    { label: "Parties", value: f.parties.map((p) => `${p.name} (${p.role})`).join(" · ") },
+    { label: "Relationship", value: joined(f.relationship) },
+    { label: "Role & terms", value: joined(f.roleAndTerms) },
+    { label: "Reason given", value: joined(f.reasonGiven) },
+    { label: "Witnesses", value: f.witnesses.map((p) => p.name).join(", ") },
+    { label: "Client wants", value: joined(f.clientGoals) },
+  ];
+  return (
+    <dl className="flex flex-col">
+      {rows.map((r) => (
+        <div key={r.label} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 border-b border-line py-[9px] last:border-b-0">
+          <dt className="text-[12px] font-semibold uppercase tracking-[0.5px] text-ink-2">{r.label}</dt>
+          <dd className="m-0 min-w-0 flex-1 text-right text-[13px]">{r.value || <span className="text-ink-2">Not yet known</span>}</dd>
+        </div>
+      ))}
+    </dl>
+  );
 }
 
 /** The first few items of a long list, and a 44px button for the rest. */

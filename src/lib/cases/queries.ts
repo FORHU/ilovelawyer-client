@@ -243,6 +243,21 @@ export function useUploadDocumentsMutation(caseId: string) {
   });
 }
 
+/** #159: one file uploaded as the client's direct answer to a specific evidence gap (the "fill
+ * this gap" action) — a single-file mutation, distinct from useUploadDocumentsMutation's batch,
+ * since the gap it fills is part of what's being asked here, not a bulk drop. */
+export function useUploadForGapMutation(caseId: string) {
+  const queryClient = useQueryClient();
+  const userId = useUserId();
+  return useMutation({
+    mutationFn: ({ file, missingEvidenceId }: { file: File; missingEvidenceId: string }) => uploadDocument(caseId, file, missingEvidenceId),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: caseKeys.detail(userId, caseId) });
+      queryClient.invalidateQueries({ queryKey: [...caseKeys.all(userId), "missing-evidence", caseId] });
+    },
+  });
+}
+
 /** Removing a document changes the case, its row in the list, and the overview: its source
  * links go at once (SourceBadge looks the document up on the case), and the intake turns STALE. */
 export function useDeleteDocumentMutation(caseId: string) {

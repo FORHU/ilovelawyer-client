@@ -16,7 +16,7 @@ import { tr } from "@/lib/i18n/translate";
 import { useDictation } from "@/lib/voice/use-dictation";
 import { useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
 import { useSocketConnected } from "@/lib/socket";
-import type { Case, ChatMessage } from "@/lib/types";
+import type { Case, ChatMessage, IntakeGap } from "@/lib/types";
 
 export const PROMPTS = [
   "Tell you what happened",
@@ -70,7 +70,14 @@ export function useConsultation(c: Case) {
   // resets it for the next answer).
   const pendingId = pendingTurnId(messages);
   const canStop = thinking && !!pendingId && !cancel.isPending && !cancel.isSuccess;
-  const missing = intake?.missing.length ?? 0;
+  // #157: the Overview's open gaps, in full (not just the count) — kept here as the list rather
+  // than re-deriving it in each view, and alongside `missing` for the places that only need the
+  // number (the banner text is unchanged).
+  const missingGaps: IntakeGap[] = intake?.missing ?? [];
+  const missing = missingGaps.length;
+  // #158: the current question's suggested replies, if CW sent any — only meaningful on the
+  // latest AI turn while waiting for an answer, never while a reply is in flight.
+  const suggestions = !thinking ? (latestAnswer?.suggestions ?? []) : [];
   // A just-dropped/pasted file is attached right away but may still be reading; sending before
   // that finishes would just bounce off the API's READY check.
   const attachmentPending = attachedIds.some((id) => documentById.get(id)?.status === "PENDING");
@@ -97,6 +104,13 @@ export function useConsultation(c: Case) {
   }, [input]);
 
   const removeAttached = (id: string) => setAttachedIds((prev) => prev.filter((x) => x !== id));
+
+  // #157: puts a missing-gap's question in the composer to answer it, rather than sending it
+  // straight away — it's a prompt for what to say, not an answer on the client's behalf.
+  const askAbout = (gap: IntakeGap) => {
+    setInput(gap.question);
+    textareaRef.current?.focus();
+  };
 
   const send = async (raw: string) => {
     const text = raw.trim();
@@ -225,9 +239,9 @@ export function useConsultation(c: Case) {
   return {
     credits, openRequest, loadError, sendMessage, upload, connected,
     input, setInput, notice, attachedIds, dragging, scroller, textareaRef, recorder,
-    messages, documentById, thinking, out, lastFailed, latestAnswer, missing,
+    messages, documentById, thinking, out, lastFailed, latestAnswer, missing, missingGaps, suggestions,
     attachmentPending, failedAttachedIds, sendableAttachedIds,
-    removeAttached, send, attach, onDrop, onDragEnter, onDragLeave, onPaste,
+    removeAttached, send, attach, onDrop, onDragEnter, onDragLeave, onPaste, askAbout,
     stop, canStop,
     confirmingId, setConfirmingId, removeMessage, deleting: remove.isPending, canDelete,
   };

@@ -24,7 +24,7 @@ export function OverviewMobile({ c, onOpenDocument, onOpenChat }: OverviewProps)
     return error ? <div className="p-5 text-[15px] text-ink-2">{t("Couldn't load your overview.")}</div> : null;
   }
 
-  const { summary, timeline, facts, people, goals, questions, stillNeeded, doubleCheck, deadlines, empties } = buildSections(
+  const { summary, caseDraft, timeline, facts, people, goals, questions, stillNeeded, doubleCheck, deadlines, empties } = buildSections(
     intake,
     !!running,
     { onOpenChat, onOpenDocument },
@@ -45,6 +45,7 @@ export function OverviewMobile({ c, onOpenDocument, onOpenChat }: OverviewProps)
             {deadlines}
             {doubleCheck}
             {summary}
+            {caseDraft}
             {timeline}
             {facts}
             {people}

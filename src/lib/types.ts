@@ -54,6 +54,11 @@ export interface OtherParty {
 /** READY once the AI can read it. */
 export type DocumentStatus = "PENDING" | "READY" | "FAILED";
 
+/** CW/#159's relabeled sync vocabulary for evidence uploads, at the ilovelawyer-api boundary.
+ * Assumed field name and values — ilovelawyer-api's #159 work wasn't landed yet when this was
+ * written; adjust once its actual shape is confirmed. Falls back to `status` when absent. */
+export type DocumentSyncStatus = "uploading" | "processing" | "done" | "failed";
+
 export interface CaseDocument {
   id: string;
   name: string;
@@ -63,6 +68,33 @@ export interface CaseDocument {
   uploadedAt: string;
   /** Same as uploadedAt; the API keeps it for older apps. */
   createdAt: string;
+  /** #159: the relabeled uploading/processing/done/failed status, once ilovelawyer-api exposes
+   * it. Assumed field name. Absent on an API that doesn't send it yet — fall back to `status`. */
+  syncStatus?: DocumentSyncStatus;
+}
+
+/** #159: one open CaseMissingEvidence row (GET /api/client/cases/:id/missing-evidence) — "need a
+ * bank statement", "need the termination letter". NOT the same thing as IntakeGap/CaseIntake.missing
+ * (the #157 readiness checklist: jurisdiction, other side, etc.) — an earlier version of this file
+ * conflated the two, since this route didn't exist yet when it was written. */
+export interface MissingEvidenceItem {
+  id: string;
+  label: string;
+  detail: string | null;
+  severity: "CRITICAL" | "MODERATE" | "MINOR";
+  suggestedSource: string | null;
+  /** Set once a document has been uploaded as this gap's answer (an explicit client action at
+   * upload time, not an AI guess) — the id of that CaseDocument. */
+  filledByDocumentId: string | null;
+  filledAt: string | null;
+}
+
+/** GET /api/client/cases/:id/missing-evidence. */
+export interface MissingEvidenceResponse {
+  gaps: MissingEvidenceItem[];
+  /** CW's pick of which unfilled gap is most worth the client's next upload, and how to phrase
+   * asking for it — null when there are no unfilled gaps or CW had nothing confident to suggest. */
+  suggestion: { gapId: string; message: string } | null;
 }
 
 /** A case as the API returns it (GET /api/client/cases/:id). */
@@ -104,6 +136,10 @@ export interface ChatMessage {
    * synthesized reply on its answer. Null on an ordinary typed turn. */
   audioUrl?: string | null;
   createdAt: string;
+  /** #158: 2-4 short tappable reply candidates for the client's next answer, on an AI message —
+   * absent/empty when CW isn't confident enough to suggest any. Assumed field name; CW/#158's
+   * payload wasn't landed yet when this was written. Only ever meaningful on the latest AI turn. */
+  suggestions?: string[];
 }
 
 /** POST /api/client/cases/:caseId/messages/:messageId/cancel (the Stop button). CANCELLED means this
@@ -175,6 +211,31 @@ export interface IntakeCompleteness {
   ready: boolean;
 }
 
+/** #157's named field groups, matching the ticket's own case-draft screenshot. Not a second AI
+ * call — parties/typeOfAction/venue are the case-creation form's own data; the rest are
+ * CaseIntake's own people/timeline/goals/relationship/roleAndTerms/reasonGiven, split out and
+ * relabeled. relationship/roleAndTerms/reasonGiven read naturally across practice areas (a
+ * tenancy's "tenant and landlord" / "rent and term" reads just as well as an employment case's
+ * "employee and employer" / "job title and salary") — see ilovelawyer-api's
+ * client-intake-extract.ts (deriveFormFields), which this mirrors. */
+export interface IntakeFormFields {
+  parties: IntakePerson[];
+  witnesses: IntakePerson[];
+  /** The case's own area names, e.g. "Employment" — set at case creation. */
+  typeOfAction: string[];
+  /** Jurisdiction or town, set at case creation; null when not chosen yet. */
+  venue: string | null;
+  timeline: IntakeEvent[];
+  clientGoals: IntakeItem[];
+  /** The nature of the relationship the claim arises from (employment, tenancy, contract, ...). */
+  relationship: IntakeItem[];
+  /** The client's role/position and the financial or contractual terms involved. */
+  roleAndTerms: IntakeItem[];
+  /** The reason the OTHER side gave for the disputed action, as stated — never inferred. */
+  reasonGiven: IntakeItem[];
+  missing: ("parties" | "witnesses" | "typeOfAction" | "venue" | "timeline" | "clientGoals" | "relationship" | "roleAndTerms" | "reasonGiven")[];
+}
+
 export interface CaseIntake {
   generatedAt: string | null;
   status: IntakeStatus;
@@ -192,6 +253,7 @@ export interface CaseIntake {
   conflicts: IntakeConflict[];
   /** From Lawyer Readiness when that check is enabled; null when it's off or hasn't run. */
   completeness: IntakeCompleteness | null;
+  formFields: IntakeFormFields;
 }
 
 export function sideLabel(side: Side | null) {

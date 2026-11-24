@@ -1,24 +1,36 @@
 "use client";
 
+import { useState } from "react";
 import { ArrowUpRight, FileText, Mic, Paperclip, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { FilePicker } from "@/components/ui/file-picker";
 import { AiMark } from "@/components/ui/misc";
-import { AfterAnswer } from "@/components/case/after-answer";
+import { PromptChip } from "@/components/ui/chip";
+import { AfterAnswer, isJurisdictionQuestion } from "@/components/case/after-answer";
+import { CitationText } from "@/components/case/citation-text";
 import { SensitiveInfoNotice } from "@/components/consent/sensitive-info-notice";
 import { DeleteConfirm, MessageMenu } from "@/components/case/message-actions";
+import { useSite } from "@/components/site/site-provider";
 import { usePayment } from "@/lib/payment-store";
-import type { Case } from "@/lib/types";
+import { caseRegion, type Case } from "@/lib/types";
 import { PROMPTS, type Consultation } from "./use-consultation";
 
 export function ConsultationDesktop({ c, consultation }: { c: Case; consultation: Consultation }) {
   const {
     credits, openRequest, loadError, upload, connected, input, setInput, notice, dragging, scroller, textareaRef, recorder,
-    messages, documentById, thinking, out, lastFailed, latestAnswer, missing, attachmentPending, failedAttachedIds,
-    sendableAttachedIds, attachedIds, removeAttached, send, attach, onDrop, onDragEnter, onDragLeave, onPaste,
+    messages, documentById, thinking, out, lastFailed, latestAnswer, missing, missingGaps, suggestions, attachmentPending, failedAttachedIds,
+    sendableAttachedIds, attachedIds, removeAttached, send, attach, onDrop, onDragEnter, onDragLeave, onPaste, askAbout,
     stop, canStop,
   } = consultation;
+  const [showMissing, setShowMissing] = useState(false);
+  // RegionPrompt shows its own three jurisdiction options only while the case has none yet AND
+  // the AI's latest message is actually the jurisdiction question (see AfterAnswer) — the exact
+  // same question #158's suggestions would ask here. Suppressing the chips only in that one case
+  // (not the feature generally) keeps the two from duplicating each other; a later, different
+  // open question still gets its own suggestions normally.
+  const { regionQuestion } = useSite();
+  const regionPromptShowing = regionQuestion && caseRegion(c) === "" && isJurisdictionQuestion(suggestions);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -36,8 +48,32 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
         <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-12 pb-3 pt-7">
           <div className="mx-auto flex max-w-[768px] flex-col gap-[22px]">
             {missing > 0 && !thinking && (
-              <div className="self-center rounded-full bg-chip px-3 py-1 text-[12px] text-ink-2">
-                {missing} thing{missing === 1 ? "" : "s"} still to cover — see the Overview tab
+              <div className="flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowMissing((v) => !v)}
+                  aria-expanded={showMissing}
+                  data-no-tap
+                  className="self-center rounded-full bg-chip px-3 py-1 text-[12px] text-ink-2 hover:bg-chip/80"
+                >
+                  {missing} thing{missing === 1 ? "" : "s"} still to cover — see the Overview tab, or tap to ask here
+                </button>
+                {showMissing && (
+                  <div role="group" aria-label="Still to cover" className="flex max-w-[640px] flex-wrap justify-center gap-1.5">
+                    {missingGaps.map((gap) => (
+                      <button
+                        key={gap.id}
+                        type="button"
+                        title={gap.why}
+                        onClick={() => askAbout(gap)}
+                        data-no-tap
+                        className="rounded-full border border-dashed border-line-input bg-white px-3 py-1 text-[12px] text-ink hover:border-gold"
+                      >
+                        {gap.question}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
             {messages.map((m) =>
@@ -75,7 +111,9 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
                   <div className="flex gap-3">
                     <AiMark />
                     <div className="flex min-w-0 flex-1 flex-col gap-2.5 text-[15px] leading-[1.7]">
-                      <div className="whitespace-pre-line">{m.text}</div>
+                      <div className="whitespace-pre-line">
+                        <CitationText text={m.text} />
+                      </div>
                       {m.audioUrl && <audio controls src={m.audioUrl} className="h-8 w-56" />}
                       <div className="flex items-center justify-between gap-3">
                         <div className="text-xs text-muted">I collect and organise your information for a lawyer. I can&apos;t give legal advice.</div>
@@ -95,7 +133,20 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
               </div>
             )}
             {latestAnswer && !thinking && !openRequest && (
-              <AfterAnswer c={c} latestAnswerId={latestAnswer.id} />
+              <AfterAnswer c={c} latestAnswerId={latestAnswer.id} suggestions={suggestions} onAnswered={send} />
+            )}
+            {/* #158: CW's suggested replies for the question just asked, in the thread itself
+               rather than pinned to the composer — tap to send as-is, or type/speak a different
+               answer instead. Nothing renders when there are none. Suppressed while RegionPrompt
+               is showing: that card already covers this exact question. */}
+            {suggestions.length > 0 && !thinking && !out && !regionPromptShowing && (
+              <div role="group" aria-label="Suggested replies" className="ml-[38px] flex flex-wrap gap-1.5">
+                {suggestions.map((s, i) => (
+                  <PromptChip key={`${s}-${i}`} onClick={() => send(s)} data-no-tap>
+                    {s}
+                  </PromptChip>
+                ))}
+              </div>
             )}
             {thinking && (
               <div className="flex gap-3" role="status" aria-label="The assistant is typing">

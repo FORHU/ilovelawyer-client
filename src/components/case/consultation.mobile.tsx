@@ -1,24 +1,34 @@
 "use client";
 
+import { useState } from "react";
 import { ArrowUp, FileText, Mic, Paperclip, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SensitiveInfoNotice } from "@/components/consent/sensitive-info-notice";
 import { ErrorBox } from "@/components/ui/banner";
 import { FilePicker } from "@/components/ui/file-picker";
 import { AiMark } from "@/components/ui/misc";
+import { PromptChip } from "@/components/ui/chip";
 import { TypingDots } from "@/components/ui/typing-dots";
 import { ChatBar, ChatScreen, ComposerButton, ComposerPill } from "@/components/mobile/chat";
-import { AfterAnswer } from "@/components/case/after-answer";
+import { AfterAnswer, isJurisdictionQuestion } from "@/components/case/after-answer";
+import { CitationText } from "@/components/case/citation-text";
 import { DeleteConfirm, MessageMenu } from "@/components/case/message-actions";
+import { useSite } from "@/components/site/site-provider";
 import { cn } from "@/lib/cn";
 import { usePayment } from "@/lib/payment-store";
-import type { Case } from "@/lib/types";
+import { caseRegion, type Case } from "@/lib/types";
 import { PROMPTS, type Consultation } from "./use-consultation";
 
 export function ConsultationMobile({ c, consultation }: { c: Case; consultation: Consultation }) {
   const {
-    recorder, out, thinking, messages, documentById, scroller, missing, openRequest, lastFailed, latestAnswer, connected, loadError, notice, credits, attachedIds, failedAttachedIds, removeAttached, input, setInput, onPaste, textareaRef, attach, upload, attachmentPending, sendableAttachedIds, send, stop, canStop,
+    recorder, out, thinking, messages, documentById, scroller, missing, missingGaps, suggestions, openRequest, lastFailed, latestAnswer, connected, loadError, notice, credits, attachedIds, failedAttachedIds, removeAttached, input, setInput, onPaste, textareaRef, attach, upload, attachmentPending, sendableAttachedIds, send, stop, canStop, askAbout,
   } = consultation;
+  const [showMissing, setShowMissing] = useState(false);
+  // See consultation.desktop.tsx's identical note: RegionPrompt only shows while the case has no
+  // region AND the AI's latest message is actually the jurisdiction question; #158's chips are
+  // suppressed only for that exact collision, not whenever the region happens to be unset.
+  const { regionQuestion } = useSite();
+  const regionPromptShowing = regionQuestion && caseRegion(c) === "" && isJurisdictionQuestion(suggestions);
 
   return (
     <ChatScreen>
@@ -33,8 +43,31 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
         <div ref={scroller} role="log" aria-label="Interview" aria-live="polite" className="min-h-0 flex-1 overflow-y-auto">
           <div className="flex flex-col gap-4 px-4 py-4">
             {missing > 0 && !thinking && (
-              <div className="self-center rounded-full bg-chip px-3 py-1.5 text-center text-[12.5px] leading-[1.35] text-ink-2">
-                {missing} thing{missing === 1 ? "" : "s"} still to cover. See the Overview tab
+              <div className="flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowMissing((v) => !v)}
+                  aria-expanded={showMissing}
+                  data-no-tap
+                  className="self-center rounded-full bg-chip px-3 py-1.5 text-center text-[12.5px] leading-[1.35] text-ink-2"
+                >
+                  {missing} thing{missing === 1 ? "" : "s"} still to cover. See the Overview tab, or tap to ask here
+                </button>
+                {showMissing && (
+                  <div role="group" aria-label="Still to cover" className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4">
+                    {missingGaps.map((gap) => (
+                      <button
+                        key={gap.id}
+                        type="button"
+                        onClick={() => askAbout(gap)}
+                        data-no-tap
+                        className="shrink-0 whitespace-nowrap rounded-full border border-dashed border-line-input bg-white px-3.5 py-1.5 text-[12.5px] text-ink active:bg-chip"
+                      >
+                        {gap.question}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
             {messages.map((m) =>
@@ -71,7 +104,9 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
                     <AiMark size={28} />
                     <div className="flex min-w-0 flex-1 flex-col gap-1 break-words text-[15px] leading-[1.6]">
                       <span className="sr-only">ilovelawyer AI: </span>
-                      <div className="whitespace-pre-line">{m.text}</div>
+                      <div className="whitespace-pre-line">
+                        <CitationText text={m.text} />
+                      </div>
                       {m.audioUrl && <audio controls src={m.audioUrl} className="h-8 w-56" />}
                       <div className="-mb-2 flex justify-end">
                         <MessageMenu m={m} consultation={consultation} />
@@ -86,7 +121,20 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
             )}
             {lastFailed && !thinking && <div className="ml-[38px] text-[14px] text-error">That didn&apos;t go through, so it didn&apos;t use a credit. Try asking again.</div>}
             {latestAnswer && !thinking && !openRequest && (
-              <AfterAnswer c={c} latestAnswerId={latestAnswer.id} />
+              <AfterAnswer c={c} latestAnswerId={latestAnswer.id} suggestions={suggestions} onAnswered={send} />
+            )}
+            {/* #158: CW's suggested replies for the question just asked, in the thread itself
+               rather than pinned to the composer — tap to send as-is, or type/speak a different
+               answer instead. Suppressed while RegionPrompt is showing: that card already covers
+               this exact question. */}
+            {suggestions.length > 0 && !thinking && !out && !regionPromptShowing && (
+              <div role="group" aria-label="Suggested replies" className="ml-[38px] flex flex-wrap gap-1.5">
+                {suggestions.map((s, i) => (
+                  <PromptChip key={`${s}-${i}`} onClick={() => send(s)} data-no-tap className="shrink-0 whitespace-nowrap">
+                    {s}
+                  </PromptChip>
+                ))}
+              </div>
             )}
             {thinking && (
               <div className="flex gap-2.5" role="status" aria-label="The assistant is typing">
