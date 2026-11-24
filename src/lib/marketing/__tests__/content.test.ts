@@ -147,6 +147,12 @@ describe("the KR page's launch-blocking wording", () => {
     expect(all).not.toContain("견적");
   });
 
+  it("doesn't call the summary anonymous, or say a lawyer is waiting (#180)", () => {
+    // The facts can identify the client, and no lawyer is ready until one accepts.
+    expect(all).not.toContain("익명");
+    expect(all).not.toContain("변호사는 준비");
+  });
+
   it("has no placeholders left to go live", () => {
     expect(all).not.toContain("확정 후 기재");
     for (const chip of ["[상호]", "[번호]", "[주소]", "[이름]"]) expect(all).not.toContain(chip);
@@ -218,6 +224,11 @@ describe("the Korean site in English", () => {
   it("has no placeholders left to go live, and no Korean text left untranslated", () => {
     expect(shown).not.toMatch(/\[[^\[\]]+\]/);
     expect(shown).not.toMatch(/[\u3131-\u318E\uAC00-\uD7A3]/);
+  });
+
+  it("doesn't call the summary anonymous, or say a lawyer is waiting (#180)", () => {
+    expect(shown).not.toMatch(/anonymi[sz]/i);
+    expect(shown).not.toMatch(/lawyer is ready/i);
   });
 
   it("makes no promise the Korean page doesn't, and no fee beyond the lawyer's own", () => {

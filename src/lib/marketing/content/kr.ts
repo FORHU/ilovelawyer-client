@@ -55,7 +55,7 @@ export const KR_CONTENT: LandingContent = {
     cta: "사건 시작하기",
     headings: [
       "휴대폰으로 시작하고, PC에서 이어가세요.",
-      "사건은 정리되고, 변호사는 준비됩니다.",
+      "사건이 정리되어 변호사가 검토할 수 있습니다.",
       "요약을 준비하고, 변호사에게 연락할지 직접 정하세요.",
       "참여 중인 독립 변호사의 정보를 살펴보고, 연락할지 직접 정하세요.",
       "변호사와 한곳에서 대화하세요.",
@@ -147,7 +147,7 @@ export const KR_CONTENT: LandingContent = {
     request: {
       eyebrow: "요청 진행 상황",
       title: "변호사 요청",
-      sent: { label: "요청 전송", sub: "직접 고른 변호사에게 익명 요약 전달" },
+      sent: { label: "요청 전송", sub: "직접 고른 변호사에게 요약 전달" },
       finding: { label: "이해충돌 확인", sub: "사건에 등장하는 이름 확인" },
       reviewingSub: "요약을 읽고 답변 작성",
       quoteSub: "수락하면 변호사와 바로 대화를 시작합니다",

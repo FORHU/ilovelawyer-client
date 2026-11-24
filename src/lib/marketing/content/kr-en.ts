@@ -51,7 +51,7 @@ export const KR_EN_CONTENT: LandingContent = {
     cta: "Start a case",
     headings: [
       "Start on your phone, continue on your computer.",
-      "Your case is organised, and the lawyer is ready.",
+      "Your case is organised and ready for a lawyer to review.",
       "Prepare a summary, then decide whether to contact a lawyer.",
       "Review information about participating independent lawyers and decide whether to get in touch.",
       "Talk with your lawyer in one place.",
@@ -150,7 +150,7 @@ export const KR_EN_CONTENT: LandingContent = {
     request: {
       eyebrow: "Request progress",
       title: "Lawyer request",
-      sent: { label: "Request sent", sub: "Anonymised summary sent to the lawyer you chose" },
+      sent: { label: "Request sent", sub: "Summary sent to the lawyer you chose" },
       finding: { label: "Conflict check", sub: "Checking the names in your case" },
       reviewingSub: "Reading the summary and writing a reply",
       quoteSub: "If you accept, you start chatting with the lawyer right away",
