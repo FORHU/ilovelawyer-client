@@ -13,15 +13,21 @@ import { regionFields, UK_JURISDICTIONS, type CaseRegion } from "@/lib/types";
  * knows where it is, and LawyerSuggestion takes this spot (consultation.*.tsx).
  *
  * Only the three UK jurisdictions: there are no lawyers outside the UK, so it isn't offered here.
+ *
+ * `onAnswered` also sends the pick as an ordinary chat message once the save succeeds — this is
+ * the only place the client answers CW's own question, so without it the conversation has
+ * nothing to reply to: the region saves, but the AI never hears it happened and the chat just
+ * sits there. Fires after the save, not before, so a failed save still shows "try again" rather
+ * than a message claiming something that didn't stick.
  */
-export function RegionPrompt({ caseId }: { caseId: string }) {
+export function RegionPrompt({ caseId, onAnswered }: { caseId: string; onAnswered: (text: string) => void }) {
   const mobile = useDevice() === "mobile";
   const update = useUpdateCaseMutation(caseId);
   const [failed, setFailed] = useState(false);
 
   const choose = (region: CaseRegion) => {
     setFailed(false);
-    update.mutate(regionFields(region), { onError: () => setFailed(true) });
+    update.mutate(regionFields(region), { onSuccess: () => onAnswered(region), onError: () => setFailed(true) });
   };
 
   return (

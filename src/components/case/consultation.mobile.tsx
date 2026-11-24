@@ -113,7 +113,7 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
             )}
             {lastFailed && !thinking && <div className="ml-[38px] text-[14px] text-error">That didn&apos;t go through, so it didn&apos;t use a credit. Try asking again.</div>}
             {latestAnswer && !thinking && !openRequest && (
-              <AfterAnswer c={c} latestAnswerId={latestAnswer.id} />
+              <AfterAnswer c={c} latestAnswerId={latestAnswer.id} onAnswered={send} />
             )}
             {thinking && (
               <div className="flex gap-2.5" role="status" aria-label="The assistant is typing">

@@ -10,9 +10,9 @@ import { caseRegion, type Case } from "@/lib/types";
  * UK, that comes first until the case has one (#973), then the lawyer offer. A site without the
  * question (KR, PH) never shows the UK picker, and no lawyer offer until its lawyers take requests.
  */
-export function AfterAnswer({ c, latestAnswerId }: { c: Case; latestAnswerId: string }) {
+export function AfterAnswer({ c, latestAnswerId, onAnswered }: { c: Case; latestAnswerId: string; onAnswered: (text: string) => void }) {
   const { regionQuestion, clientRequests } = useSite();
-  if (regionQuestion && caseRegion(c) === "") return <RegionPrompt caseId={c.id} />;
+  if (regionQuestion && caseRegion(c) === "") return <RegionPrompt caseId={c.id} onAnswered={onAnswered} />;
   if (clientRequests !== "open") return null;
   return <LawyerSuggestion caseId={c.id} latestAnswerId={latestAnswerId} />;
 }

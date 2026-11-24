@@ -123,7 +123,7 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
               </div>
             )}
             {latestAnswer && !thinking && !openRequest && (
-              <AfterAnswer c={c} latestAnswerId={latestAnswer.id} />
+              <AfterAnswer c={c} latestAnswerId={latestAnswer.id} onAnswered={send} />
             )}
             {thinking && (
               <div className="flex gap-3" role="status" aria-label="The assistant is typing">
