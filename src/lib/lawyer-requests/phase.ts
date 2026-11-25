@@ -71,7 +71,10 @@ export function stepsFor(request: LawyerRequest, phase: Phase): Step[] {
       expect: phase === "expired" ? tr("Ended after 48 hours, or 7 days without a choice") : tr("Most are picked up within a day"),
     },
     { label: on > 1 ? tr("{n} lawyers are reviewing", { n: on }) : tr("A lawyer is reviewing"), sub: tr("Conflict check, then a quote") },
-    { label: quoted > 1 ? tr("Compare the quotes") : tr("Review the quote"), sub: tr("Accept one and pay through ilovelawyer, or decline") },
+    {
+      label: quoted > 1 ? tr("Compare the quotes") : tr("Review the quote"),
+      sub: request.paysLawyerDirectly ? tr("Accept one and pay the lawyer directly, or decline") : tr("Accept one and pay through ilovelawyer, or decline"),
+    },
     {
       label:
         phase === "finalising"
@@ -104,9 +107,11 @@ export function amountDue(quotation: Quotation) {
 }
 
 /** Whether the client paid this quotation through ilovelawyer: PAID, for more than nothing. Not a
- * free first consultation, nor a request from before quotation payments (its quotation is ACCEPTED). */
-export function paidThroughUs(quotation: Quotation | null | undefined): quotation is Quotation {
-  return !!quotation && quotation.status === "PAID" && amountDue(quotation).amountMinor > 0;
+ * free first consultation, nor a request from before quotation payments (its quotation is ACCEPTED),
+ * nor one on a site where the client pays the lawyer directly (`paysLawyerDirectly`, KR): that
+ * quotation reads PAID too, but nothing went through ilovelawyer. */
+export function paidThroughUs(quotation: Quotation | null | undefined, paysLawyerDirectly = false): quotation is Quotation {
+  return !paysLawyerDirectly && !!quotation && quotation.status === "PAID" && amountDue(quotation).amountMinor > 0;
 }
 
 /** Whether the lawyer's expiry for the quote has passed: it can't be accepted or paid any more. */
@@ -127,18 +132,18 @@ export function activityOf(request: LawyerRequest): { at: string; text: string }
   if (request.engagedAt) {
     events.push({
       at: request.engagedAt,
-      text: paidThroughUs(request.quotation) ? tr("You paid {name}, who can now see your case", { name: lawyer }) : tr("You started working with {name}, who can now see your case", { name: lawyer }),
+      text: paidThroughUs(request.quotation, request.paysLawyerDirectly) ? tr("You paid {name}, who can now see your case", { name: lawyer }) : tr("You started working with {name}, who can now see your case", { name: lawyer }),
     });
   }
   if (request.closedAt) events.push({ at: request.closedAt, text: request.closedBy === "LAWYER" ? tr("Your lawyer ended the engagement") : tr("You ended the engagement") });
   return events.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
 }
 
-/** What the lawyer can see, and from when. */
-export const VISIBILITY = (engaged: boolean, since?: string | null) => [
+/** What the lawyer can see, and from when. `paysLawyerDirectly`: hiring, not paying, opens the case. */
+export const VISIBILITY = (engaged: boolean, since?: string | null, paysLawyerDirectly = false) => [
   { text: tr("Anonymised summary of your overview"), when: tr("From the start"), yes: true },
   { text: tr("Names, only for a conflict check"), when: tr("From the start"), yes: true },
-  { text: tr("Your case, documents and interview (read-only)"), when: engaged ? (since ? tr("Since {date}", { date: day(since) }) : tr("Now")) : tr("Once you pay"), yes: engaged },
+  { text: tr("Your case, documents and interview (read-only)"), when: engaged ? (since ? tr("Since {date}", { date: day(since) }) : tr("Now")) : paysLawyerDirectly ? tr("Once you hire them") : tr("Once you pay"), yes: engaged },
 ];
 
 /** Whether the client can still withdraw, and whether the "what the lawyer can see" card applies. */
