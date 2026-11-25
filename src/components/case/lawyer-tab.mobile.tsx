@@ -66,7 +66,7 @@ export function LawyerTabMobile({ c, request }: LawyerTabProps) {
           </section>
         </aside>
 
-        {showVisibility && <VisibilityCard engaged={engaged} since={request.engagedAt} />}
+        {showVisibility && <VisibilityCard engaged={engaged} since={request.engagedAt} paysLawyerDirectly={request.paysLawyerDirectly} />}
       </div>
     </div>
   );

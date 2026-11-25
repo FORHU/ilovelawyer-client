@@ -130,8 +130,9 @@ function Tile({ label, children }: { label: string; children: ReactNode }) {
 }
 
 /** What the client pays for a quotation: the lawyer's quote, nothing added. ilovelawyer's platform
- * fee is deducted from what the lawyer receives, so it isn't the client's to pay. */
-function QuoteBreakdown({ quotation, lawyerFirst }: { quotation: Quotation; lawyerFirst: string }) {
+ * fee is deducted from what the lawyer receives, so it isn't the client's to pay. `direct`: the
+ * client pays the lawyer themselves (KR), not through ilovelawyer. */
+function QuoteBreakdown({ quotation, lawyerFirst, direct = false }: { quotation: Quotation; lawyerFirst: string; direct?: boolean }) {
   const t = useT();
   // The quote is fixed when it's sent and copied when it's accepted, so this is what's charged.
   const total = amountDue(quotation);
@@ -146,9 +147,10 @@ function QuoteBreakdown({ quotation, lawyerFirst }: { quotation: Quotation; lawy
         <span>{t("Nothing")}</span>
       </div>
       <div className="flex justify-between gap-2 border-t border-line pt-2 text-[15px] font-semibold">
-        <span>{t("You pay")}</span>
+        <span>{direct ? t("You pay {name} directly", { name: lawyerFirst }) : t("You pay")}</span>
         <span>{money(total)}</span>
       </div>
+      {direct && <p className="text-xs leading-[1.5] text-ink-2">{t("Arrange payment with {name} once you hire them. ilovelawyer doesn't take a payment or a fee.", { name: lawyerFirst })}</p>}
     </div>
   );
 }
@@ -312,6 +314,7 @@ function OfferCard({
   const first = firstName(offer.lawyer.name) ?? t("the lawyer");
   const pay = offer.quotation ? amountDue(offer.quotation) : null;
   const expired = !!offer.quotation && quoteExpired(offer.quotation);
+  const direct = !!request.paysLawyerDirectly;
   return (
     <div className="flex flex-col gap-3">
       <LawyerHeader lawyer={offer.lawyer} />
@@ -322,12 +325,16 @@ function OfferCard({
           <span className="font-display text-[34px] tracking-[-0.02em] max-md:text-[30px]">{money(pay ?? offer.quote.amount)}</span>
           <BudgetFit budget={c.budget} quote={offer.quote} payMinor={(pay ?? offer.quote.amount).amountMinor} />
           {offer.quote.message && <p className="text-ink-soft">{offer.quote.message}</p>}
-          {offer.quotation && <QuoteBreakdown quotation={offer.quotation} lawyerFirst={first} />}
+          {offer.quotation && <QuoteBreakdown quotation={offer.quotation} lawyerFirst={first} direct={direct} />}
           {offer.quotation &&
             (expired ? (
               <p className="text-[12.5px] text-error-ink">{t("This quote expired on {date}, so it can't be accepted any more.", { date: pickByDay(offer.quotation.expiresAt) })}</p>
             ) : (
-              <p className="text-[12.5px] text-ink-2">{t("This quote is valid until {date}. Accept and pay before then.", { date: pickByDay(offer.quotation.expiresAt) })}</p>
+              <p className="text-[12.5px] text-ink-2">
+                {direct
+                  ? t("This quote is valid until {date}. Accept it before then.", { date: pickByDay(offer.quotation.expiresAt) })
+                  : t("This quote is valid until {date}. Accept and pay before then.", { date: pickByDay(offer.quotation.expiresAt) })}
+              </p>
             ))}
           <div className="flex flex-wrap gap-2.5">
             <Button
@@ -340,7 +347,7 @@ function OfferCard({
             >
               {confirm.isPending && confirm.variables?.claimId === offer.claimId
                 ? t("Accepting…")
-                : pay && pay.amountMinor > 0
+                : pay && pay.amountMinor > 0 && !direct
                   ? t("Accept and pay {amount}", { amount: money(pay) })
                   : t("Hire {name}", { name: offer.lawyer.name })}
             </Button>
@@ -577,7 +584,7 @@ function PayStage({ c, request, quotation }: { c: Case; request: LawyerRequest; 
 export function PaymentSuccess({ request, onDismiss }: { request: LawyerRequest; onDismiss: () => void }) {
   const t = useT();
   // Only a real payment: a free first consultation engages with nothing paid.
-  if (!paidThroughUs(request.quotation)) return null;
+  if (!paidThroughUs(request.quotation, request.paysLawyerDirectly)) return null;
   const paid = amountDue(request.quotation);
   const paidAt = request.quotation?.paidAt ?? request.engagedAt;
   const lawyerName = request.lawyer?.name ?? t("your lawyer");
@@ -611,7 +618,7 @@ function ConfirmCompletionModal({ c, request, onClose }: { c: Case; request: Law
   const confirm = useConfirmCompletionMutation(c.id);
   const [error, setError] = useState("");
   const first = firstName(request.lawyer?.name) ?? t("Your lawyer");
-  const paid = paidThroughUs(request.quotation);
+  const paid = paidThroughUs(request.quotation, request.paysLawyerDirectly);
   return (
     <Modal open onClose={onClose} locked={confirm.isPending} title={t("Is the work finished?")} subtitle={t("Confirm that {name} has finished the work on your case.", { name: first })}>
       <ul className="flex list-disc flex-col gap-1.5 pl-5 text-[13.5px] leading-[1.5] text-ink-2">
@@ -962,13 +969,13 @@ export function StageCard({ c, request, phase }: { c: Case; request: LawyerReque
 }
 
 /** "What the lawyer can see" and from when. */
-export function VisibilityCard({ engaged, since }: { engaged: boolean; since?: string | null }) {
+export function VisibilityCard({ engaged, since, paysLawyerDirectly = false }: { engaged: boolean; since?: string | null; paysLawyerDirectly?: boolean }) {
   const t = useT();
   return (
     <section className="flex flex-col gap-2.5 rounded-card border border-line bg-surface px-5 py-[18px]">
       <h3 className="text-[13.5px] font-semibold">{t("What the lawyer can see")}</h3>
       <ul className="flex flex-col gap-2">
-        {VISIBILITY(engaged, since).map((v) => (
+        {VISIBILITY(engaged, since, paysLawyerDirectly).map((v) => (
           <li key={v.text} className="flex items-center gap-2.5 text-[13px]">
             <span
               aria-hidden

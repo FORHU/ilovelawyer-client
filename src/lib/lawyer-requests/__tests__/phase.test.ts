@@ -159,3 +159,32 @@ describe("quotation payments", () => {
     ]);
   });
 });
+
+// KR: the client pays the hired lawyer directly (ilovelawyer-api#695, client #162).
+describe("paying the lawyer directly", () => {
+  it("never counts the quotation as paid through us, though it reads PAID", () => {
+    expect(paidThroughUs(quotation({ status: "PAID" }), true)).toBe(false);
+    expect(paidThroughUs(quotation({ status: "PAID" }), false)).toBe(true);
+  });
+
+  it("says the lawyer is paid directly when the quotes are in, not through ilovelawyer", () => {
+    expect(stepsFor(request({ paysLawyerDirectly: true }), "quote")[3]!.sub).toBe("Accept one and pay the lawyer directly, or decline");
+    expect(stepsFor(request(), "quote")[3]!.sub).toBe("Accept one and pay through ilovelawyer, or decline");
+  });
+
+  it("reports hiring, not paying, in the activity", () => {
+    const r = request({
+      paysLawyerDirectly: true,
+      lawyer: { name: "Kim Minjun" } as never,
+      quotation: quotation({ status: "PAID" }),
+      engagedAt: "2026-11-03T09:00:00Z",
+    });
+    expect(activityOf(r).map((e) => e.text)).toContain("You started working with Kim Minjun, who can now see your case");
+    expect(activityOf(r).map((e) => e.text).join(" ")).not.toMatch(/You paid/);
+  });
+
+  it("opens the case once the client hires the lawyer", () => {
+    expect(VISIBILITY(false, null, true)[2]!.when).toBe("Once you hire them");
+    expect(VISIBILITY(false)[2]!.when).toBe("Once you pay");
+  });
+});

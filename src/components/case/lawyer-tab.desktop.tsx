@@ -51,7 +51,7 @@ export function LawyerTabDesktop({ c, request }: LawyerTabProps) {
           {phase === "closed" && <ClosedStage c={c} request={request} />}
           {phase === "expired" && <ExpiredStage caseId={c.id} />}
 
-          {showVisibility && <VisibilityCard engaged={engaged} since={request.engagedAt} />}
+          {showVisibility && <VisibilityCard engaged={engaged} since={request.engagedAt} paysLawyerDirectly={request.paysLawyerDirectly} />}
         </div>
       </div>
     </div>
