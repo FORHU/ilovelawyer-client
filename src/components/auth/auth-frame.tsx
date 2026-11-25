@@ -1,6 +1,6 @@
 "use client";
 
-import { BrandLogo } from "@/components/auth/brand-logo";
+import { BrandPanel } from "@/components/auth/brand-panel";
 import { useT } from "@/components/site/language-provider";
 import { LanguageSegmented } from "@/components/site/language-toggle";
 import { ThemeSegmented } from "@/components/site/theme-toggle";
@@ -21,25 +21,7 @@ export function AuthFrame({
   return (
     <div className="flex h-dvh w-full overflow-hidden bg-surface">
       {/* LEFT: fixed dark brand panel */}
-      <div className="relative hidden flex-col lg:flex" style={{ width: "58%" }}>
-        <div className="absolute inset-0 bg-navy-950" />
-        <div
-          className="absolute inset-0 opacity-70"
-          style={{ background: "radial-gradient(ellipse at 40% 50%, var(--color-navy-800) 0%, var(--color-navy-950) 65%)" }}
-        />
-
-        <div className="absolute left-16 top-16 z-10">
-          <BrandLogo size={40} ink="#ffffff" />
-        </div>
-
-        <div className="absolute inset-0 z-10 flex flex-col items-start justify-center pl-16 pr-12">
-          <div className="mb-8 h-0.5 w-12 bg-gold" />
-          <blockquote className="mb-5 max-w-100 font-display text-[24px] italic leading-9.5 text-white">
-            &ldquo;{t("The law is reason, free from passion.")}&rdquo;
-          </blockquote>
-          <p className="text-[11px] uppercase tracking-[2.5px] text-[rgba(224,227,229,0.45)]">— {t("Aristotle")}</p>
-        </div>
-      </div>
+      <BrandPanel />
 
       {/* RIGHT: form */}
       <div className="relative flex flex-1 flex-col items-center justify-start overflow-y-auto bg-surface px-8 py-10 md:px-26.5">

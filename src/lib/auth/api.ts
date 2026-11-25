@@ -7,6 +7,8 @@ export interface AuthResponse {
   user: SessionUser;
   accessToken: string;
   deletionCancelled?: boolean;
+  /** Google sign-in only: this sign-in made the account (it goes on to the first-case onboarding). */
+  isNewAccount?: boolean;
 }
 
 /** Trimmed + lowercased, matching the API's normalizeEmail, so what the UI echoes back (the OTP

@@ -34,6 +34,7 @@ import {
 } from "@/lib/auth/mutations";
 import { isPasswordValid } from "@/lib/auth/password-policy";
 import { useT } from "@/components/site/language-provider";
+import { useSite } from "@/components/site/site-provider";
 import { msg } from "@/lib/i18n/msg";
 import { rich } from "@/lib/i18n/rich";
 
@@ -61,6 +62,7 @@ export function UnifiedAuth() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useT();
+  const site = useSite();
 
   const loginMutation = useLoginMutation();
   const signupMutation = useSignupMutation();
@@ -374,10 +376,16 @@ export function UnifiedAuth() {
 
   const otpComplete = otpDigits.every((d) => d !== "");
 
+  // Reached from the new-client Welcome (/start): the same sign-up, worded as step 1 of 2, with
+  // Google first.
+  const onboarding = tab === "signup" && searchParams.get("flow") === "start" && site.storyIntake === "open";
+
   const heading = otpStep
     ? t("Verify Your Email")
     : googleLinkEmail
       ? t("Connect Google")
+      : onboarding
+      ? t("Save your case to your own account")
       : tab === "signup"
       ? t("Create Your Account")
       : tab === "recover"
@@ -399,6 +407,11 @@ export function UnifiedAuth() {
     )
   ) : tab === "signin" ? (
     t("Sign in to pick up your cases.")
+  ) : onboarding ? (
+    <>
+      <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[1.2px] text-gold">{t("Step {n} of {total}", { n: 1, total: 2 })}</span>
+      {t("One tap. You can come back and add more any time.")}
+    </>
   ) : null;
 
   return (
@@ -559,6 +572,13 @@ export function UnifiedAuth() {
 
           {tab === "signup" && (
             <form onSubmit={handleSignUp} className="flex flex-col gap-5">
+              {onboarding && (
+                <>
+                  <GoogleButton onClick={launchGoogle} pending={googleLoginMutation.isPending} />
+                  <p className="-mt-2 text-center text-[12.5px] text-muted">{t("We never post or message anyone for you.")}</p>
+                  <GoogleDivider />
+                </>
+              )}
               <Field id="signup-name" label={t("Full Name")}>
                 <input
                   id="signup-name"
@@ -667,8 +687,12 @@ export function UnifiedAuth() {
                 {signupMutation.isPending ? t("Creating Account…") : t("Create Account")}
               </button>
 
-              <GoogleDivider />
-              <GoogleButton onClick={launchGoogle} pending={googleLoginMutation.isPending} />
+              {!onboarding && (
+                <>
+                  <GoogleDivider />
+                  <GoogleButton onClick={launchGoogle} pending={googleLoginMutation.isPending} />
+                </>
+              )}
             </form>
           )}
 

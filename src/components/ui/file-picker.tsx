@@ -6,16 +6,20 @@ import { useState, type ReactNode } from "react";
  * macro variants, which the client app doesn't offer). HEIC is converted to JPEG by the API;
  * audio and video are transcribed there. checkFiles also narrows this to what GET
  * /api/client/limits says, so a type the API drops is never offered. */
-export const DOCUMENT_ACCEPT = ".pdf,.doc,.docx,.xlsx,.txt,.jpg,.jpeg,.png,.webp,.heic,.mp3,.m4a,.wav,.mp4";
+export const DOCUMENT_ACCEPT = ".pdf,.doc,.docx,.xlsx,.txt,.jpg,.jpeg,.png,.webp,.heic,.mp3,.m4a,.wav,.mp4,.webm";
 
-/** A hidden file input. `children` gets `open` to show the browser's file dialog from any button. */
+/** A hidden file input. `children` gets `open` to show the browser's file dialog from any button.
+ * `accept` narrows what the dialog offers (photos for a photo suggestion: on a phone, the camera or
+ * the photo library); the files are still checked against what the API takes. */
 export function FilePicker({
   onPick,
   multiple = true,
+  accept = DOCUMENT_ACCEPT,
   children,
 }: {
   onPick: (files: File[]) => void;
   multiple?: boolean;
+  accept?: string;
   children: (open: () => void) => ReactNode;
 }) {
   // State rather than a ref, so `open` reads no ref during render.
@@ -27,7 +31,7 @@ export function FilePicker({
         type="file"
         hidden
         multiple={multiple}
-        accept={DOCUMENT_ACCEPT}
+        accept={accept}
         onChange={(e) => {
           const files = Array.from(e.target.files ?? []);
           // Cleared so picking the same file again still fires onChange.

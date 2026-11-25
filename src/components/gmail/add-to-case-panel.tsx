@@ -51,7 +51,8 @@ function Option({
  * Pictures shown inside the email (logos, signatures) aren't offered; attachments of a type a
  * case can't take are shown but can't be ticked. Mount with a `key` per message.
  */
-export function AddToCasePanel({ caseId, message }: { caseId: string; message: GmailMessage }) {
+/** `suggestionId`: opened from an evidence suggestion ("Messages from your manager"), which the email then fills. */
+export function AddToCasePanel({ caseId, message, suggestionId }: { caseId: string; message: GmailMessage; suggestionId?: string }) {
   const { data: limits } = useLimitsQuery();
   const supported = new Set(offeredExtensions(limits));
   const files = message.attachments.filter((a) => !a.inline);
@@ -74,7 +75,7 @@ export function AddToCasePanel({ caseId, message }: { caseId: string; message: G
       return next;
     });
 
-  const add = () => importMutation.mutate({ messageId: message.id, includeEmail, attachmentPartIds: chosen.map((a) => a.partId) });
+  const add = () => importMutation.mutate({ messageId: message.id, includeEmail, attachmentPartIds: chosen.map((a) => a.partId), missingEvidenceId: suggestionId });
 
   if (importMutation.isSuccess) {
     const added = importMutation.data.documents;

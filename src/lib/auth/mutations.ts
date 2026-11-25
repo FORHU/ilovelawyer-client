@@ -23,16 +23,30 @@ import {
 } from "./api";
 import { useSession } from "./session";
 import { readSearchText } from "@/lib/marketing/search-prefill";
+import { useSite } from "@/components/site/site-provider";
+import { ONBOARDING_PRIVACY_PATH, SIGNED_IN_PATH, afterSignInPath } from "./after-sign-in";
+import { listCases } from "@/lib/cases/api";
 
 // TanStack Query hooks for every auth call. The request functions themselves live in ./api.ts;
 // the signed-in session (token + account) lives in ./session.ts.
 
-export const SIGNED_IN_PATH = "/cases";
+export { SIGNED_IN_PATH };
 
 /** Where a sign-in lands: the cases, or the new-case chat when they arrived with a problem typed
  * into the landing page's search box. */
 export function signedInPath() {
-  return readSearchText() ? "/cases/new" : SIGNED_IN_PATH;
+  return afterSignInPath({ isNewAccount: false, hasCases: null, storyIntake: false, searchText: readSearchText() });
+}
+
+/** Whether the account has a case, open or archived: one without goes on to make its first rather
+ * than to an empty list. Null when it couldn't be checked (the sign-in isn't held up for it). */
+async function hasAnyCase(): Promise<boolean | null> {
+  try {
+    if ((await listCases()).length) return true;
+    return (await listCases(true)).length > 0;
+  } catch {
+    return null;
+  }
 }
 
 export const authKeys = {
@@ -44,20 +58,30 @@ export const authKeys = {
 /** A plain sign-in shows no banner: the app header already says "Welcome back". */
 const NO_BANNER = "";
 const DELETION_CANCELLED_BANNER = "Welcome back. Signing in cancelled your account deletion.";
+const NEW_ACCOUNT_BANNER = "Welcome to ilovelawyer. Create your first case to get started.";
+/** A returning client with no case, sent on to make one (where the site has no privacy step first). */
+const FIRST_CASE_BANNER = "Welcome back. Create your first case to get started.";
 
 /** Every successful sign-in path ends here: keep the session, make this browser's local data the
- * account's own, greet, and go to the cases. */
+ * account's own, greet, and go to the cases, or, for an account made just now, on to its first
+ * case (afterSignInPath). */
 function useCompleteSignIn() {
   const router = useRouter();
-  return async (data: AuthResponse, banner: string, { replace = false } = {}) => {
+  const storyIntake = useSite().storyIntake === "open";
+  return async (data: AuthResponse, banner: string, { replace = false, isNewAccount = false } = {}) => {
     useSession.getState().setSession(data.user, data.accessToken);
     // The app store hydrates lazily (useHydrated); load it first so claimFor compares against
     // what this browser actually holds.
     await useApp.persist.rehydrate();
     useApp.getState().claimFor(data.user.id);
-    useApp.getState().setBanner(banner);
-    if (replace) router.replace(signedInPath());
-    else router.push(signedInPath());
+    // An account made just now has none; anyone else is checked, so a client who signed up and left
+    // before their first case (or verified their email later, at Sign In) makes it now.
+    const hasCases = isNewAccount ? false : await hasAnyCase();
+    const path = afterSignInPath({ isNewAccount, hasCases, storyIntake, searchText: readSearchText() });
+    // The onboarding says its own welcome; a banner would land on the first case's screen.
+    useApp.getState().setBanner(path === ONBOARDING_PRIVACY_PATH ? NO_BANNER : hasCases === false && !isNewAccount ? FIRST_CASE_BANNER : banner);
+    if (replace) router.replace(path);
+    else router.push(path);
   };
 }
 
@@ -88,7 +112,7 @@ export function useGoogleLoginMutation() {
   const complete = useCompleteSignIn();
   return useMutation({
     mutationFn: ({ idToken, remember }: { idToken: string; remember: boolean }) => googleLogin(idToken, remember),
-    onSuccess: (data) => complete(data, data.deletionCancelled ? DELETION_CANCELLED_BANNER : NO_BANNER),
+    onSuccess: (data) => complete(data, data.deletionCancelled ? DELETION_CANCELLED_BANNER : NO_BANNER, { isNewAccount: data.isNewAccount === true }),
   });
 }
 
@@ -119,10 +143,9 @@ export function useVerifyOtpMutation() {
   return useMutation({
     mutationFn: ({ email, code }: { email: string; code: string; source: "signup" | "signin" }) => verifyOtp(email, code),
     onSuccess: (data, { source }) =>
-      complete(
-        data,
-        source === "signup" ? "Welcome to ilovelawyer. Create your first case to get started." : NO_BANNER,
-      ),
+      complete(data, source === "signup" ? NEW_ACCOUNT_BANNER : NO_BANNER, {
+        isNewAccount: source === "signup",
+      }),
   });
 }
 

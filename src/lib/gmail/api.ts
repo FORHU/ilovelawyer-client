@@ -108,6 +108,8 @@ export interface GmailCaseImport {
   includeEmail: boolean;
   /** Attachments to add, each as its own case document. */
   attachmentPartIds: string[];
+  /** The evidence step's suggestion this email answers: the first document added fills it. */
+  missingEvidenceId?: string;
 }
 
 /** Adds an email and/or its chosen attachments to the case as documents (EPIC #982, #986/#987).
