@@ -20,6 +20,10 @@ export interface SiteConfig {
   intakeChat: "open" | "coming-soon";
   /** Ask which part of the UK a case is in (England and Wales, Scotland, Northern Ireland). */
   regionQuestion: boolean;
+  /** The client pays the hired lawyer directly, and ilovelawyer takes no fee (ilovelawyer-api#695,
+   * #694). The API's `paysLawyerDirectly` on a request says the same; this is for screens with no
+   * request, like Find a lawyer. */
+  paysLawyerDirectly: boolean;
   /** The lawyer app on this site, for a lawyer account that signed in here. */
   lawyerAppUrl: string;
   seo: { title: string; description: string };
@@ -33,6 +37,7 @@ export const SITES: Record<TenantCode, SiteConfig> = {
     clientRequests: "open",
     intakeChat: "open",
     regionQuestion: true,
+    paysLawyerDirectly: false,
     lawyerAppUrl: lawyerAppUrl("UK"),
     seo: {
       title: "ilovelawyer",
@@ -46,6 +51,7 @@ export const SITES: Record<TenantCode, SiteConfig> = {
     clientRequests: "coming-soon",
     intakeChat: "coming-soon",
     regionQuestion: false,
+    paysLawyerDirectly: false,
     lawyerAppUrl: lawyerAppUrl("PH"),
     seo: {
       title: "ilovelawyer Philippines",
@@ -61,6 +67,8 @@ export const SITES: Record<TenantCode, SiteConfig> = {
     // Chat Wonder's Korean intake persona (intake_kr).
     intakeChat: "open",
     regionQuestion: false,
+    // KR clients pay the lawyer directly: no payment or fee through ilovelawyer.
+    paysLawyerDirectly: true,
     lawyerAppUrl: lawyerAppUrl("KR"),
     seo: {
       title: "ilovelawyer Korea",

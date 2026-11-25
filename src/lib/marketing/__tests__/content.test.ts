@@ -125,6 +125,12 @@ describe("the Korean page", () => {
     expect(KR_CONTENT.mock.quotes.directFee).toBeTruthy();
   });
 
+  it("names no platform fee, introduction fee or UK amount anywhere on the page, in Korean or English (client #161)", () => {
+    const everything = JSON.stringify([KR_CONTENT, KR_EN_CONTENT]);
+    for (const claim of ["15%", "15 %", "£", "플랫폼 수수료", "소개 수수료", "소개비"]) expect(everything, claim).not.toContain(claim);
+    expect(everything).not.toMatch(/platform fee|introduction fee|referral fee/i);
+  });
+
   it("still shows a [bracketed] decision as a chip, should one be added before launch", () => {
     expect(copyParts("문장 [확정 후 기재] 문장").some((p) => p.kind === "placeholder")).toBe(true);
   });
