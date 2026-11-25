@@ -134,8 +134,12 @@ export interface LawyerRequest {
   lawyer: LawyerPublicProfile | null;
   quote: LawyerQuote | null;
   quotation: Quotation | null;
-  /** The client accepted a quotation and hasn't paid it yet (CONFIRMED). */
+  /** The client accepted a quotation and hasn't paid it yet (CONFIRMED). Never on a site where the
+   * client pays the lawyer directly. */
   awaitingPayment: boolean;
+  /** On this site (KR) the client pays the hired lawyer directly: accepting a quote hires them at
+   * once, and nothing is paid through ilovelawyer. Missing from an older API. */
+  paysLawyerDirectly?: boolean;
   /** Shown again on the quote screen; acknowledged to confirm. */
   referralDisclosure: string | null;
   /** What hiring a lawyer hands over, in the same words as the consent text. Shown with the quotes and on the payment screen. Null until a quote arrives. */
