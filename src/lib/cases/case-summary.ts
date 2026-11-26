@@ -61,3 +61,9 @@ export function caseSummaryFilename(title: string, now: Date = new Date()): stri
       .replace(/-+$/, "") || "case";
   return `case-summary-${slug}-${now.toISOString().slice(0, 10)}.pdf`;
 }
+
+/** The name to save under if the ZIP's own Content-Disposition sends none: the same slugging and
+ * dating as caseSummaryFilename, as case-export-<title>-<YYYY-MM-DD>.zip. */
+export function caseBundleFilename(title: string, now: Date = new Date()): string {
+  return caseSummaryFilename(title, now).replace(/^case-summary-/, "case-export-").replace(/\.pdf$/, ".zip");
+}

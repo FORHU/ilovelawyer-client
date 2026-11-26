@@ -21,13 +21,13 @@ export interface CaseAction {
  * shared by the desktop and mobile headers so a new action is added once. */
 export function useCaseActions(c: Case): { items: CaseAction[]; modal: ReactNode } {
   const [removing, setRemoving] = useState<RemoveMode | null>(null);
-  const summary = useCaseSummaryDownload(c);
+  const bundle = useCaseSummaryDownload(c, { format: "zip" });
   const t = useT();
   return {
     items: [
       { label: t("Guide"), icon: <CircleHelp size={14} />, onSelect: () => useTour.getState().setGuideOpen(true) },
-      ...(summary.available
-        ? [{ label: t("Download case summary"), icon: <FileDown size={14} />, onSelect: summary.start, disabled: summary.pending }]
+      ...(bundle.available
+        ? [{ label: t("Download case files"), icon: <FileDown size={14} />, onSelect: bundle.start, disabled: bundle.pending }]
         : []),
       { label: t("Archive case"), icon: <Archive size={14} />, onSelect: () => setRemoving("archive") },
       { label: t("Delete case"), icon: <Trash2 size={14} />, onSelect: () => setRemoving("delete"), danger: true },
