@@ -35,7 +35,7 @@ export function LawyersListMobile({ v }: { v: LawyersList }) {
   const { activeCase, filters, set, clear, toggleLanguage, areas, areaName } = v;
   const [filtering, setFiltering] = useState(false);
   // The parts of the UK and the UK's languages are the UK site's filters.
-  const { regionQuestion: ukSite } = useSite();
+  const { regionQuestion: ukSite, paysLawyerDirectly } = useSite();
   const scale = consultationScale();
 
   // What is narrowing the list, each with the one tap that removes it.
@@ -205,7 +205,9 @@ export function LawyersListMobile({ v }: { v: LawyersList }) {
             </section>
 
             <p className="text-[12px] leading-[1.6] text-ink-2">
-              {t("Fees are set by each lawyer and paid to them; your actual price is in the quote they send. Lawyers pay ilovelawyer a fee for each introduction. Ratings come from clients whose engagement has ended.")}
+              {(paysLawyerDirectly
+                ? t("Fees are set by each lawyer and you pay them directly; your actual price is in the quote they send. ilovelawyer doesn't take a fee. Ratings come from clients whose engagement has ended.")
+                : t("Fees are set by each lawyer and paid to them; your actual price is in the quote they send. Lawyers pay ilovelawyer a fee for each introduction. Ratings come from clients whose engagement has ended."))}
             </p>
           </>
         )}
