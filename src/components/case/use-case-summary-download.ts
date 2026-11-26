@@ -67,7 +67,8 @@ export function useCaseSummaryDownload(c: Case, { inline = false, format = "pdf"
       onSuccess: ({ blob, filename }) => {
         saveBlob(blob, filename ?? (format === "zip" ? caseBundleFilename(c.title) : caseSummaryFilename(c.title)));
         const asOf = intake?.status === "STALE" && intake.generatedAt ? formatDay(intake.generatedAt) : null;
-        toast.success(t(format === "zip" ? "Case files downloaded" : "Case summary downloaded"), {
+        const title = format === "zip" ? t("Case files downloaded") : t("Case summary downloaded");
+        toast.success(title, {
           description: asOf ? t("From your overview as of {date}. Anything added since isn't in it.", { date: asOf }) : undefined,
         });
       },
