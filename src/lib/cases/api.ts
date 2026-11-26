@@ -77,6 +77,38 @@ export function getIntake(caseId: string) {
   return apiFetch<CaseIntake>(`/api/client/cases/${caseId}/intake`);
 }
 
+/** What POST /cases/story answers: the new case, the story's message, and the intake, RUNNING while
+ * the AI reads the story (poll getIntake until it isn't). */
+export interface StoryStarted {
+  case: Case;
+  messageId: string;
+  intake: CaseIntake;
+}
+
+/** The story-first way in: makes a case from what the client told us and starts reading it. No
+ * chat credit is spent. Needs the sensitive-information consent (403 CONSENT_REQUIRED). */
+export function startStory(text: string) {
+  return post<StoryStarted>("/api/client/cases/story", { text });
+}
+
+/** One fact picked out of the story ("Date" "Mar 3, 2026"), shown as a chip while it's read. */
+export interface StoryFact {
+  label: string;
+  value: string;
+}
+
+/** The story's key facts, for the screen while the full reading runs: one small AI call, nothing
+ * stored. An empty list when the AI couldn't pick any out. */
+export function getStoryFacts(caseId: string) {
+  return post<{ facts: StoryFact[] }>(`/api/client/cases/${caseId}/story/facts`, {});
+}
+
+/** "Something's not right": the client's fix, read together with the story. 409 INTAKE_RUNNING while
+ * the story is still being read. */
+export function correctStory(caseId: string, text: string) {
+  return post<{ messageId: string; intake: CaseIntake }>(`/api/client/cases/${caseId}/story`, { text });
+}
+
 /** Update the intake by hand. Two quick requests start one job: the response is always the
  * current state, running or not. The intake also refreshes on its own — after a chat reply,
  * a document finishing, or an edit to the case details — so this is only for "I just told it

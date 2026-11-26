@@ -18,6 +18,10 @@ export interface SiteConfig {
   /** The AI intake chat. "coming-soon" until the site has its own intake persona: the UK one must
    * never answer a client of another country. */
   intakeChat: "open" | "coming-soon";
+  /** The story-first way into a new case: the client tells what happened, by voice or typing, and
+   * sees what we understood before any question. Needs the site's AI, so never "open" where
+   * `intakeChat` isn't. "off" keeps the chat's own start screen. */
+  storyIntake: "open" | "off";
   /** Ask which part of the UK a case is in (England and Wales, Scotland, Northern Ireland). */
   regionQuestion: boolean;
   /** The client pays the hired lawyer directly, and ilovelawyer takes no fee (ilovelawyer-api#695,
@@ -36,6 +40,7 @@ export const SITES: Record<TenantCode, SiteConfig> = {
     locale: "en-GB",
     clientRequests: "open",
     intakeChat: "open",
+    storyIntake: "open",
     regionQuestion: true,
     paysLawyerDirectly: false,
     lawyerAppUrl: lawyerAppUrl("UK"),
@@ -50,6 +55,7 @@ export const SITES: Record<TenantCode, SiteConfig> = {
     locale: "en-PH",
     clientRequests: "coming-soon",
     intakeChat: "coming-soon",
+    storyIntake: "off",
     regionQuestion: false,
     paysLawyerDirectly: false,
     lawyerAppUrl: lawyerAppUrl("PH"),
@@ -66,6 +72,7 @@ export const SITES: Record<TenantCode, SiteConfig> = {
     clientRequests: "open",
     // Chat Wonder's Korean intake persona (intake_kr).
     intakeChat: "open",
+    storyIntake: "open",
     regionQuestion: false,
     // KR clients pay the lawyer directly: no payment or fee through ilovelawyer.
     paysLawyerDirectly: true,

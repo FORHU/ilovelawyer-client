@@ -96,7 +96,7 @@ export function IntakeChatDesktop({ creating, error, onCreate, onEditDetails, ha
           )}
       {empty && recorder.error && (
         <div role="alert" className="mb-2 px-2 text-[13px] text-error">
-          {recorder.error}
+          {t(recorder.error)}
         </div>
       )}
       <div

@@ -6,12 +6,15 @@ import { LIVE_SAMPLE_RATE, PcmDownsampler } from "./pcm";
 import {
   CONNECTION_LOST,
   FAILED,
+  LONG_ENOUGH,
   MIC_OFF,
   NOTHING_HEARD,
   OFFLINE,
   UNSUPPORTED,
+  appendSpoken,
   liveTranscript,
   refusalMessage,
+  tickAction,
   type LiveStartAck,
 } from "./live-dictation";
 
@@ -50,7 +53,7 @@ class DictationTap extends AudioWorkletProcessor {
 registerProcessor("dictation-tap", DictationTap);
 `;
 
-interface Ui {
+export interface Ui {
   setPhase: (phase: LiveDictationPhase) => void;
   setSeconds: (seconds: number) => void;
   setTranscript: (text: string) => void;
@@ -69,7 +72,22 @@ interface Run {
   detach: () => void;
   finals: string[];
   partial: string;
+  /** In all, as the person sees it. */
   seconds: number;
+  /** On the stream that's open now: a chained recording moves to a new one before the API's limit. */
+  streamSeconds: number;
+  /** The API's per-stream limit, from its start answer. */
+  maxSeconds: number;
+  /** Words from this recording's earlier streams. */
+  earlier: string;
+  /** Between streams: the last one was asked to stop and the next isn't open yet. The microphone
+   * keeps going, and its audio waits in `held` until the next stream opens. */
+  handingOff: boolean;
+  held: ArrayBuffer[];
+  /** The person (or the overall limit) stopped it: no further stream is opened. */
+  stopped: boolean;
+  /** It stopped at the overall limit, which the person is told. */
+  reachedLimit: boolean;
   /** The API has a stream open for it, so a cancel has to tell the API. */
   serverOpen: boolean;
   /** Audio is going out. */
@@ -77,7 +95,15 @@ interface Run {
   done: boolean;
 }
 
-function createRecorder(ui: Ui) {
+/** All the words of a recording so far: its earlier streams', then this stream's. */
+function heard(run: Run): string {
+  return appendSpoken(run.earlier, liveTranscript(run.finals, run.partial)).trim();
+}
+
+/** `chainUpTo`: carry on past the API's per-stream limit, on new streams, up to this many seconds in
+ * all (see tickAction). The microphone stays open throughout, which matters on Safari, where audio
+ * can only start inside a tap. Exported for its test (__tests__/chained-dictation.test.ts). */
+export function createRecorder(ui: Ui, { chainUpTo }: { chainUpTo?: number } = {}) {
   let current: Run | null = null;
 
   /** Lets go of the microphone and the audio graph; the socket listeners stay for the last words. */
@@ -118,21 +144,72 @@ function createRecorder(ui: Ui) {
     release(run);
     if (current === run) current = null;
     if (!ui.alive()) return;
-    const words = text?.trim() || liveTranscript(run.finals, run.partial);
+    const last = text?.trim() || liveTranscript(run.finals, run.partial);
+    const words = appendSpoken(run.earlier, last).trim();
     ui.setPhase("idle");
     ui.setTranscript("");
     if (words) ui.onText(words);
     if (error) ui.setError(error);
     else if (!words) ui.setError(NOTHING_HEARD);
+    else if (run.reachedLimit) ui.setError(LONG_ENOUGH);
   };
 
   const stopRun = (run: Run) => {
     if (run.done || !run.sending) return;
+    run.stopped = true;
     releaseAudio(run);
-    getAppSocket().emit("dictation:stop");
+    // Between streams there may be none open to stop: the next one is stopped as soon as it opens
+    // and has had the audio that waited for it (nextStream).
+    if (!run.handingOff) getAppSocket().emit("dictation:stop");
     ui.setPhase("finishing");
+    if (run.finishTimer) clearTimeout(run.finishTimer);
     run.finishTimer = setTimeout(() => finish(run, {}), FINISH_TIMEOUT_MS);
   };
+
+  /** Near the API's per-stream limit: ask this stream to finish. Its last words come with
+   * dictation:end, and nextStream opens the next one; meanwhile the audio is held. */
+  const handOff = (run: Run) => {
+    run.handingOff = true;
+    getAppSocket().emit("dictation:stop");
+    run.finishTimer = setTimeout(() => finish(run, { error: FAILED }), FINISH_TIMEOUT_MS);
+  };
+
+  /** The previous stream has ended with `text`: keep its words and open the next stream, then send
+   * it the audio that waited. A refusal ends the recording, keeping every word heard so far. */
+  async function nextStream(run: Run, text: string | undefined) {
+    if (run.finishTimer) clearTimeout(run.finishTimer);
+    run.finishTimer = null;
+    run.earlier = appendSpoken(run.earlier, text?.trim() || liveTranscript(run.finals, run.partial));
+    run.finals = [];
+    run.partial = "";
+    run.serverOpen = false;
+
+    const socket = getAppSocket();
+    let ack: LiveStartAck;
+    try {
+      ack = await socket.timeout(START_TIMEOUT_MS).emitWithAck("dictation:start", { sampleRate: LIVE_SAMPLE_RATE });
+    } catch {
+      return finish(run, { error: FAILED });
+    }
+    if (run.done) {
+      if (ack?.ok) socket.emit("dictation:cancel");
+      return;
+    }
+    if (!ack?.ok) return finish(run, { error: refusalMessage(ack) });
+
+    run.serverOpen = true;
+    run.maxSeconds = ack.maxSeconds || run.maxSeconds;
+    run.handingOff = false;
+    // The held audio counts toward the new stream's limit.
+    let heldBytes = 0;
+    for (const chunk of run.held.splice(0)) {
+      heldBytes += chunk.byteLength;
+      socket.emit("dictation:audio", chunk);
+    }
+    run.streamSeconds = Math.ceil(heldBytes / (LIVE_SAMPLE_RATE * 2));
+    // Stopped while waiting for this stream: it has had the last of the audio, so it ends now.
+    if (run.stopped) socket.emit("dictation:stop");
+  }
 
   async function start() {
     if (current) return;
@@ -165,6 +242,13 @@ function createRecorder(ui: Ui) {
       finals: [],
       partial: "",
       seconds: 0,
+      streamSeconds: 0,
+      maxSeconds: FALLBACK_MAX_SECONDS,
+      earlier: "",
+      handingOff: false,
+      held: [],
+      stopped: false,
+      reachedLimit: false,
       serverOpen: false,
       sending: false,
       done: false,
@@ -208,15 +292,21 @@ function createRecorder(ui: Ui) {
     const onPartial = (payload: { text?: string }) => {
       if (run.done) return;
       run.partial = payload?.text ?? "";
-      ui.setTranscript(liveTranscript(run.finals, run.partial));
+      ui.setTranscript(heard(run));
     };
     const onFinal = (payload: { text?: string }) => {
       if (run.done) return;
       if (payload?.text) run.finals.push(payload.text);
       run.partial = "";
-      ui.setTranscript(liveTranscript(run.finals, run.partial));
+      ui.setTranscript(heard(run));
     };
-    const onEnd = (payload: { text?: string }) => finish(run, { text: payload?.text });
+    // A stream that ends while handing off is followed by the next, which also takes any audio that
+    // waited for it when the person stopped meanwhile (then ends at once). Otherwise it's over.
+    const onEnd = (payload: { text?: string }) => {
+      if (run.done) return;
+      if (run.handingOff && (!run.stopped || run.held.length > 0)) void nextStream(run, payload?.text);
+      else finish(run, { text: payload?.text });
+    };
     const onError = (payload: { message?: string }) => finish(run, { error: payload?.message || FAILED });
     const onDisconnect = () => finish(run, { error: CONNECTION_LOST });
     socket.on("dictation:partial", onPartial);
@@ -265,16 +355,24 @@ function createRecorder(ui: Ui) {
     node.port.onmessage = (event: MessageEvent<Float32Array>) => {
       if (!run.sending) return;
       const pcm = downsampler.push(event.data);
-      if (pcm.length) socket.emit("dictation:audio", pcm.buffer);
+      if (!pcm.length) return;
+      if (run.handingOff) run.held.push(pcm.buffer as ArrayBuffer);
+      else socket.emit("dictation:audio", pcm.buffer);
     };
     run.sending = true;
     ui.setPhase("recording");
 
-    const maxSeconds = ack.maxSeconds || FALLBACK_MAX_SECONDS;
+    run.maxSeconds = ack.maxSeconds || FALLBACK_MAX_SECONDS;
     run.timer = setInterval(() => {
       run.seconds += 1;
+      run.streamSeconds += 1;
       ui.setSeconds(run.seconds);
-      if (run.seconds >= maxSeconds) stopRun(run);
+      const action = tickAction({ seconds: run.seconds, streamSeconds: run.streamSeconds, maxSeconds: run.maxSeconds, chainUpTo, handingOff: run.handingOff });
+      if (action === "stop") stopRun(run);
+      else if (action === "limit") {
+        run.reachedLimit = true;
+        stopRun(run);
+      } else if (action === "handoff") handOff(run);
     }, 1000);
   }
 
@@ -298,9 +396,10 @@ function createRecorder(ui: Ui) {
  * Speaking instead of typing, with the words appearing while the person talks. The microphone is
  * asked for only when `start` is called, from a tap. `transcript` is what has been heard so far, to
  * show while recording; once stopped, `onText` gets the whole of it for the caller to put in the
- * composer, where it can be edited before sending. Stops by itself at the API's time limit (180 s).
+ * composer, where it can be edited before sending. Stops by itself at the API's time limit (180 s),
+ * or, with `chainUpTo`, carries on past it on new streams, as one recording, up to that many seconds.
  */
-export function useLiveDictation({ onText }: { onText: (text: string) => void }) {
+export function useLiveDictation({ onText, chainUpTo }: { onText: (text: string) => void; chainUpTo?: number }) {
   const [phase, setPhase] = useState<LiveDictationPhase>("idle");
   const [seconds, setSeconds] = useState(0);
   const [transcript, setTranscript] = useState("");
@@ -315,20 +414,25 @@ export function useLiveDictation({ onText }: { onText: (text: string) => void })
   const recorder = useRef<ReturnType<typeof createRecorder> | null>(null);
   useEffect(() => {
     let alive = true;
-    const made = createRecorder({
-      setPhase,
-      setSeconds,
-      setTranscript,
-      setError,
-      onText: (text) => onTextRef.current(text),
-      alive: () => alive,
-    });
+    const made = createRecorder(
+      {
+        setPhase,
+        setSeconds,
+        setTranscript,
+        setError,
+        onText: (text) => onTextRef.current(text),
+        alive: () => alive,
+      },
+      { chainUpTo },
+    );
     recorder.current = made;
     return () => {
       alive = false;
       made.cancel();
       if (recorder.current === made) recorder.current = null;
     };
+    // The limit is the caller's for the life of the screen: read once, when the recorder is made.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {

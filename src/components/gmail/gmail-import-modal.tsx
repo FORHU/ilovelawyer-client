@@ -212,7 +212,7 @@ function AttachmentRow({ messageId, attachment }: { messageId: string; attachmen
   );
 }
 
-function MessageDetails({ caseId, message }: { caseId: string; message: GmailMessage }) {
+function MessageDetails({ caseId, message, suggestionId }: { caseId: string; message: GmailMessage; suggestionId?: string }) {
   const files = [...message.attachments].sort((a, b) => Number(a.inline) - Number(b.inline));
   const t = useT();
   return (
@@ -238,12 +238,12 @@ function MessageDetails({ caseId, message }: { caseId: string; message: GmailMes
           </ul>
         </section>
       )}
-      <AddToCasePanel caseId={caseId} message={message} />
+      <AddToCasePanel caseId={caseId} message={message} suggestionId={suggestionId} />
     </div>
   );
 }
 
-function MessageView({ caseId, id, onBack }: { caseId: string; id: string; onBack: () => void }) {
+function MessageView({ caseId, id, onBack, suggestionId }: { caseId: string; id: string; onBack: () => void; suggestionId?: string }) {
   const { data, error, isPending } = useGmailMessage(id);
   const t = useT();
   return (
@@ -258,7 +258,7 @@ function MessageView({ caseId, id, onBack }: { caseId: string; id: string; onBac
         <p className="py-6 text-center text-[13px] text-ink-2">{t("Opening email…")}</p>
       ) : (
         // Keyed by email so "Show images", the ticks and "Added" never carry over to the next one.
-        <MessageDetails key={data.id} caseId={caseId} message={data} />
+        <MessageDetails key={data.id} caseId={caseId} message={data} suggestionId={suggestionId} />
       )}
     </div>
   );
@@ -270,7 +270,8 @@ function MessageView({ caseId, id, onBack }: { caseId: string; id: string; onBac
  * email (as a PDF) and chosen attachments to the case (#986/#987). A centred panel on web, a
  * bottom sheet on a phone (Modal).
  */
-export function GmailImportModal({ caseId, open, onClose }: { caseId: string; open: boolean; onClose: () => void }) {
+/** `suggestionId`: opened from an evidence suggestion, which the email added then fills. */
+export function GmailImportModal({ caseId, open, onClose, suggestionId }: { caseId: string; open: boolean; onClose: () => void; suggestionId?: string }) {
   const connected = useSession((s) => !!s.user?.gmailConnected);
   const gmailEmail = useSession((s) => s.user?.gmailEmail);
   const consented = useEmailImportConsent();
@@ -320,7 +321,7 @@ export function GmailImportModal({ caseId, open, onClose }: { caseId: string; op
       ) : !consented ? (
         <ConsentGate />
       ) : openId ? (
-        <MessageView caseId={caseId} id={openId} onBack={() => setOpenId(null)} />
+        <MessageView caseId={caseId} id={openId} onBack={() => setOpenId(null)} suggestionId={suggestionId} />
       ) : showSuggestions ? (
         <SuggestionsView suggest={suggest} onBack={() => setShowSuggestions(false)} onOpen={setOpenId} />
       ) : (

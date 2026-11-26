@@ -21,6 +21,7 @@ function intake(status: IntakeStatus, generatedAt: string | null): CaseIntake {
     deadlines: [],
     missing: [],
     conflicts: [],
+    storySoFar: [],
     completeness: null,
     formFields: {
       parties: [],

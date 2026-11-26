@@ -1,0 +1,9 @@
+{
+  "Microphone is off. You can type instead, or allow it in your browser settings.": "마이크가 꺼져 있어요. 대신 글로 쓰시거나, 브라우저 설정에서 마이크를 허용해 주세요.",
+  "Voice input isn't available in this browser. You can type instead.": "이 브라우저에서는 음성 입력을 사용할 수 없어요. 대신 글로 써 주세요.",
+  "We didn't catch anything. Try again, or type instead.": "아무 말도 들리지 않았어요. 다시 해 보시거나 글로 써 주세요.",
+  "We couldn't turn that into text. You can type instead.": "말씀을 글로 옮기지 못했어요. 대신 글로 써 주세요.",
+  "Voice input needs a connection. Try again in a moment, or type instead.": "음성 입력은 인터넷 연결이 필요해요. 잠시 후 다시 해 보시거나 글로 써 주세요.",
+  "The connection dropped, so we stopped listening. What we heard is in the box.": "연결이 끊겨 듣기를 멈췄어요. 들은 내용은 입력란에 있어요.",
+  "That's as long as one recording can be, so we stopped listening. What we heard is in the box. You can type the rest, or keep talking.": "한 번에 녹음할 수 있는 최대 길이라 듣기를 멈췄어요. 들은 내용은 입력란에 있어요. 나머지는 글로 쓰시거나 이어서 말씀해 주세요."
+}

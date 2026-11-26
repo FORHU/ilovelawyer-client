@@ -19,10 +19,10 @@ const TABS = [
   { href: "/settings", label: msg("Settings"), Icon: SlidersHorizontal, match: /^\/settings/ },
 ];
 
-/** Screens that bring their own header and a back button (a case, the new-case chat): they get the
+/** Screens that bring their own header and a back button (a case, its questions and evidence, the new-case chat): they get the
  * whole screen, with no top bar and no tab bar, like a conversation in a messaging app. */
 export function isImmersive(pathname: string) {
-  return pathname === "/cases/new" || /^\/cases\/[^/]+$/.test(pathname);
+  return pathname === "/cases/new" || /^\/cases\/[^/]+(?:\/questions|\/evidence)?$/.test(pathname);
 }
 
 /** The phone's top bar on the main screens: the logo, the other language (on a site with two),
