@@ -6,6 +6,7 @@ import { useSession } from "@/lib/auth/session";
 import { exportCaseSummary } from "@/lib/cases/api";
 import { caseKeys } from "@/lib/cases/queries";
 import {
+  caseBundleFilename,
   caseSummaryFilename,
   emptySummaryProblem,
   preparingSummaryProblem,
@@ -28,10 +29,13 @@ import { useLanguage, useT } from "@/components/site/language-provider";
  * refreshes the intake: a download costs no AI work and no credits.
  *
  * `inline`: the Overview shows a problem under its button; the header menu, with nowhere to put one,
- * shows a toast. The pending state is shared through the mutation key, so a press in one place
- * disables the other too.
+ * shows a toast. The pending state is shared through the mutation key (which includes `format`), so
+ * a press in one place disables only its own button, not the other format's.
+ *
+ * `format`: "pdf" is the summary alone; "zip" ("Download case files") is that same PDF plus every
+ * file the client uploaded to the case.
  */
-export function useCaseSummaryDownload(c: Case, { inline = false }: { inline?: boolean } = {}) {
+export function useCaseSummaryDownload(c: Case, { inline = false, format = "pdf" }: { inline?: boolean; format?: "pdf" | "zip" } = {}) {
   const t = useT();
   // The PDF's own labels follow the app's language (KR offers Korean and English).
   const { lang } = useLanguage();
@@ -41,9 +45,9 @@ export function useCaseSummaryDownload(c: Case, { inline = false }: { inline?: b
   const available = useSite().intakeChat === "open";
   const [problem, setProblem] = useState<SummaryProblem | null>(null);
 
-  const mutationKey = ["case-summary", c.id];
+  const mutationKey = ["case-summary", c.id, format];
   const pending = useIsMutating({ mutationKey }) > 0;
-  const mutation = useMutation({ mutationKey, mutationFn: () => exportCaseSummary(c.id, lang) });
+  const mutation = useMutation({ mutationKey, mutationFn: () => exportCaseSummary(c.id, lang, format) });
 
   const report = (found: SummaryProblem) => {
     if (inline) setProblem(found);
@@ -61,9 +65,9 @@ export function useCaseSummaryDownload(c: Case, { inline = false }: { inline?: b
 
     mutation.mutate(undefined, {
       onSuccess: ({ blob, filename }) => {
-        saveBlob(blob, filename ?? caseSummaryFilename(c.title));
+        saveBlob(blob, filename ?? (format === "zip" ? caseBundleFilename(c.title) : caseSummaryFilename(c.title)));
         const asOf = intake?.status === "STALE" && intake.generatedAt ? formatDay(intake.generatedAt) : null;
-        toast.success(t("Case summary downloaded"), {
+        toast.success(t(format === "zip" ? "Case files downloaded" : "Case summary downloaded"), {
           description: asOf ? t("From your overview as of {date}. Anything added since isn't in it.", { date: asOf }) : undefined,
         });
       },

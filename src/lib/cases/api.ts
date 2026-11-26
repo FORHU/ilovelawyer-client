@@ -85,12 +85,13 @@ export function refreshIntake(caseId: string) {
   return post<CaseIntake>(`/api/client/cases/${caseId}/intake/refresh`, {});
 }
 
-/** The case summary PDF: what the client told us, built by the API from the stored intake — never an
- * AI refresh, never a credit. The PDF is the response itself (nothing is stored), its labels in
- * `lang`; the filename comes from Content-Disposition. An empty intake is 409 INTAKE_EMPTY, one still
- * being prepared 409 INTAKE_RUNNING. */
-export function exportCaseSummary(caseId: string, lang: "en" | "ko") {
-  return apiFetchBlob(`/api/client/cases/${caseId}/export?format=pdf&lang=${lang}`);
+/** The case summary PDF, or (format: "zip") that same PDF plus every file the client uploaded to the
+ * case ("Download case files"): built by the API from the stored intake — never an AI refresh, never
+ * a credit. The response is the file itself (nothing is stored), its labels in `lang`; the filename
+ * comes from Content-Disposition. An empty intake is 409 INTAKE_EMPTY, one still being prepared 409
+ * INTAKE_RUNNING. */
+export function exportCaseSummary(caseId: string, lang: "en" | "ko", format: "pdf" | "zip" = "pdf") {
+  return apiFetchBlob(`/api/client/cases/${caseId}/export?format=${format}&lang=${lang}`);
 }
 
 /** The answer is written in the background; listMessages shows it when it's done. `documentIds`

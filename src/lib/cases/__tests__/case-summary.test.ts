@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ApiError } from "@/lib/api/fetch";
 import { translate } from "@/lib/i18n/translate";
 import type { CaseIntake, IntakeStatus } from "@/lib/types";
-import { caseSummaryFilename, summaryAvailability, summaryProblemOf } from "../case-summary";
+import { caseBundleFilename, caseSummaryFilename, summaryAvailability, summaryProblemOf } from "../case-summary";
 
 const en = (key: string, vars?: Record<string, string | number>) => translate("en", key, vars);
 
@@ -117,5 +117,13 @@ describe("caseSummaryFilename", () => {
   it("caps a long title without a trailing dash", () => {
     const name = caseSummaryFilename(`${"a".repeat(59)} ${"b".repeat(20)}`, now);
     expect(name).toBe(`case-summary-${"a".repeat(59)}-2026-11-20.pdf`);
+  });
+});
+
+describe("caseBundleFilename", () => {
+  const now = new Date("2026-11-20T10:00:00.000Z");
+
+  it("names the zip bundle like the pdf but with a .zip extension", () => {
+    expect(caseBundleFilename("Landlord won't return my deposit!", now)).toBe("case-export-landlord-won-t-return-my-deposit-2026-11-20.zip");
   });
 });
