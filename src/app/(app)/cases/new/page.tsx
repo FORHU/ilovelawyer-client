@@ -7,7 +7,9 @@ import { IntakeChat } from "@/components/cases/intake-chat";
 import { GuideButton } from "@/components/tour/guide-button";
 import { TourHint } from "@/components/tour/tour-hint";
 import { useDevice } from "@/components/device/device-provider";
-import type { IntakeDraft } from "@/lib/cases/use-intake-chat";
+import { EMPTY_INTAKE_DRAFT, type IntakeDraft } from "@/lib/cases/use-intake-chat";
+import { StoryIntake } from "@/components/story/story-intake";
+import { readSearchText } from "@/lib/marketing/search-prefill";
 import { NewCaseForm } from "@/components/wizard/new-case-form";
 import { useSession } from "@/lib/auth/session";
 import { sendMessage } from "@/lib/cases/api";
@@ -236,6 +238,18 @@ function NewCase() {
     else useApp.getState().setBanner(`Your case "${created.title}" is created. You'll find it under Your cases.`);
   };
 
+  // The story screen (components/story): its text is kept as the draft's chat text, with no
+  // conversation, until the story is sent and becomes a case.
+  const onStoryChange = (storyText: string) => {
+    chatState.current = { chat: { messages: [], step: "start", draft: EMPTY_INTAKE_DRAFT, asked: [], text: storyText }, files: [] };
+    saveSoon();
+  };
+  const onStoryCreated = () => {
+    const id = draftId.current;
+    if (id) removeDraft(id);
+    if (useWizard.getState().draftId === id) useWizard.setState({ draftId: null });
+  };
+
   // Still used by the scripted review screen reached via "Edit details" — an explicit, opt-in
   // path for someone who wants to check/adjust fields before anything is created, not the default.
   const onChatCreate = (draft: IntakeDraft, files: File[]) => {
@@ -243,9 +257,15 @@ function NewCase() {
     void create();
   };
 
+  // The story screen is the way in where the site has it, unless a chat already under way was
+  // brought back from a draft: that carries on as a chat.
+  const storyMode = site.storyIntake === "open" && !chatStart?.chat?.messages.length;
+
   if (mode === "chat") {
     return (
       <div className="flex min-h-0 flex-1 flex-col">
+        {/* On a desktop the story screen has nothing to show here (its back button is the phone's). */}
+        {(device === "mobile" || !storyMode) && (
         <div className="keyboard-hide mx-auto w-full max-w-[768px] px-4 pt-5 max-md:pt-2 md:px-6">
           <div className="flex items-center justify-between">
             <button
@@ -261,12 +281,23 @@ function NewCase() {
             {device === "mobile" && (
               <div className="ml-auto flex items-center gap-2">
                 <div ref={setActionsSlot} className="flex items-center gap-2" />
-                <GuideButton variant="bar" />
+                {/* The guide's new-case tour walks the chat; the story screen has none of its stops. */}
+                {!storyMode && <GuideButton variant="bar" />}
               </div>
             )}
           </div>
-          <TourHint className="mt-3" />
+          {!storyMode && <TourHint className="mt-3" />}
         </div>
+        )}
+        {storyMode ? (
+          <StoryIntake
+            initialText={readSearchText() ?? chatStart?.chat?.text ?? ""}
+            onTextChange={onStoryChange}
+            onCreated={onStoryCreated}
+            onContinue={(caseId) => router.push(`/cases/${caseId}/questions`)}
+            onUseForm={() => setMode("form")}
+          />
+        ) : (
         <IntakeChat
           creating={creating || chatCreating}
           error={error || chatError}
@@ -283,6 +314,7 @@ function NewCase() {
           initial={chatStart ?? undefined}
           onChange={onChatChange}
         />
+        )}
       </div>
     );
   }

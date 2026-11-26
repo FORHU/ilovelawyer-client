@@ -39,6 +39,8 @@ const TITLE_MAX = 150;
 const WHERE_MAX = 80;
 
 const EMPTY: IntakeDraft = { title: "", happened: "", wants: "", areas: [], region: "", where: "", side: "", others: [] };
+/** Nothing gathered yet: what a draft of the story screen (components/story) saves alongside its text. */
+export const EMPTY_INTAKE_DRAFT: IntakeDraft = EMPTY;
 
 // ---- Reading a message -------------------------------------------------------------------------
 

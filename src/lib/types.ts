@@ -71,6 +71,12 @@ export interface CaseDocument {
   /** #159: the relabeled uploading/processing/done/failed status, once ilovelawyer-api exposes
    * it. Assumed field name. Absent on an API that doesn't send it yet — fall back to `status`. */
   syncStatus?: DocumentSyncStatus;
+  /** The evidence step's note on it (ilovelawyer-api Document.clientNote): drafted by the AI once it's
+   * read, until the client writes their own. */
+  note?: string | null;
+  /** Who wrote the note: null before one has been drafted; "AI" with no note means the AI had nothing
+   * to say. */
+  noteBy?: "AI" | "CLIENT" | null;
 }
 
 /** #159: one open CaseMissingEvidence row (GET /api/client/cases/:id/missing-evidence) — "need a
@@ -251,9 +257,21 @@ export interface CaseIntake {
   deadlines: IntakeDeadline[];
   missing: IntakeGap[];
   conflicts: IntakeConflict[];
+  /** "Here's your story so far": at most five lines, facts first, deadlines last. */
+  storySoFar: IntakeStoryLine[];
   /** From Lawyer Readiness when that check is enabled; null when it's off or hasn't run. */
   completeness: IntakeCompleteness | null;
   formFields: IntakeFormFields;
+}
+
+/** One line of "Here's your story so far": what the client told us, said back to them. `text` may
+ * mark its key detail with **bold**; render only that, never as HTML. A DEADLINE line is a date the
+ * client or a document stated, never one worked out. */
+export interface IntakeStoryLine {
+  id: string;
+  kind: "FACT" | "DEADLINE";
+  text: string;
+  sources: IntakeSource[];
 }
 
 export function sideLabel(side: Side | null) {

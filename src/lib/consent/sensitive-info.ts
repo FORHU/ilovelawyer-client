@@ -42,7 +42,8 @@ export function useSetSensitiveInfoMutation() {
   const queryClient = useQueryClient();
   const userId = useSession((s) => s.user?.id);
   return useMutation({
-    mutationFn: ({ granted, source }: { granted: boolean; source: "case_step" | "settings" }) =>
+    // "first_login": the new-client flow's privacy step (components/onboarding/privacy-step.tsx).
+    mutationFn: ({ granted, source }: { granted: boolean; source: "case_step" | "settings" | "first_login" }) =>
       apiFetch<ConsentState[]>("/api/consents/SENSITIVE_INFO", { method: "PUT", body: JSON.stringify({ granted, source }) }),
     onSuccess: (list, { granted }) => {
       queryClient.setQueryData(consentKeys.all(userId), list);

@@ -50,7 +50,7 @@ export function LawyersListDesktop({ v }: { v: LawyersList }) {
   // Below lg the filters stack above the list, so they fold away until asked for.
   const [filtersOpen, setFiltersOpen] = useState(false);
   // The parts of the UK and the UK's languages are the UK site's filters.
-  const { regionQuestion: ukSite, country } = useSite();
+  const { regionQuestion: ukSite, country, paysLawyerDirectly } = useSite();
   const scale = consultationScale();
 
   return (
@@ -260,7 +260,9 @@ export function LawyersListDesktop({ v }: { v: LawyersList }) {
                   </Button>
                 )}
                 <p className="text-[12.5px] leading-[1.6] text-ink-2">
-                  {t("Fees are set by each lawyer and paid to them; your actual price is in the quote they send. Lawyers pay ilovelawyer a fee for each introduction. Ratings come from clients whose engagement has ended.")}
+                  {(paysLawyerDirectly
+                ? t("Fees are set by each lawyer and you pay them directly; your actual price is in the quote they send. ilovelawyer doesn't take a fee. Ratings come from clients whose engagement has ended.")
+                : t("Fees are set by each lawyer and paid to them; your actual price is in the quote they send. Lawyers pay ilovelawyer a fee for each introduction. Ratings come from clients whose engagement has ended."))}
                 </p>
               </>
             )}

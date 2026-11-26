@@ -80,7 +80,7 @@ export function IntakeChatMobile({ creating, error, onCreate, onEditDetails, has
       )}
       {empty && recorder.error && (
         <div role="alert" className="mb-2 px-1 text-[13px] text-error">
-          {recorder.error}
+          {t(recorder.error)}
         </div>
       )}
       <ComposerPill data-tour="chatbox">

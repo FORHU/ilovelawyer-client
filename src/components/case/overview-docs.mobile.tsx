@@ -14,6 +14,7 @@ import { formatBytes } from "@/lib/format";
 import { DocumentCardMobile } from "./document-card.mobile";
 import { UploadingRow } from "./document-row";
 import { EvidenceSuggestionBanner } from "./evidence-suggestion-banner";
+import { DocumentSuggestions } from "@/components/evidence/evidence-banner";
 import type { DocumentsProps } from "./overview-docs";
 import { useDocuments } from "./use-documents";
 import { useT } from "@/components/site/language-provider";
@@ -45,7 +46,10 @@ export function DocumentsMobile({ c, focusDocumentId, onFocused, onOpenOverview 
             </span>
           </div>
 
-          <EvidenceSuggestionBanner gap={nextGap} message={missingEvidence?.suggestion?.message ?? null} onUpload={uploadForGap} />
+          <DocumentSuggestions
+            caseId={c.id}
+            fallback={<EvidenceSuggestionBanner gap={nextGap} message={missingEvidence?.suggestion?.message ?? null} onUpload={uploadForGap} />}
+          />
 
           {leftOver.length > 0 && (
             <div className="flex flex-col gap-3 rounded-card border border-error-line bg-error-bg px-4 py-3">

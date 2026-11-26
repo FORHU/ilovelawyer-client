@@ -13,6 +13,7 @@ import { formatBytes } from "@/lib/format";
 import type { CaseDocument, MissingEvidenceItem } from "@/lib/types";
 import { DocumentRow, KindBadge, TableHead, UploadingRow, documentMeta } from "./document-row";
 import { EvidenceSuggestionBanner } from "./evidence-suggestion-banner";
+import { DocumentSuggestions } from "@/components/evidence/evidence-banner";
 import { documentSyncLabel, gapForDocument } from "@/lib/documents/evidence-gaps";
 import type { DocumentsProps } from "./overview-docs";
 import { useDocuments } from "./use-documents";
@@ -113,7 +114,10 @@ export function DocumentsDesktop({ c, focusDocumentId, onFocused, onOpenOverview
           )}
         </FilePicker>
 
-        <EvidenceSuggestionBanner gap={nextGap} message={missingEvidence?.suggestion?.message ?? null} onUpload={uploadForGap} />
+        <DocumentSuggestions
+          caseId={c.id}
+          fallback={<EvidenceSuggestionBanner gap={nextGap} message={missingEvidence?.suggestion?.message ?? null} onUpload={uploadForGap} />}
+        />
 
         {leftOver.length > 0 && (
           <div className="flex flex-wrap items-center gap-3 rounded-card border border-error-line bg-error-bg px-4 py-3">
