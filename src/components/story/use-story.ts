@@ -11,6 +11,9 @@ import {
   useCorrectStoryMutation,
   useRefreshStoryCase,
   useStartStoryMutation,
+  factsRevealMs,
+  factsShown,
+  useStoryFactsQuery,
   useStoryIntakeQuery,
 } from "@/lib/cases/story";
 import { clearSearchText } from "@/lib/marketing/search-prefill";
@@ -86,6 +89,25 @@ export function useStory({ initialText, onTextChange, onCreated }: Pick<StoryPro
   // Offline, the intake query pauses rather than fails, so the reading simply waits for the connection.
   const reading = caseId ? storyReading(intake.data, now - readingSince, intake.isError) : null;
   const waiting = view === "check" && (reading === "reading" || reading === "slow");
+  // The facts picked out of the story, shown while it's read: asked for as soon as there's a case,
+  // then popping in one after another from when they arrived.
+  const facts = useStoryFactsQuery(caseId, reading === "reading" || reading === "slow");
+  const factList = facts.data?.facts ?? [];
+  const factsAt = factList.length ? facts.dataUpdatedAt : null;
+  const revealMs = factsRevealMs(factList.length);
+  const [clock, setClock] = useState(0);
+  useEffect(() => {
+    if (factsAt === null) return;
+    const tick = setInterval(() => {
+      setClock(Date.now());
+      if (Date.now() - factsAt >= revealMs) clearInterval(tick);
+    }, 100);
+    return () => clearInterval(tick);
+  }, [factsAt, revealMs]);
+  const shownFacts = factsAt === null ? [] : factList.slice(0, factsShown(factList.length, clock - factsAt));
+  // A reading done while the facts are still popping in waits for the last of them. Facts that come
+  // after the reading was already done never take the screen back.
+  const holding = reading === "understood" && factsAt !== null && factsAt <= intake.dataUpdatedAt && clock - factsAt < revealMs;
   useEffect(() => {
     if (!waiting) return;
     const tick = setInterval(() => setNow(Date.now()), 1000);
@@ -175,7 +197,10 @@ export function useStory({ initialText, onTextChange, onCreated }: Pick<StoryPro
     view,
     caseId,
     intake: intake.data,
-    reading,
+    /** The reading, still "reading" while its facts finish popping in. */
+    reading: holding ? ("reading" as const) : reading,
+    /** Picked out of the story while it's read, as many as have popped in so far. */
+    facts: shownFacts,
     openFix: () => {
       setError("");
       setView("fix");

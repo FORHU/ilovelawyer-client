@@ -10,8 +10,9 @@ import { useT } from "@/components/site/language-provider";
 import { cn } from "@/lib/cn";
 import { STEP_COLUMN } from "@/components/steps/step-page";
 import { OnboardingHeading } from "@/components/onboarding/onboarding-frame";
-import { STORY_FIX_MAX_LENGTH, STORY_MAX_LENGTH, storySegments } from "@/lib/cases/story";
+import { STORY_FIX_MAX_LENGTH, STORY_MAX_LENGTH, STORY_SUGGESTIONS, offersSuggestions, storySegments } from "@/lib/cases/story";
 import type { IntakeStoryLine } from "@/lib/types";
+import type { StoryFact } from "@/lib/cases/api";
 import { useStory, type StoryController, type StoryProps } from "./use-story";
 
 /** The story-first way into a new case: "What happened? Just tell us.", by voice or typing, then
@@ -78,6 +79,70 @@ export function StoryIntake(props: StoryProps) {
 /** The story's headings are the new-client flow's own (OnboardingHeading), so the story reads as the
  * next step after the privacy one. */
 const Heading = OnboardingHeading;
+
+/** The story while it's read: what they told us, and the facts picked out of it popping in as chips
+ * ("Date Mar 3, 2026"), one after another, once they arrive. */
+function StoryBeingRead({ text, facts }: { text: string; facts: StoryFact[] }) {
+  const t = useT();
+  return (
+    <div className="flex flex-col gap-3">
+      <blockquote className="line-clamp-6 whitespace-pre-wrap rounded-2xl border border-line bg-subtle px-4 py-3.5 text-[15px] leading-normal text-ink">
+        {text}
+      </blockquote>
+      {facts.length > 0 && (
+        <ul aria-label={t("What we picked out")} className="flex flex-wrap gap-2">
+          {facts.map((fact) => (
+            // Added one at a time as they're picked out (useStory), each popping in as it lands.
+            <li key={fact.label} className="motion-fact-in rounded-full bg-chip px-3 py-1.5 text-[13px] leading-snug text-ink">
+              <span className="font-semibold text-gold">{fact.label}</span> {fact.value}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** Ways to start (STORY_SUGGESTIONS), grouped by kind of problem. A tap hands the suggestion over in
+ * the client's language, to go in the box. */
+function StorySuggestions({ onPick }: { onPick: (text: string) => void }) {
+  const t = useT();
+  return (
+    <section aria-labelledby="story-suggestions-title" className="flex flex-col gap-3">
+      <h2 id="story-suggestions-title" className="text-[11px] font-semibold uppercase tracking-[1.2px] text-ink-2">
+        {t("Or start from a suggestion")}
+      </h2>
+      {STORY_SUGGESTIONS.map((group) => (
+        <div key={group.area} className="flex flex-col gap-1.5">
+          <p className="text-[10.5px] font-semibold uppercase tracking-[1.2px] text-gold">{t(group.area)}</p>
+          <div className="flex flex-wrap gap-2">
+            {group.prompts.map((prompt) => (
+              <button
+                key={prompt}
+                type="button"
+                data-no-tap
+                onClick={() => onPick(t(prompt))}
+                className="min-h-9 rounded-full border border-line-input bg-surface px-3.5 py-1.5 text-left text-[14px] leading-snug text-ink transition-colors hover:border-line-hover"
+              >
+                {t(prompt)}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+/** Puts the cursor at the end of the story box once it's on screen, after a suggestion fills it. */
+function focusStoryEnd() {
+  setTimeout(() => {
+    const box = document.getElementById("story-text");
+    if (!(box instanceof HTMLTextAreaElement)) return;
+    box.focus();
+    box.setSelectionRange(box.value.length, box.value.length);
+  }, 0);
+}
 
 /** A story line, its **marked** detail in bold. Never HTML: every piece is plain text. */
 function LineText({ text }: { text: string }) {
@@ -244,6 +309,13 @@ function ScreenBody({ s, props }: { s: StoryController; props: StoryProps }) {
             {t(s.recorder.error)}
           </p>
         )}
+        <StorySuggestions
+          onPick={(text) => {
+            s.setText(text);
+            s.typeInstead();
+            focusStoryEnd();
+          }}
+        />
         <div className="flex flex-col items-center gap-1 text-center">
           <button type="button" onClick={props.onUseForm} data-no-tap className="min-h-11 text-[14px] font-medium text-ink-2 underline underline-offset-4">
             {t("Prefer a form? Fill it in instead")}
@@ -282,6 +354,14 @@ function ScreenBody({ s, props }: { s: StoryController; props: StoryProps }) {
           placeholder={t("For example: My manager let me go last week without any notice…")}
           autoFocus={!s.text}
         />
+        {offersSuggestions(s.text, t) && (
+          <StorySuggestions
+            onPick={(text) => {
+              s.setText(text);
+              focusStoryEnd();
+            }}
+          />
+        )}
         {s.recorder.error && (
           <p role="alert" className="text-[14px] text-error">
             {t(s.recorder.error)}
@@ -327,6 +407,7 @@ function ScreenBody({ s, props }: { s: StoryController; props: StoryProps }) {
             ? t("This is taking longer than usual. You can carry on, and it will be on your case when it’s ready.")
             : t("This takes a few seconds.")}
         </Heading>
+        <StoryBeingRead text={s.text} facts={s.facts} />
         <div role="status" className="flex items-center gap-2.5 text-[14px] text-ink-2">
           <Loader2 size={18} className="text-gold motion-safe:animate-spin" aria-hidden="true" />
           {t("Reading what you told us")}

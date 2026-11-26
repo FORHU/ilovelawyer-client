@@ -10,7 +10,7 @@ import { useDevice } from "@/components/device/device-provider";
 import { useT } from "@/components/site/language-provider";
 import { cn } from "@/lib/cn";
 import { msg } from "@/lib/i18n/msg";
-import { SOURCE_ACCEPT, SOURCE_ACTION, checklistOf, noteStatusOf, type EvidenceSuggestion } from "@/lib/cases/evidence";
+import { SOURCE_ACCEPT, SOURCE_ACTION, checklistOf, type EvidenceSuggestion } from "@/lib/cases/evidence";
 import type { CaseDocument } from "@/lib/types";
 import { GmailImportModal } from "@/components/gmail/gmail-import-modal";
 import { StepPage, StepTopRow } from "@/components/steps/step-page";
@@ -257,7 +257,7 @@ const kindOf = (name: string) => KIND_OF[name.split(".").pop()?.toLowerCase() ??
  * or removing it. */
 function DocumentRow({ doc, e }: { doc: CaseDocument; e: EvidenceController }) {
   const t = useT();
-  const status = noteStatusOf(doc);
+  const status = e.noteStatus(doc);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [removing, setRemoving] = useState(false);

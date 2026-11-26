@@ -7,6 +7,7 @@ import { useSession } from "@/lib/auth/session";
 import {
   evidenceKey,
   evidenceStatusKey,
+  noteStatusOf,
   stillWorking,
   useAddEvidenceMutation,
   useDismissSuggestionMutation,
@@ -18,6 +19,7 @@ import { checkFiles, useLimitsQuery } from "@/lib/cases/limits";
 import { caseKeys, useCaseQuery, useDeleteDocumentMutation } from "@/lib/cases/queries";
 import { useQuestionsStatusQuery } from "@/lib/cases/questions";
 import { useOnline } from "@/lib/use-online";
+import type { CaseDocument } from "@/lib/types";
 
 /** How often to look again while a document is being read or its note drafted. */
 const WORKING_POLL_MS = 4000;
@@ -60,6 +62,10 @@ export function useEvidence(caseId: string) {
   const [emailFor, setEmailFor] = useState<string | null | undefined>(undefined);
   // Until when to keep looking for documents being read and notes being drafted.
   const [watchUntil, setWatchUntil] = useState(() => Date.now() + WORKING_PATIENCE_MS);
+  // When the screen opened, and whether it has stopped looking: a note that hasn't come by then
+  // shows as none ("Add a note") rather than a spinner that never ends (noteStatusOf).
+  const [openedAt] = useState(() => Date.now());
+  const [gaveUp, setGaveUp] = useState(false);
 
   // Newest first: what was just added is at the top.
   const documents = [...(caseQuery.data?.documents ?? [])].sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
@@ -67,7 +73,10 @@ export function useEvidence(caseId: string) {
   useEffect(() => {
     if (!working) return;
     const tick = setInterval(() => {
-      if (Date.now() > watchUntil) return clearInterval(tick);
+      if (Date.now() > watchUntil) {
+        setGaveUp(true);
+        return clearInterval(tick);
+      }
       void queryClient.invalidateQueries({ queryKey: caseKeys.detail(userId, caseId) });
     }, WORKING_POLL_MS);
     return () => clearInterval(tick);
@@ -87,6 +96,7 @@ export function useEvidence(caseId: string) {
         onSuccess: ({ failed: notUploaded }) => {
           setFailed((now) => [...now, ...notUploaded.map((f) => ({ ...f, suggestionId }))]);
           setWatchUntil(Date.now() + WORKING_PATIENCE_MS);
+    setGaveUp(false);
           if (!notUploaded.length) onUploaded?.();
         },
         onError: (err) => setError(err instanceof Error && err.message ? err.message : t("We couldn’t upload that. Try again.")),
@@ -101,6 +111,7 @@ export function useEvidence(caseId: string) {
     void queryClient.invalidateQueries({ queryKey: evidenceKey(userId, caseId) });
     void queryClient.invalidateQueries({ queryKey: evidenceStatusKey(userId, caseId) });
     setWatchUntil(Date.now() + WORKING_PATIENCE_MS);
+    setGaveUp(false);
   };
 
   return {
@@ -121,6 +132,8 @@ export function useEvidence(caseId: string) {
       refreshAfterImport();
     },
     documents,
+    /** Where a document's note is, waiting on it only while the screen still looks. */
+    noteStatus: (doc: CaseDocument) => noteStatusOf(doc, { gaveUp, at: openedAt }),
     questions: questions.data,
     online,
     uploading,

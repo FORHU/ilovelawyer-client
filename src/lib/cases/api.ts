@@ -91,6 +91,18 @@ export function startStory(text: string) {
   return post<StoryStarted>("/api/client/cases/story", { text });
 }
 
+/** One fact picked out of the story ("Date" "Mar 3, 2026"), shown as a chip while it's read. */
+export interface StoryFact {
+  label: string;
+  value: string;
+}
+
+/** The story's key facts, for the screen while the full reading runs: one small AI call, nothing
+ * stored. An empty list when the AI couldn't pick any out. */
+export function getStoryFacts(caseId: string) {
+  return post<{ facts: StoryFact[] }>(`/api/client/cases/${caseId}/story/facts`, {});
+}
+
 /** "Something's not right": the client's fix, read together with the story. 409 INTAKE_RUNNING while
  * the story is still being read. */
 export function correctStory(caseId: string, text: string) {

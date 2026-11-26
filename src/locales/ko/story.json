@@ -40,5 +40,17 @@
   "Start questions": "질문 시작하기",
   "Something’s not right": "틀린 부분이 있어요",
   "You’re offline. We’ll carry on when you’re back online.": "오프라인 상태예요. 다시 연결되면 이어서 진행할게요.",
-  "You’re offline. What you’ve written stays here, and you can send it when you’re back online.": "오프라인 상태예요. 작성하신 내용은 그대로 남아 있으니, 다시 연결되면 보내 주세요."
+  "You’re offline. What you’ve written stays here, and you can send it when you’re back online.": "오프라인 상태예요. 작성하신 내용은 그대로 남아 있으니, 다시 연결되면 보내 주세요.",
+  "Or start from a suggestion": "또는 예시로 시작하기",
+  "Employment": "노동",
+  "Housing": "주거",
+  "Family": "가족",
+  "Money": "금전",
+  "I was let go without notice": "예고 없이 해고당했어요",
+  "My employer owes me pay": "회사가 임금을 주지 않아요",
+  "My landlord kept my deposit": "집주인이 보증금을 돌려주지 않아요",
+  "I got an eviction notice": "퇴거 통보를 받았어요",
+  "I need help with child support": "양육비 문제로 도움이 필요해요",
+  "A shop won’t refund me": "가게에서 환불을 안 해줘요",
+  "What we picked out": "파악한 내용"
 }

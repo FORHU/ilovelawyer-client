@@ -70,11 +70,25 @@ export function evidenceDone(caseId: string) {
  * document couldn't be read. */
 export type NoteStatus = "reading" | "drafting" | "note" | "none" | "failed";
 
-export function noteStatusOf(doc: Pick<CaseDocument, "status" | "note" | "noteBy">): NoteStatus {
+/** A note not drafted this long after its document was added isn't coming (the drafting failed,
+ * or never ran): the client is offered to write their own instead of a spinner. */
+export const NOTE_PATIENCE_MS = 5 * 60 * 1000;
+
+/**
+ * `gaveUp`: the screen stopped looking for notes (useEvidence's patience ran out). `at`: when the
+ * screen was opened, so a document added long before then isn't waited on again after a reload.
+ * Either way a note that hasn't come shows as none, with "Add a note".
+ */
+export function noteStatusOf(
+  doc: Pick<CaseDocument, "status" | "note" | "noteBy"> & { uploadedAt?: string },
+  opts: { gaveUp?: boolean; at?: number } = {},
+): NoteStatus {
   if (doc.status === "FAILED") return "failed";
   if (doc.status === "PENDING") return "reading";
   if (doc.note) return "note";
-  return doc.noteBy ? "none" : "drafting";
+  if (doc.noteBy) return "none";
+  const old = opts.at !== undefined && !!doc.uploadedAt && opts.at - Date.parse(doc.uploadedAt) > NOTE_PATIENCE_MS;
+  return opts.gaveUp || old ? "none" : "drafting";
 }
 
 /** The documents still waiting for something to show (being read, or their note being drafted):

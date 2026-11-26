@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checklistOf, memoFormat, memoName, noteStatusOf, stillWorking, type EvidenceState } from "../evidence";
+import { NOTE_PATIENCE_MS, checklistOf, memoFormat, memoName, noteStatusOf, stillWorking, type EvidenceState } from "../evidence";
 import type { QuestionsState } from "../questions";
 
 describe("noteStatusOf", () => {
@@ -14,6 +14,17 @@ describe("noteStatusOf", () => {
     expect(noteStatusOf({ status: "READY", note: null, noteBy: "AI" })).toBe("none");
     expect(noteStatusOf({ status: "READY", note: null, noteBy: "CLIENT" })).toBe("none");
     expect(noteStatusOf({ status: "FAILED", note: null, noteBy: null })).toBe("failed");
+  });
+
+  it("stops waiting for a note that isn't coming: once the screen gives up, or for a document added long before it opened", () => {
+    const read = { status: "READY" as const, note: null, noteBy: null, uploadedAt: "2026-11-26T02:19:00.000Z" };
+    const added = Date.parse(read.uploadedAt);
+    expect(noteStatusOf(read, { at: added + 60_000 })).toBe("drafting");
+    expect(noteStatusOf(read, { at: added + 60_000, gaveUp: true })).toBe("none");
+    expect(noteStatusOf(read, { at: added + NOTE_PATIENCE_MS + 1 })).toBe("none");
+    // A note that came, or a document still being read, isn't affected.
+    expect(noteStatusOf({ ...read, note: "My lease.", noteBy: "AI" }, { gaveUp: true })).toBe("note");
+    expect(noteStatusOf({ ...read, status: "PENDING" }, { gaveUp: true })).toBe("reading");
   });
 
   it("keeps checking only while a document is being read or noted", () => {

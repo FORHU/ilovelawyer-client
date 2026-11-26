@@ -204,6 +204,26 @@ html[data-keyboard="true"] .keyboard-hide {
   }
 }
 
+/* The facts picked out of a story pop in one after another (components/story). */
+@keyframes fact-in {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.motion-fact-in {
+  animation: fact-in 0.3s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .motion-fact-in {
+    animation: none;
+  }
+}
+
 @keyframes sheet-up {
   from {
     transform: translateY(100%);
