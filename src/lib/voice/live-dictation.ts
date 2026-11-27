@@ -76,3 +76,16 @@ export function refusalMessage(ack: unknown): string {
   const message = (ack as { message?: unknown } | null)?.message;
   return typeof message === "string" && message.trim() ? message : FAILED;
 }
+
+/** How loud a stretch of the microphone's samples is, 0 (silence) to 1 (loud speech), for the
+ * waveform. On a decibel scale, so quiet speech still moves the bars: -50 dB and under is 0,
+ * -10 dB and over is 1. */
+export function levelOf(samples: Float32Array): number {
+  if (!samples.length) return 0;
+  let sum = 0;
+  for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i];
+  const rms = Math.sqrt(sum / samples.length);
+  if (rms <= 0) return 0;
+  const db = 20 * Math.log10(rms);
+  return Math.min(1, Math.max(0, (db + 50) / 40));
+}

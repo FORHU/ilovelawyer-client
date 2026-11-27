@@ -48,6 +48,8 @@ export function useStory({ initialText, onTextChange, onCreated }: Pick<StoryPro
   const [text, setText] = useState(initialText);
   // Typing was chosen (or there's already something to read over): the editor shows.
   const [typing, setTyping] = useState(initialText.trim().length > 0);
+  // Some of the story was spoken, so the editor asks for a read-over of the words heard.
+  const [heard, setHeard] = useState(false);
   const [view, setView] = useState<StoryView>("tell");
   const [caseId, setCaseId] = useState<string | null>(null);
   const [fix, setFix] = useState("");
@@ -68,6 +70,7 @@ export function useStory({ initialText, onTextChange, onCreated }: Pick<StoryPro
     onText: (spoken) => {
       setText((before) => appendSpoken(before, spoken));
       setTyping(true);
+      setHeard(true);
     },
     chainUpTo: STORY_SPEECH_MAX_SECONDS,
   });
@@ -174,6 +177,7 @@ export function useStory({ initialText, onTextChange, onCreated }: Pick<StoryPro
       if (error) setError("");
     },
     typing,
+    heard,
     typeInstead: () => {
       recorder.clearError();
       setTyping(true);
@@ -184,6 +188,7 @@ export function useStory({ initialText, onTextChange, onCreated }: Pick<StoryPro
       recorder.clearError();
       setText("");
       setTyping(false);
+      setHeard(false);
       setError("");
     },
     recorder,

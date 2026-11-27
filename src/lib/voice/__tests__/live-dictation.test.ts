@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FAILED, appendSpoken, clock, liveTranscript, refusalMessage } from "../live-dictation";
+import { FAILED, appendSpoken, clock, levelOf, liveTranscript, refusalMessage } from "../live-dictation";
 import { PcmDownsampler } from "../pcm";
 
 describe("PcmDownsampler", () => {
@@ -57,5 +57,26 @@ describe("live dictation text", () => {
     );
     expect(refusalMessage({ ok: false })).toBe(FAILED);
     expect(refusalMessage(null)).toBe(FAILED);
+  });
+});
+
+describe("levelOf", () => {
+  const sine = (amplitude: number) => Float32Array.from({ length: 1600 }, (_, i) => amplitude * Math.sin((2 * Math.PI * 440 * i) / 16_000));
+
+  it("is 0 for silence and for nothing at all", () => {
+    expect(levelOf(new Float32Array(1600))).toBe(0);
+    expect(levelOf(new Float32Array(0))).toBe(0);
+  });
+
+  it("is 1 for a full-scale sound, never more", () => {
+    expect(levelOf(sine(1))).toBe(1);
+  });
+
+  it("moves for quiet speech, and rises with it", () => {
+    const quiet = levelOf(sine(0.01));
+    const louder = levelOf(sine(0.05));
+    expect(quiet).toBeGreaterThan(0);
+    expect(louder).toBeGreaterThan(quiet);
+    expect(louder).toBeLessThan(1);
   });
 });

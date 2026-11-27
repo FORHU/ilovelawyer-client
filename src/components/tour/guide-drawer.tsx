@@ -92,9 +92,9 @@ export function GuideDrawer({ pathname, context: tourContext, onTourPage }: { pa
         <div className="flex flex-col gap-2 border-t border-line pt-3.5">
           {tourContext.ai ? (
             <>
-              <p className="text-[13px] leading-[1.5] text-ink-2">Legal questions go to your case&apos;s Interview, not the guide.</p>
+              <p className="text-[13px] leading-[1.5] text-ink-2">{t("Legal questions go to your case’s Interview, not the guide.")}</p>
               <p className="text-[12.5px] leading-[1.5] text-muted">
-                ilovelawyer isn&apos;t a law firm. The AI organises your case. Advice comes from the solicitor you choose.
+                {t("ilovelawyer isn’t a law firm. The AI puts your case in order. Advice comes from the lawyer you choose.")}
               </p>
             </>
           ) : (

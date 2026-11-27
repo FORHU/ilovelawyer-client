@@ -1,5 +1,5 @@
 import type { ClientBudget } from "@/lib/cases/budget";
-import { tr } from "@/lib/i18n/translate";
+import { currentLang, tr, type Lang } from "@/lib/i18n/translate";
 import { msg } from "@/lib/i18n/msg";
 
 /** A kind of problem a case can be about ("Type of issue"). Admins manage the list
@@ -10,9 +10,18 @@ export interface CaseArea {
   name: string;
 }
 
+/** An area's name in the page's language. A KR area's name holds both, "부동산·임대차 (Real Estate and
+ * Leases)", since the API keeps one name per area: the Korean part in Korean, the part in brackets in
+ * English. Any other name is shown as it is. */
+export function areaName(name: string, lang: Lang = currentLang()): string {
+  const both = /^(.*[^\x00-\x7F].*?)\s*\(([\x20-\x7E]+)\)$/.exec(name.trim());
+  if (!both) return name;
+  return (lang === "ko" ? both[1] : both[2]).trim();
+}
+
 /** "Employment, Consumer" */
 export function areasLabel(areas: CaseArea[]) {
-  return areas.map((a) => a.name).join(", ");
+  return areas.map((a) => areaName(a.name)).join(", ");
 }
 
 /** The three UK legal systems. A lawyer is qualified in one or more of them. */

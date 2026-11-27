@@ -11,6 +11,8 @@ export interface SiteConfig {
   code: TenantCode;
   /** The country, as a sentence uses it: "the UK", "the Philippines", "Korea". */
   country: string;
+  /** A town or city on this site, for the example in a "Town or city" box. */
+  placeExample: string;
   /** Formats dates and numbers. */
   locale: string;
   /** Finding a lawyer, quotes and hiring. "coming-soon" until lawyers on the site can take requests. */
@@ -37,6 +39,7 @@ export const SITES: Record<TenantCode, SiteConfig> = {
   UK: {
     code: "UK",
     country: msg("the UK"),
+    placeExample: msg("Leeds"),
     locale: "en-GB",
     clientRequests: "open",
     intakeChat: "open",
@@ -52,6 +55,7 @@ export const SITES: Record<TenantCode, SiteConfig> = {
   PH: {
     code: "PH",
     country: msg("the Philippines"),
+    placeExample: msg("Quezon City"),
     locale: "en-PH",
     clientRequests: "coming-soon",
     intakeChat: "coming-soon",
@@ -67,6 +71,7 @@ export const SITES: Record<TenantCode, SiteConfig> = {
   KR: {
     code: "KR",
     country: msg("Korea"),
+    placeExample: msg("Gangnam-gu, Seoul"),
     locale: "ko-KR",
     // KR clients ask KR lawyers, quoted and paid in won.
     clientRequests: "open",

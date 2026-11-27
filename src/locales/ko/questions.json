@@ -25,5 +25,6 @@
   "We couldn’t prepare your questions just now. Try again, or carry on in your case, where we’ll ask as we go.": "지금은 질문을 준비하지 못했어요. 다시 시도하시거나 사건 화면에서 계속하세요. 진행하면서 여쭤볼게요.",
   "Trying again…": "다시 시도하는 중…",
   "1 question left to finish your case.": "사건을 마무리하려면 질문이 1개 남았어요.",
-  "{count} questions left to finish your case.": "사건을 마무리하려면 질문이 {count}개 남았어요."
+  "{count} questions left to finish your case.": "사건을 마무리하려면 질문이 {count}개 남았어요.",
+  "Listening…": "듣는 중…"
 }

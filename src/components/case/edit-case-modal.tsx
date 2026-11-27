@@ -36,7 +36,7 @@ export function EditCaseModal({ c, onClose }: { c: Case; onClose: () => void }) 
   // quietly writing "outside the UK" (#973).
   const [region, setRegion] = useState<CaseRegion | "">(caseRegion(c));
   // Which part of the UK is asked on the UK site only.
-  const { regionQuestion, clientRequests } = useSite();
+  const { regionQuestion, clientRequests, placeExample } = useSite();
   const t = useT();
   const [where, setWhere] = useState(c.where);
   const [side, setSide] = useState<Side>(c.side ?? "");
@@ -120,7 +120,7 @@ export function EditCaseModal({ c, onClose }: { c: Case; onClose: () => void }) 
       )}
       <div className="flex flex-col gap-2">
         <WizardLabel htmlFor="edit-where">{t("Town or city")}</WizardLabel>
-        <TextInput id="edit-where" value={where} placeholder={t("e.g. Leeds")} onChange={(e) => setWhere(e.target.value)} />
+        <TextInput id="edit-where" value={where} placeholder={t("e.g. {place}", { place: t(placeExample) })} onChange={(e) => setWhere(e.target.value)} />
       </div>
       <SideField value={side} onChange={setSide} />
       <OthersField

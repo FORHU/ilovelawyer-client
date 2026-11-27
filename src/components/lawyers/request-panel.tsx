@@ -13,6 +13,7 @@ import { firstConsultationLabel, takesCase, useMarketplaceCase, type ClientLawye
 
 import { useT } from "@/components/site/language-provider";
 import { useSite } from "@/components/site/site-provider";
+import { areasLabel } from "@/lib/types";
 /** Why the request button is off, in words, with the step that fixes it when there is one. */
 interface BlockedReason {
   title: string;
@@ -108,7 +109,7 @@ export function RequestPanel({
       body: t("They may be busy or away. You can still let us match you with other verified lawyers who handle cases like yours."),
     };
   } else if (theCase && availability.canRequest && !fits) {
-    const caseAreas = theCase.areas.map((a) => a.name).join(", ") || t("its type of issue");
+    const caseAreas = areasLabel(theCase.areas) || t("its type of issue");
     const handles = lawyer.practiceAreas.join(", ") || t("other areas");
     blocked = {
       title: t("{name} doesn’t take cases like this one", { name }),

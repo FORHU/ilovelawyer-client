@@ -20,14 +20,28 @@ import { useApp } from "@/lib/store";
 import { useHydrated } from "@/lib/use-hydrated";
 import { useDevice } from "@/components/device/device-provider";
 import { SensitiveInfoModal } from "@/components/consent/sensitive-info-modal";
+import { OnboardingBar } from "@/components/onboarding/onboarding-bar";
 import { AppHeader } from "./app-header";
+import { FirstCaseProvider, useFirstCase } from "./first-case";
 import { BottomTabBar, MobileTopBar, isImmersive } from "./mobile-nav";
 import { Sidebar } from "./sidebar";
 
 /** The phone's top and bottom bars. They read the path (to step aside on a chat), so they render
  * only once the shell is ready: reading the path in AppShell itself would block prerendering. */
 function MobileTop({ name }: { name: string }) {
-  return isImmersive(usePathname()) ? null : <MobileTopBar name={name} />;
+  const pathname = usePathname();
+  if (useFirstCase()) return <OnboardingBar skipHref="/cases" />;
+  return isImmersive(pathname) ? null : <MobileTopBar name={name} />;
+}
+
+/** A desktop's sidebar, and the app header over the page; a new client's first case has neither,
+ * only the onboarding's bar (FirstCaseProvider). */
+function DesktopSide() {
+  return useFirstCase() ? null : <Sidebar />;
+}
+
+function DesktopHeader() {
+  return useFirstCase() ? <OnboardingBar skipHref="/cases" logo /> : <AppHeader />;
 }
 
 function MobileBottom() {
@@ -87,16 +101,18 @@ export function AppShell({ children }: { children: ReactNode }) {
   // wrapper keeps its place, so turning a phone or resizing across 768px doesn't remount the route
   // (and lose what was typed, the open modals or the scroll position).
   return (
+    <FirstCaseProvider>
     <div className={mobile ? "flex h-dvh min-h-0 flex-col overflow-hidden" : "flex h-dvh min-h-0 overflow-hidden"}>
       <LandingWatcher />
-      {mobile ? <MobileTop name={user?.name || ""} /> : <Sidebar />}
+      {mobile ? <MobileTop name={user?.name || ""} /> : <DesktopSide />}
       <div className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-surface">
-        {!mobile && <AppHeader />}
+        {!mobile && <DesktopHeader />}
         {banner &&<SuccessBanner message={banner} onDismiss={() => setBanner("")} />}
         {children}
       </div>
       {mobile ? <MobileBottom /> : null}
       {overlays}
     </div>
+    </FirstCaseProvider>
   );
 }

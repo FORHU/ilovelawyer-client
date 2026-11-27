@@ -33,7 +33,12 @@ const nextConfig: NextConfig = {
   },
   // The old onboarding flow lived under /auth; keep bookmarks and stale tabs working.
   async redirects() {
-    return [{ source: "/auth/:path*", destination: "/login", permanent: false }];
+    return [
+      { source: "/auth/:path*", destination: "/login", permanent: false },
+      // The first case's story was its own page until it became New case's first-case state.
+      { source: "/start/case/:id/:step(questions|evidence)", destination: "/cases/:id/:step", permanent: false },
+      { source: "/start/case", destination: "/cases/new", permanent: false },
+    ];
   },
   // The auth calls that set or read the refresh cookie go through this origin, so the cookie is
   // the client's own (see COOKIE_PATHS). Every other API call goes to API_URL directly.

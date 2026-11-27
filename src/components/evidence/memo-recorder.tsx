@@ -4,12 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, Mic, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/components/site/language-provider";
-import { clock } from "@/lib/voice/live-dictation";
-import { MIC_OFF, UNSUPPORTED } from "@/lib/voice/live-dictation";
+import { MIC_OFF, UNSUPPORTED, clock, levelOf } from "@/lib/voice/live-dictation";
+import { Waveform } from "@/components/voice/waveform";
 import { memoFormat, memoName } from "@/lib/cases/evidence";
 
 /** A voice memo stops by itself after this long. */
 const MEMO_MAX_SECONDS = 5 * 60;
+/** How often the waveform reads the microphone, and how many readings it shows. */
+const LEVEL_MS = 100;
+const LEVELS = 32;
 
 type Phase = "idle" | "starting" | "recording" | "recorded";
 
@@ -24,6 +27,8 @@ export function MemoRecorder({ onAdd, onClose, adding }: { onAdd: (file: File) =
   const [seconds, setSeconds] = useState(0);
   const [error, setError] = useState("");
   const [memo, setMemo] = useState<{ file: File; url: string } | null>(null);
+  const [levels, setLevels] = useState<number[]>([]);
+  const meter = useRef<{ context: AudioContext; timer: ReturnType<typeof setInterval> } | null>(null);
   const recorder = useRef<MediaRecorder | null>(null);
   const stream = useRef<MediaStream | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -33,6 +38,29 @@ export function MemoRecorder({ onAdd, onClose, adding }: { onAdd: (file: File) =
     timer.current = null;
     stream.current?.getTracks().forEach((track) => track.stop());
     stream.current = null;
+    if (meter.current) {
+      clearInterval(meter.current.timer);
+      void meter.current.context.close().catch(() => {});
+      meter.current = null;
+    }
+  };
+
+  /** Reads the recording's level for the waveform. Only a picture: the memo records without it. */
+  const startMeter = (source: MediaStream) => {
+    try {
+      const context = new AudioContext();
+      const analyser = context.createAnalyser();
+      analyser.fftSize = 2048;
+      context.createMediaStreamSource(source).connect(analyser);
+      const samples = new Float32Array(analyser.fftSize);
+      const timer = setInterval(() => {
+        analyser.getFloatTimeDomainData(samples);
+        setLevels((prev) => [...prev.slice(-(LEVELS - 1)), levelOf(samples)]);
+      }, LEVEL_MS);
+      meter.current = { context, timer };
+    } catch {
+      // No waveform: the timer still shows it's recording.
+    }
   };
 
   // Nothing keeps the microphone on, or a recording's URL alive, once the recorder closes.
@@ -83,6 +111,8 @@ export function MemoRecorder({ onAdd, onClose, adding }: { onAdd: (file: File) =
     };
     recorder.current = rec;
     rec.start();
+    setLevels([]);
+    startMeter(stream.current);
     setSeconds(0);
     setPhase("recording");
     let elapsed = 0;
@@ -100,26 +130,54 @@ export function MemoRecorder({ onAdd, onClose, adding }: { onAdd: (file: File) =
   };
 
   return (
-    <div role="group" aria-label={t("Record a voice memo")} className="flex flex-col gap-3 rounded-2xl border border-line bg-surface px-4 py-3.5">
+    <div role="group" aria-label={t("Record a voice memo")} className="flex flex-col gap-4 rounded-2xl border border-line bg-surface px-4 py-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-0.5">
           <p className="text-[15px] font-semibold">{t("Record a voice memo")}</p>
           <p className="text-[13.5px] leading-[1.45] text-ink-2">{t("Anything you remember: a conversation, a phone call, what someone said.")}</p>
         </div>
-        <button type="button" onClick={onClose} aria-label={t("Close")} className="flex size-9 shrink-0 items-center justify-center rounded-full text-ink-2 hover:bg-chip">
-          <X size={16} aria-hidden="true" />
+        <button type="button" onClick={onClose} aria-label={t("Close")} className="flex size-11 shrink-0 items-center justify-center rounded-full text-ink-2 hover:bg-chip">
+          <X size={18} aria-hidden="true" />
         </button>
       </div>
 
-      {phase === "recording" && (
-        <p role="status" className="flex items-center gap-2 text-[14px] text-ink">
-          <span aria-hidden className="size-2.5 rounded-full bg-error motion-safe:animate-pulse" />
-          {t("Recording")} <span className="tabular-nums text-ink-2">{clock(seconds)}</span>
-        </p>
-      )}
-      {phase === "recorded" && memo && (
+      {phase === "recorded" && memo ? (
         // A plain player, to hear it back before adding it.
         <audio controls src={memo.url} className="w-full" aria-label={t("Your voice memo")} />
+      ) : (
+        <div className="flex flex-col items-center gap-3 py-2">
+          {phase === "recording" ? (
+            <button
+              type="button"
+              onClick={stop}
+              aria-label={t("Stop")}
+              className="flex size-18 items-center justify-center rounded-full bg-error text-white shadow-[0_0_0_8px_var(--color-error-bg)] transition-transform active:scale-95 motion-reduce:transition-none"
+            >
+              <Square size={24} className="fill-current" aria-hidden="true" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void start()}
+              disabled={phase === "starting"}
+              aria-label={t("Start recording")}
+              className="flex size-18 items-center justify-center rounded-full bg-gold text-white shadow-[0_0_0_8px_var(--color-gold-soft)] transition-[background-color,transform] hover:bg-gold-hover active:scale-95 disabled:opacity-60 motion-reduce:transition-none"
+            >
+              {phase === "starting" ? <Loader2 size={26} className="motion-safe:animate-spin" aria-hidden="true" /> : <Mic size={28} aria-hidden="true" />}
+            </button>
+          )}
+          {phase === "recording" ? (
+            <>
+              <Waveform levels={levels} className="h-10 w-full max-w-[320px]" />
+              <p role="status" className="flex items-center gap-2 text-[14px] text-ink">
+                <span aria-hidden className="size-2.5 rounded-full bg-error motion-safe:animate-pulse" />
+                {t("Recording")} <span className="tabular-nums text-ink-2">{clock(seconds)}</span>
+              </p>
+            </>
+          ) : (
+            <p className="text-[14px] font-medium text-ink-2">{t("Tap to start recording")}</p>
+          )}
+        </div>
       )}
       {error && (
         <p role="alert" className="text-[13.5px] text-error">
@@ -127,31 +185,17 @@ export function MemoRecorder({ onAdd, onClose, adding }: { onAdd: (file: File) =
         </p>
       )}
 
-      <div className="flex flex-wrap gap-2">
-        {(phase === "idle" || phase === "starting") && (
-          <Button variant="primary" size="sm" onClick={() => void start()} disabled={phase === "starting"}>
-            <Mic size={14} aria-hidden="true" />
-            {t("Start recording")}
+      {phase === "recorded" && memo && (
+        <div className="flex flex-wrap gap-2">
+          <Button variant="primary" size="sm" onClick={() => onAdd(memo.file)} disabled={adding} aria-busy={adding}>
+            {adding && <Loader2 size={14} className="motion-safe:animate-spin" aria-hidden="true" />}
+            {t("Add to my case")}
           </Button>
-        )}
-        {phase === "recording" && (
-          <Button variant="primary" size="sm" onClick={stop}>
-            <Square size={12} className="fill-current" aria-hidden="true" />
-            {t("Stop")}
+          <Button variant="quiet" size="sm" onClick={again} disabled={adding}>
+            {t("Record again")}
           </Button>
-        )}
-        {phase === "recorded" && memo && (
-          <>
-            <Button variant="primary" size="sm" onClick={() => onAdd(memo.file)} disabled={adding} aria-busy={adding}>
-              {adding && <Loader2 size={14} className="motion-safe:animate-spin" aria-hidden="true" />}
-              {t("Add to my case")}
-            </Button>
-            <Button variant="quiet" size="sm" onClick={again} disabled={adding}>
-              {t("Record again")}
-            </Button>
-          </>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

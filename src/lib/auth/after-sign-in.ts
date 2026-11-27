@@ -3,15 +3,12 @@
 export const SIGNED_IN_PATH = "/cases";
 
 /** The new-client flow's second step (app/(onboarding)/start/privacy), before the first story. It
- * goes straight on to the first case when the client has already agreed. */
+ * goes straight on to the first case (FIRST_CASE_PATH) when the client has already agreed. */
 export const ONBOARDING_PRIVACY_PATH = "/start/privacy";
 
-/** Making the first case in the app: the chat or the form, on a site without the onboarding's story. */
+/** Making the first case: New case, which on a story site shows a first case's story in focus
+ * (components/shell/first-case.tsx); elsewhere the chat or the form. */
 export const FIRST_CASE_PATH = "/cases/new";
-
-/** The onboarding's own first case, after the privacy step: the story, then its questions and
- * evidence (app/(onboarding)/start/case), apart from the app's New case. */
-export const ONBOARDING_STORY_PATH = "/start/case";
 
 /**
  * A client with no case yet never lands on an empty list: an account made (or verified) just now,
