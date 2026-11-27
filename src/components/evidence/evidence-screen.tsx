@@ -13,6 +13,7 @@ import { msg } from "@/lib/i18n/msg";
 import { SOURCE_ACCEPT, SOURCE_ACTION, checklistOf, type EvidenceSuggestion } from "@/lib/cases/evidence";
 import type { CaseDocument } from "@/lib/types";
 import { GmailImportModal } from "@/components/gmail/gmail-import-modal";
+import { CaseRail } from "@/components/steps/case-rail";
 import { StepPage, StepTopRow } from "@/components/steps/step-page";
 import { MemoRecorder } from "./memo-recorder";
 import { useEvidence, type EvidenceController } from "./use-evidence";
@@ -51,7 +52,7 @@ export function EvidenceScreen({ caseId }: { caseId: string }) {
     );
   }
   return (
-    <StepPage header={header} bar={bar}>
+    <StepPage header={header} bar={bar} rail={<CaseRail caseId={caseId} />}>
       {body}
     </StepPage>
   );

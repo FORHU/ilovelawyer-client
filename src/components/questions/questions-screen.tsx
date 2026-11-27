@@ -11,6 +11,7 @@ import { useDevice } from "@/components/device/device-provider";
 import { useT } from "@/components/site/language-provider";
 import { ApiError } from "@/lib/api/fetch";
 import { endMessageOf, progressOf, threadOf, type ThreadTurn } from "@/lib/cases/questions";
+import { CaseRail, CaseSheetButton } from "@/components/steps/case-rail";
 import { StepPage, StepTopRow } from "@/components/steps/step-page";
 import { useQuestions, type QuestionsController } from "./use-questions";
 
@@ -39,7 +40,7 @@ export function QuestionsScreen({ caseId }: { caseId: string }) {
     bar = q.state.status === "DONE" ? <Finished caseId={caseId} caseHref={caseHref} /> : <AnswerBar q={q} />;
   }
 
-  const header = <Header q={q} caseHref={caseHref} />;
+  const header = <Header q={q} caseId={caseId} caseHref={caseHref} />;
   if (mobile) {
     return (
       <ChatScreen>
@@ -52,23 +53,27 @@ export function QuestionsScreen({ caseId }: { caseId: string }) {
     );
   }
   return (
-    <StepPage header={header} bar={bar}>
+    <StepPage header={header} bar={bar} rail={<CaseRail caseId={caseId} addProofHref={`/cases/${caseId}/evidence`} />}>
       {body}
     </StepPage>
   );
 }
 
-function Header({ q, caseHref }: { q: QuestionsController; caseHref: string }) {
+function Header({ q, caseId, caseHref }: { q: QuestionsController; caseId: string; caseHref: string }) {
   const t = useT();
+  const mobile = useDevice() === "mobile";
   const progress = q.state ? progressOf(q.state) : null;
   return (
     <header className="flex shrink-0 flex-col gap-2.5 px-4 pt-3 pb-2 md:px-0 md:pt-6">
       <StepTopRow
         caseHref={caseHref}
         aside={
-          progress &&
+          // A phone has no room for Your case beside the questions: its progress line opens it.
+          mobile ? (
+            <CaseSheetButton caseId={caseId} addProofHref={`/cases/${caseId}/evidence`} />
+          ) : progress &&
           progress.total > 0 && (
-            <span className="text-[11px] font-semibold uppercase tracking-[1.2px] text-ink-2 tabular-nums">
+            <span className="text-[13.5px] font-medium text-ink-2 tabular-nums">
               {t("{done} of {total} details", { done: progress.done, total: progress.total })}
             </span>
           )
