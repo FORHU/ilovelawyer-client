@@ -24,12 +24,12 @@ export const HOW_OPENING_D = 0.7;
 export const HOW_HEADINGS: { text: string; at: [number, number, number, number]; over?: boolean }[] = [
   { text: "Start on your phone. Pick up on your desktop.", at: [1.42, 1.72, 1.95, 2.1] },
   { text: "Your case, briefed. Solicitors, ready.", at: [2.1, 2.3, 2.75, 2.9] },
-  { text: "Get quotes from verified UK solicitors.", at: [3.0, 3.2, 3.65, 3.8] },
-  { text: "Choose who you trust. Every solicitor is SRA verified.", at: [3.85, 4.05, 4.45, 4.6] },
+  { text: "Ask registered solicitors for a quote.", at: [3.0, 3.2, 3.65, 3.8] },
+  { text: "Choose your solicitor. We check their registration first.", at: [3.85, 4.05, 4.45, 4.6] },
   { text: "Talk to your solicitor in one place.", at: [4.65, 4.85, 5.25, 5.4] },
   { text: "Upload a letter. See what it means.", at: [5.45, 5.65, 6.0, 6.15] },
   // Stays to the end: the terminal scrolls away with it, straight into the next section.
-  { text: "Behind every answer, a solicitor with serious tools.", at: [6.3, 6.5, 98, 99], over: true },
+  { text: "Your organised case, picked up by the solicitor you chose.", at: [6.3, 6.5, 98, 99], over: true },
 ];
 
 export const HOW_HEADING_TIMES: { at: [number, number, number, number]; over?: boolean }[] = HOW_HEADINGS.map(({ at, over }) => ({ at, over }));
@@ -42,7 +42,7 @@ export const TERMINAL_CAPTIONS = [
   { label: "01 / 04 · Client brief", text: "Your brief arrives with the facts, dates and what you want, already in order." },
   { label: "02 / 04 · Evidence index", text: "Every letter, email and photo you share is tagged and easy to find." },
   { label: "03 / 04 · Timeline", text: "Events are laid out in order, so nothing gets missed." },
-  { label: "04 / 04 · Case health", text: "Your solicitor sees what's strong, what's missing and every deadline." },
+  { label: "04 / 04 · Case health", text: "A solicitor you authorise can review your organised facts, documents and AI notes, and make their own assessment." },
 ];
 
 /** Until when each of the four client and solicitor photo pairs shows. */

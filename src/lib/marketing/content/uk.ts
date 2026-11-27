@@ -9,7 +9,7 @@ import type { LandingContent } from "./types";
 
 const TITLE = "ilovelawyer: legal trouble, made clear";
 const DESCRIPTION =
-  "Understand your legal problem, then get a verified UK solicitor. Free cases, pay only for the chat credits you use. AI guidance, not legal advice.";
+  "Understand your legal problem, then ask registered UK solicitors for a quote. You choose whether to go ahead. Free cases, pay only for the chat credits you use. AI guidance, not legal advice.";
 
 export const UK_CONTENT: LandingContent = {
   htmlLang: "en",
@@ -24,7 +24,7 @@ export const UK_CONTENT: LandingContent = {
     searchFocusPlaceholder: "Describe your legal problem",
     submitLabel: "Start your case with this",
     noMatch: "Not sure? Start your case and describe it",
-    tagline: "Understand your legal problem, then get a verified UK solicitor.",
+    tagline: "Understand your problem, then ask registered solicitors for a quote. You choose whether to go ahead.",
     cta: "Start your case",
     disclaimer: "AI guidance, not legal advice. Advice comes from the solicitor you choose.",
     play: "Play motion",
@@ -37,7 +37,7 @@ export const UK_CONTENT: LandingContent = {
     intro: {
       left: "Stop guessing",
       right: "what it means.",
-      sub: "Tell us what's happening in your own words. We explain it in plain English, then verified UK solicitors quote to help.",
+      sub: "Tell us what's happening in your own words. We explain it in plain English, then you can ask registered UK solicitors for a quote.",
     },
     cta: "Start your case",
     headings: HOW_HEADINGS.map((h) => h.text),
@@ -166,7 +166,7 @@ export const UK_CONTENT: LandingContent = {
       aiReply: (label) =>
         `I've read the letter you added. It's a formal letter about your ${label.toLowerCase()}, and it asks for a reply by 20 November. I've added that date to your overview, so a lawyer will see it too.`,
       offerTitle: "Want a lawyer to look at this case?",
-      offerBody: "A verified lawyer reviews this case and your chat. Included with your case.",
+      offerBody: "A registered solicitor can review this case and your chat. Included with your case.",
     },
     interview: {
       soundsLike: (label, help) => `This sounds like ${label.toLowerCase()}. ${help}`,
