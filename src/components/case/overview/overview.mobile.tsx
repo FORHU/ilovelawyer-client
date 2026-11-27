@@ -5,6 +5,7 @@ import { PullToRefresh } from "@/components/shell/pull-to-refresh";
 import { CaseDetails } from "@/components/case/overview/case-details";
 import { ReadinessBanner } from "@/components/case/overview/readiness-banner";
 import { DownloadSummaryButton } from "./download-summary";
+import { InviteOwnLawyerCard } from "./invite-own-lawyer-card";
 import { buildSections, GetLawyerCard, NothingYet } from "./overview-sections";
 import type { OverviewProps } from "./overview";
 import { useOverview } from "./use-overview";
@@ -54,6 +55,7 @@ export function OverviewMobile({ c, onOpenDocument, onOpenChat }: OverviewProps)
             {empties.length > 0 && <NothingYet sections={empties} />}
             <CaseDetails c={c} defaultOpen={!intake.generatedAt && intake.status !== "RUNNING"} />
             <GetLawyerCard caseId={c.id} fullWidth />
+            <InviteOwnLawyerCard caseId={c.id} />
             <DownloadSummaryButton c={c} size="lg" />
             <p className="text-[12.5px] leading-[1.5] text-ink-2">
               This is what we&apos;ve gathered from you so far, to help a lawyer get up to speed quickly. It isn&apos;t legal advice.

@@ -9,6 +9,7 @@ import { cn } from "@/lib/cn";
 import { deadlineStatus, urgentFirst } from "@/lib/cases/overview-urgency";
 import { formatDay, formatEventDate } from "@/lib/format";
 import { useEligibilityQuery, useLawyerRequestForm, useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
+import { useCaseLawyerInviteQuery } from "@/lib/cases/lawyer-invites/api";
 import type { CaseIntake, IntakeFormFields, IntakeItem } from "@/lib/types";
 
 export type SourceProps = { onOpenChat: () => void; onOpenDocument: (id: string) => void };
@@ -329,11 +330,13 @@ export function NothingYet({ sections }: { sections: EmptySection[] }) {
 }
 
 /** Asking for a lawyer, from the page that has just shown what a lawyer would see. Only offered when
- * the case can have one and doesn't already. */
+ * the case can have one and doesn't already — including a not-yet-redeemed own-lawyer invite,
+ * which has no `ClientRequest` yet for `openRequest` to catch on its own. */
 export function GetLawyerCard({ caseId, fullWidth }: { caseId: string; fullWidth?: boolean }) {
   const { data: openRequest } = useOpenLawyerRequestQuery(caseId);
   const { data } = useEligibilityQuery(caseId);
-  if (openRequest || !data?.eligible) return null;
+  const { data: lawyerInvite } = useCaseLawyerInviteQuery(caseId);
+  if (openRequest || !data?.eligible || lawyerInvite?.status === "PENDING") return null;
   return (
     <section className="flex flex-col gap-2.5 rounded-card bg-primary px-5 py-[18px] text-white">
       <h3 className="font-display text-[19px]">Get a lawyer for this case</h3>

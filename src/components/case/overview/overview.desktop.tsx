@@ -4,6 +4,7 @@ import { ErrorBox } from "@/components/ui/banner";
 import { CaseDetails } from "@/components/case/overview/case-details";
 import { ReadinessBanner } from "@/components/case/overview/readiness-banner";
 import { DownloadSummaryButton } from "./download-summary";
+import { InviteOwnLawyerCard } from "./invite-own-lawyer-card";
 import { buildSections, GetLawyerCard, NothingYet } from "./overview-sections";
 import type { OverviewProps } from "./overview";
 import { useOverview } from "./use-overview";
@@ -56,6 +57,7 @@ export function OverviewDesktop({ c, onOpenDocument, onOpenChat }: OverviewProps
               {deadlines}
               <CaseDetails c={c} defaultOpen={!intake.generatedAt && intake.status !== "RUNNING"} />
               <GetLawyerCard caseId={c.id} />
+              <InviteOwnLawyerCard caseId={c.id} />
             </aside>
           </div>
         ) : (
