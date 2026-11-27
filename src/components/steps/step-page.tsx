@@ -66,7 +66,7 @@ export function StepTopRow({ caseHref, aside }: { caseHref: string; aside?: Reac
   const t = useT();
   return (
     <div className="flex items-center justify-between gap-3">
-      <Link href={caseHref} data-no-tap className="flex min-h-11 items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[1.2px] text-ink-2 hover:text-ink">
+      <Link href={caseHref} data-no-tap className="flex min-h-11 items-center gap-2 text-[13.5px] font-medium text-ink-2 hover:text-ink">
         <ArrowLeft size={14} aria-hidden="true" />
         {t("Your case")}
       </Link>
