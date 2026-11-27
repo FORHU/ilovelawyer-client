@@ -10,7 +10,7 @@ import { Eyebrow } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { LANGUAGE_FILTERS, LAWYER_SORTS, consultationScale, gbp, type LawyerSort } from "@/lib/lawyers/marketplace";
 import { useLawyerRequestForm } from "@/lib/lawyer-requests/api";
-import { UK_JURISDICTIONS, type UkJurisdiction } from "@/lib/types";
+import { UK_JURISDICTIONS, areaName, type UkJurisdiction } from "@/lib/types";
 import type { LawyersList } from "./use-lawyers-list";
 
 import { useT } from "@/components/site/language-provider";
@@ -150,7 +150,7 @@ export function LawyersListDesktop({ v }: { v: LawyersList }) {
                 </Option>
                 {areas.map((a) => (
                   <Option key={a.code} active={filters.area === a.code} onClick={() => set({ area: a.code })}>
-                    {a.name}
+                    {areaName(a.name)}
                   </Option>
                 ))}
               </Group>

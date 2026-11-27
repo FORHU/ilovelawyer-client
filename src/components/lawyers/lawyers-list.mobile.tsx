@@ -11,7 +11,7 @@ import { Chip } from "@/components/ui/chip";
 import { cn } from "@/lib/cn";
 import { useLawyerRequestForm } from "@/lib/lawyer-requests/api";
 import { LANGUAGE_FILTERS, LAWYER_SORTS, consultationScale, gbp, type LawyerSort } from "@/lib/lawyers/marketplace";
-import { UK_JURISDICTIONS, type UkJurisdiction } from "@/lib/types";
+import { UK_JURISDICTIONS, areaName as nameOfArea, type UkJurisdiction } from "@/lib/types";
 import { LawyerCardMobile } from "./lawyer-card.mobile";
 import type { LawyersList } from "./use-lawyers-list";
 
@@ -222,7 +222,7 @@ export function LawyersListMobile({ v }: { v: LawyersList }) {
               </Chip>
               {areas.map((a) => (
                 <Chip key={a.code} selected={filters.area === a.code} onClick={() => set({ area: a.code })} className="min-h-11">
-                  {a.name}
+                  {nameOfArea(a.name)}
                 </Chip>
               ))}
             </div>
