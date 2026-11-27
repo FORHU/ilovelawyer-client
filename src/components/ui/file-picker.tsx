@@ -15,11 +15,14 @@ export function FilePicker({
   onPick,
   multiple = true,
   accept = DOCUMENT_ACCEPT,
+  capture,
   children,
 }: {
   onPick: (files: File[]) => void;
   multiple?: boolean;
   accept?: string;
+  /** Opens a phone's camera instead of its files ("environment": the back camera). */
+  capture?: "user" | "environment";
   children: (open: () => void) => ReactNode;
 }) {
   // State rather than a ref, so `open` reads no ref during render.
@@ -32,6 +35,7 @@ export function FilePicker({
         hidden
         multiple={multiple}
         accept={accept}
+        capture={capture}
         onChange={(e) => {
           const files = Array.from(e.target.files ?? []);
           // Cleared so picking the same file again still fires onChange.
