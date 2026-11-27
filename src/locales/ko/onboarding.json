@@ -2,7 +2,7 @@
   "Tell us": "말씀하기",
   "Talk or type, then answer a few questions": "말하거나 쓰고, 몇 가지 질문에 답해 주세요",
   "Add proof": "증거 더하기",
-  "Photos, files and emails": "사진, 파일, 이메일",
+  "Photos, files, voice memos and emails": "사진, 파일, 음성 메모, 이메일",
   "Your case arrives ready to review": "사건이 검토할 준비가 된 상태로 전달됩니다",
   "Legal help, made simple": "쉬워진 법률 도움",
   "Tell us what happened. We’ll do the paperwork.": "있었던 일을 말씀해 주세요. 서류 작업은 저희가 할게요.",
@@ -27,6 +27,8 @@
   "Save your case to your own account": "내 계정에 사건을 저장하세요",
   "One tap. You can come back and add more any time.": "한 번만 누르면 됩니다. 언제든 돌아와 내용을 더할 수 있어요.",
   "We never post or message anyone for you.": "이용자 대신 게시하거나 누구에게도 메시지를 보내지 않습니다.",
+  "Continue with email": "이메일로 계속하기",
+  "Other ways to sign up": "다른 방법으로 가입하기",
   "We couldn’t load this step. Check your connection and try again.": "이 단계를 불러오지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.",
   "You’re offline. You can continue when you’re back online.": "오프라인 상태예요. 다시 연결되면 계속하실 수 있어요."
 }

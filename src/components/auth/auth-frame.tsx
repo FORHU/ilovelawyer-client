@@ -33,7 +33,7 @@ export function AuthFrame({
         <div className="my-auto flex w-full max-w-md flex-col gap-8">
           <div className="flex flex-col gap-1 pt-20">
             <h1 className="font-display text-[40px] font-normal leading-12 text-ink">{heading}</h1>
-            {subheading && <p className="text-base leading-6 text-muted">{subheading}</p>}
+            {subheading && <p className="text-base leading-6 text-ink-2">{subheading}</p>}
           </div>
 
           {children}

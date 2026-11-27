@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Loader2, WifiOff } from "lucide-react";
+import { Check, ChevronDown, Loader2, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "@/components/ui/banner";
 import { SensitiveInfoPoints } from "@/components/consent/sensitive-info-modal";
@@ -17,7 +17,7 @@ import { useOnline } from "@/lib/use-online";
 import { msg } from "@/lib/i18n/msg";
 import type { TenantCode } from "@/lib/tenant/client-tenant";
 import { cn } from "@/lib/cn";
-import { FIRST_CASE_PATH, ONBOARDING_STORY_PATH } from "@/lib/auth/after-sign-in";
+import { FIRST_CASE_PATH } from "@/lib/auth/after-sign-in";
 import { OnboardingFrame, OnboardingHeading } from "./onboarding-frame";
 
 /** A short reading of what's agreed to. Display only: the answer is recorded against the full text
@@ -60,7 +60,7 @@ export function PrivacyStep() {
     if (status === "signedOut") router.replace("/login");
   }, [status, router]);
   useEffect(() => {
-    if (answer === "granted" && !set.isPending && !set.isSuccess) router.replace(ONBOARDING_STORY_PATH);
+    if (answer === "granted" && !set.isPending && !set.isSuccess) router.replace(FIRST_CASE_PATH);
   }, [answer, set.isPending, set.isSuccess, router]);
 
   // The earlier answer couldn't be read (after the query's own retries): say so, rather than wait.
@@ -87,7 +87,7 @@ export function PrivacyStep() {
   }
 
   const agree = () => {
-    set.mutate({ granted: true, source: "first_login" }, { onSuccess: () => router.replace(ONBOARDING_STORY_PATH) });
+    set.mutate({ granted: true, source: "first_login" }, { onSuccess: () => router.replace(FIRST_CASE_PATH) });
   };
 
   return (
@@ -96,10 +96,10 @@ export function PrivacyStep() {
         {t("What you tell us about your problem may be sensitive. Here’s how we handle it.")}
       </OnboardingHeading>
 
-      <ul className="flex flex-col gap-2.5">
+      <ul className="flex flex-col gap-3">
         {IN_SHORT.map((line) => (
-          <li key={line} className="grid grid-cols-[18px_minmax(0,1fr)] gap-2.5 text-[15px] leading-normal">
-            <span aria-hidden="true" className="mt-2.25 size-1.5 rounded-full bg-gold" />
+          <li key={line} className="grid grid-cols-[20px_minmax(0,1fr)] gap-2.5 text-[15px] leading-normal">
+            <Check size={18} strokeWidth={2.4} aria-hidden="true" className="mt-0.75 text-success" />
             <span>{t(line)}</span>
           </li>
         ))}
@@ -124,10 +124,10 @@ export function PrivacyStep() {
             </Link>
           </div>
         )}
-        <p className="text-[13px] text-muted">{t(PROTECTED_UNDER[site.code])}</p>
+        <p className="text-[13.5px] text-ink-2">{t(PROTECTED_UNDER[site.code])}</p>
       </div>
 
-      <label htmlFor="privacy-agree" className="flex cursor-pointer items-start gap-3 rounded-2xl border border-line-input bg-surface px-4 py-3.5">
+      <label htmlFor="privacy-agree" className="flex cursor-pointer items-start gap-3 rounded-2xl border border-line bg-subtle px-4 py-3.5 transition-colors hover:border-line-hover has-checked:border-gold">
         <input
           id="privacy-agree"
           type="checkbox"

@@ -75,6 +75,8 @@ export function UnifiedAuth() {
   const { data: sessionStatus } = useRestoreSessionQuery();
 
   const [tab, setTab] = useState<Tab>(() => tabFromParam(searchParams.get("tab")));
+  // The new-client sign-up opens on its one-tap choices; "Continue with email" opens the form.
+  const [emailOpen, setEmailOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // The error is about a lawyer account: show a link to the lawyer site with it.
   const [lawyerLink, setLawyerLink] = useState(false);
@@ -409,7 +411,7 @@ export function UnifiedAuth() {
     t("Sign in to pick up your cases.")
   ) : onboarding ? (
     <>
-      <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[1.2px] text-gold">{t("Step {n} of {total}", { n: 1, total: 2 })}</span>
+      <span className="mb-1 block text-[14px] font-medium text-ink-2">{t("Step {n} of {total}", { n: 1, total: 2 })}</span>
       {t("One tap. You can come back and add more any time.")}
     </>
   ) : null;
@@ -489,7 +491,37 @@ export function UnifiedAuth() {
         </form>
       ) : (
         <>
+          {onboarding && !emailOpen && (
+            <div className="flex flex-col gap-3">
+              <GoogleButton onClick={launchGoogle} pending={googleLoginMutation.isPending} />
+              <button
+                type="button"
+                onClick={() => setEmailOpen(true)}
+                className="flex w-full cursor-pointer items-center justify-center gap-3 rounded-xl border border-line bg-transparent py-4 text-base text-ink transition-colors hover:border-gold"
+              >
+                <Mail size={18} aria-hidden="true" />
+                {t("Continue with email")}
+              </button>
+              <FormError message={error} lawyerLink={lawyerLink} siteLink={siteLink} />
+              <p className="pt-1 text-center text-[13px] text-ink-2">{t("We never post or message anyone for you.")}</p>
+              <button type="button" onClick={() => selectTab("signin")} className="min-h-11 text-[14px] font-medium text-ink-2 underline underline-offset-4 hover:text-ink">
+                {t("I already have an account")}
+              </button>
+            </div>
+          )}
+
+          {onboarding && emailOpen && (
+            <button
+              type="button"
+              onClick={() => setEmailOpen(false)}
+              className="-mt-2 flex min-h-11 items-center self-start text-[14px] font-medium text-ink-2 underline underline-offset-4 hover:text-ink"
+            >
+              {t("Other ways to sign up")}
+            </button>
+          )}
+
           {/* Tab navigation */}
+          {!onboarding && (
           <div role="tablist" className="flex gap-8 border-b border-line pb-px">
             {TABS.map(({ key, label }) => {
               const active = tab === key;
@@ -510,6 +542,7 @@ export function UnifiedAuth() {
               );
             })}
           </div>
+          )}
 
           {tab === "signin" && (
             <form onSubmit={handleSignIn} className="flex flex-col gap-6">
@@ -570,15 +603,8 @@ export function UnifiedAuth() {
             </form>
           )}
 
-          {tab === "signup" && (
+          {tab === "signup" && (!onboarding || emailOpen) && (
             <form onSubmit={handleSignUp} className="flex flex-col gap-5">
-              {onboarding && (
-                <>
-                  <GoogleButton onClick={launchGoogle} pending={googleLoginMutation.isPending} />
-                  <p className="-mt-2 text-center text-[12.5px] text-muted">{t("We never post or message anyone for you.")}</p>
-                  <GoogleDivider />
-                </>
-              )}
               <Field id="signup-name" label={t("Full Name")}>
                 <input
                   id="signup-name"
