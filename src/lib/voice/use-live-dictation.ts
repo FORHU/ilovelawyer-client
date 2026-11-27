@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { getAppSocket } from "@/lib/socket";
+import { currentLang } from "@/lib/i18n/translate";
 import { LIVE_SAMPLE_RATE, PcmDownsampler } from "./pcm";
 import {
   CONNECTION_LOST,
@@ -12,6 +13,7 @@ import {
   OFFLINE,
   UNSUPPORTED,
   appendSpoken,
+  levelOf,
   liveTranscript,
   refusalMessage,
   tickAction,
@@ -24,6 +26,8 @@ const START_TIMEOUT_MS = 10_000;
 /** After stop, the last words normally arrive in well under a second. */
 const FINISH_TIMEOUT_MS = 10_000;
 const FALLBACK_MAX_SECONDS = 180;
+/** How many levels a waveform gets: about three seconds at ten a second. */
+const LEVEL_HISTORY = 32;
 
 /** Runs in the audio thread: collects the microphone's samples and hands them over every 100 ms.
  * Loaded from a blob, so it needs no file of its own. `sampleRate` is the audio thread's global. */
@@ -57,6 +61,8 @@ export interface Ui {
   setPhase: (phase: LiveDictationPhase) => void;
   setSeconds: (seconds: number) => void;
   setTranscript: (text: string) => void;
+  /** How loud the microphone is now, 0 to 1, about ten times a second (levelOf); 0 once it stops. */
+  setLevel?: (level: number) => void;
   setError: (message: string) => void;
   onText: (text: string) => void;
   alive: () => boolean;
@@ -133,6 +139,7 @@ export function createRecorder(ui: Ui, { chainUpTo }: { chainUpTo?: number } = {
     if (current === run) current = null;
     if (!ui.alive()) return;
     ui.setPhase("idle");
+    ui.setLevel?.(0);
     ui.setTranscript("");
   };
 
@@ -147,6 +154,7 @@ export function createRecorder(ui: Ui, { chainUpTo }: { chainUpTo?: number } = {
     const last = text?.trim() || liveTranscript(run.finals, run.partial);
     const words = appendSpoken(run.earlier, last).trim();
     ui.setPhase("idle");
+    ui.setLevel?.(0);
     ui.setTranscript("");
     if (words) ui.onText(words);
     if (error) ui.setError(error);
@@ -187,7 +195,7 @@ export function createRecorder(ui: Ui, { chainUpTo }: { chainUpTo?: number } = {
     const socket = getAppSocket();
     let ack: LiveStartAck;
     try {
-      ack = await socket.timeout(START_TIMEOUT_MS).emitWithAck("dictation:start", { sampleRate: LIVE_SAMPLE_RATE });
+      ack = await socket.timeout(START_TIMEOUT_MS).emitWithAck("dictation:start", { sampleRate: LIVE_SAMPLE_RATE, language: currentLang() });
     } catch {
       return finish(run, { error: FAILED });
     }
@@ -324,7 +332,7 @@ export function createRecorder(ui: Ui, { chainUpTo }: { chainUpTo?: number } = {
 
     let ack: LiveStartAck;
     try {
-      ack = await socket.timeout(START_TIMEOUT_MS).emitWithAck("dictation:start", { sampleRate: LIVE_SAMPLE_RATE });
+      ack = await socket.timeout(START_TIMEOUT_MS).emitWithAck("dictation:start", { sampleRate: LIVE_SAMPLE_RATE, language: currentLang() });
     } catch {
       if (run.done) return;
       abandon(run);
@@ -354,6 +362,7 @@ export function createRecorder(ui: Ui, { chainUpTo }: { chainUpTo?: number } = {
     run.node = node;
     node.port.onmessage = (event: MessageEvent<Float32Array>) => {
       if (!run.sending) return;
+      ui.setLevel?.(levelOf(event.data));
       const pcm = downsampler.push(event.data);
       if (!pcm.length) return;
       if (run.handingOff) run.held.push(pcm.buffer as ArrayBuffer);
@@ -404,6 +413,8 @@ export function useLiveDictation({ onText, chainUpTo }: { onText: (text: string)
   const [seconds, setSeconds] = useState(0);
   const [transcript, setTranscript] = useState("");
   const [error, setError] = useState("");
+  // The last few levels, newest last, for a waveform that scrolls with the voice.
+  const [levels, setLevels] = useState<number[]>([]);
 
   const onTextRef = useRef(onText);
   useEffect(() => {
@@ -416,9 +427,14 @@ export function useLiveDictation({ onText, chainUpTo }: { onText: (text: string)
     let alive = true;
     const made = createRecorder(
       {
-        setPhase,
+        setPhase: (next) => {
+          setPhase(next);
+          // Each recording's waveform starts flat.
+          if (next === "starting") setLevels([]);
+        },
         setSeconds,
         setTranscript,
+        setLevel: (level) => setLevels((prev) => [...prev.slice(-(LEVEL_HISTORY - 1)), level]),
         setError,
         onText: (text) => onTextRef.current(text),
         alive: () => alive,
@@ -439,6 +455,7 @@ export function useLiveDictation({ onText, chainUpTo }: { onText: (text: string)
     phase,
     seconds,
     transcript,
+    levels,
     error,
     clearError: () => setError(""),
     start: () => recorder.current?.start(),

@@ -6,15 +6,16 @@ import { Button } from "@/components/ui/button";
 import { ChatBar, ChatScreen } from "@/components/mobile/chat";
 import { useDevice } from "@/components/device/device-provider";
 import { LiveDictationStatus } from "@/components/cases/live-dictation-status";
+import { Waveform } from "@/components/voice/waveform";
 import { useT } from "@/components/site/language-provider";
 import { cn } from "@/lib/cn";
 import { STEP_COLUMN } from "@/components/steps/step-page";
 import { OnboardingHeading } from "@/components/onboarding/onboarding-frame";
-import { STORY_FIX_MAX_LENGTH, STORY_MAX_LENGTH, STORY_MIN_LENGTH, offersSuggestions, storySegments, storySuggestions } from "@/lib/cases/story";
+import { STORY_FIX_MAX_LENGTH, STORY_MAX_LENGTH, STORY_MIN_LENGTH, offersSuggestions, storySuggestions } from "@/lib/cases/story";
 import { useSite } from "@/components/site/site-provider";
-import type { IntakeStoryLine } from "@/lib/types";
 import type { StoryFact } from "@/lib/cases/api";
 import { useStory, type StoryController, type StoryProps } from "./use-story";
+import { StoryLines } from "./story-lines";
 
 /** The story-first way into a new case: "What happened? Just tell us.", by voice or typing, then
  * "Here's your story so far" once the AI has read it. Phone and desktop share the screens; only
@@ -253,44 +254,6 @@ function focusStoryEnd() {
     box.focus();
     box.setSelectionRange(box.value.length, box.value.length);
   }, 0);
-}
-
-/** A story line, its **marked** detail in bold. Never HTML: every piece is plain text. */
-function LineText({ text }: { text: string }) {
-  return (
-    <>
-      {storySegments(text).map((part, i) =>
-        part.bold ? (
-          <strong key={i} className="font-semibold text-ink">
-            {part.text}
-          </strong>
-        ) : (
-          <span key={i}>{part.text}</span>
-        ),
-      )}
-    </>
-  );
-}
-
-function StoryLines({ lines }: { lines: IntakeStoryLine[] }) {
-  const t = useT();
-  return (
-    <ul className="flex flex-col gap-3" aria-label={t("What we understood")}>
-      {lines.map((line) => (
-        <li key={line.id} className="grid grid-cols-[22px_minmax(0,1fr)] gap-2.5 text-[15.5px] leading-[1.5] text-ink">
-          {line.kind === "DEADLINE" ? (
-            <AlertCircle size={18} className="mt-[3px] text-error" aria-label={t("Deadline")} />
-          ) : (
-            <Check size={18} className="mt-[3px] text-success" aria-hidden="true" />
-          )}
-          <span>
-            <LineText text={line.text} />
-            {line.kind === "DEADLINE" && <span className="text-ink-2"> {t("We’ll keep that date in front of you.")}</span>}
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
 }
 
 function AiNote({ children }: { children: ReactNode }) {
@@ -544,6 +507,7 @@ function ScreenBody({ s, props }: { s: StoryController; props: StoryProps }) {
           <div className="min-h-40 px-3 py-2">
             <LiveDictationStatus phase={s.recorder.phase} seconds={s.recorder.seconds} transcript={s.recorder.transcript} before={s.text} grow />
           </div>
+          <Waveform levels={s.recorder.levels} className="h-14 border-t border-line bg-subtle px-4 py-2" />
         </ComposerCard>
       </>
     );

@@ -108,7 +108,7 @@ export function ComposerButton({
       data-no-tap
       className={cn(
         "flex size-11 shrink-0 items-center justify-center self-end rounded-full transition-colors disabled:opacity-40",
-        tone === "send" ? "bg-ink text-white active:bg-primary disabled:bg-chip disabled:text-muted disabled:opacity-100" : "text-ink-2 active:bg-chip",
+        tone === "send" ? "bg-ink text-white active:bg-primary disabled:bg-chip disabled:text-muted disabled:opacity-100" : "text-ink-2 hover:bg-chip hover:text-ink active:bg-chip",
         className,
       )}
       {...rest}
