@@ -135,5 +135,22 @@
   "Okay. ": "알겠습니다. ",
   "Got it. ": "알겠습니다. ",
   "I've added that. ": "추가했습니다. ",
-  "Thanks, I've got your documents. Could you tell me a bit about what happened?": "문서를 받았습니다. 어떤 일이 있었는지 조금 알려 주시겠어요?"
+  "Thanks, I've got your documents. Could you tell me a bit about what happened?": "문서를 받았습니다. 어떤 일이 있었는지 조금 알려 주시겠어요?",
+  "Skip for now and go to your cases": "지금은 건너뛰고 내 사건으로 가기",
+  "Tell me about your situation": "어떤 상황인지 알려 주세요",
+  "I’ll ask a few questions, put what you tell me in order, and help you get it in front of a lawyer. I can’t give legal advice myself.": "몇 가지 질문을 드리고, 말씀하신 내용을 정리해 변호사에게 전달할 수 있도록 도와드릴게요. 저는 법률 자문을 드릴 수 없어요.",
+  "I’ll ask a few questions, put what you tell me in order, and help you get it in front of a lawyer.": "몇 가지 질문을 드리고, 말씀하신 내용을 정리해 변호사에게 전달할 수 있도록 도와드릴게요.",
+  "1 thing still to cover. See the Overview tab, or tap to ask here": "아직 다룰 내용이 1개 있어요. 개요 탭을 보거나, 눌러서 여기서 물어보세요",
+  "{n} things still to cover. See the Overview tab, or tap to ask here": "아직 다룰 내용이 {n}개 있어요. 개요 탭을 보거나, 눌러서 여기서 물어보세요",
+  "I collect your information and put it in order for a lawyer. I can’t give legal advice.": "변호사를 위해 정보를 모아 정리해 드려요. 법률 자문은 드릴 수 없어요.",
+  "I collect your information and put it in order for a lawyer; I’m not a lawyer myself. Each chat answer uses 1 credit; stopped or failed answers are free. Your case questions are free.": "변호사를 위해 정보를 모아 정리해 드려요. 저는 변호사가 아니에요. 채팅 답변 1개에 크레딧 1개가 쓰이며, 중단되거나 실패한 답변은 무료예요. 사건 질문은 무료예요.",
+  "Recording…": "녹음 중…",
+  "Transcribing…": "받아쓰는 중…",
+  "{credits} credits left · 1 per chat answer, free if stopped or failed. Case questions are free.": "크레딧 {credits}개 남음 · 채팅 답변당 1개, 중단되거나 실패하면 무료. 사건 질문은 무료예요.",
+  "I’m not a lawyer and can’t give legal advice.": "저는 변호사가 아니며 법률 자문을 드릴 수 없어요.",
+  "Get a lawyer for this case": "이 사건을 맡을 변호사 찾기",
+  "We send a summary without your name to every matching lawyer. The first to pick it up checks for conflicts and sends you a quote.": "이름을 뺀 요약을 조건에 맞는 모든 변호사에게 보내요. 먼저 맡은 변호사가 이해충돌을 확인한 뒤 견적을 보내요.",
+  "Legal questions go to your case’s Interview, not the guide.": "법률 질문은 가이드가 아니라 사건의 인터뷰에서 해 주세요.",
+  "ilovelawyer isn’t a law firm. The AI puts your case in order. Advice comes from the lawyer you choose.": "ilovelawyer는 법무법인이 아니에요. AI는 사건 내용을 정리하고, 자문은 선택하신 변호사에게서 받아요.",
+  "Tell us about a legal problem. We’ll help you put it in order, then you can find a lawyer if you want one.": "겪고 계신 법률 문제를 알려 주세요. 내용을 정리해 드리고, 원하시면 변호사도 찾을 수 있어요."
 }

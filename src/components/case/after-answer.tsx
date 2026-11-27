@@ -3,6 +3,7 @@
 import { LawyerSuggestion } from "@/components/case/lawyer-suggestion";
 import { RegionPrompt } from "@/components/case/region-prompt";
 import { useSite } from "@/components/site/site-provider";
+import { useQuestionsUnderway } from "@/lib/cases/questions";
 import { caseRegion, UK_JURISDICTIONS, type Case } from "@/lib/types";
 
 /** CW returns exactly these three, in this order, only for its one fixed jurisdiction question
@@ -32,10 +33,12 @@ export function AfterAnswer({
   suggestions: string[];
   onAnswered: (text: string) => void;
 }) {
-  const { regionQuestion, clientRequests } = useSite();
+  const { regionQuestion, clientRequests, storyIntake } = useSite();
+  // Not while the case's questions are under way: the header's button is offer enough until then.
+  const underway = useQuestionsUnderway(c.id, storyIntake === "open");
   if (regionQuestion && caseRegion(c) === "" && isJurisdictionQuestion(suggestions)) {
     return <RegionPrompt caseId={c.id} onAnswered={onAnswered} />;
   }
-  if (clientRequests !== "open") return null;
+  if (clientRequests !== "open" || underway) return null;
   return <LawyerSuggestion caseId={c.id} latestAnswerId={latestAnswerId} />;
 }

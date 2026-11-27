@@ -5,6 +5,7 @@ import type { CaseIntake } from "@/lib/types";
 import { correctStory, getIntake, getStoryFacts, startStory } from "./api";
 import { caseKeys } from "./queries";
 import { msg } from "@/lib/i18n/msg";
+import type { TenantCode } from "@/lib/tenant/client-tenant";
 
 // The story-first way into a new case (components/story): the client tells what happened, the API
 // makes the case and the AI reads the story, and "Here's your story so far" shows what it took in.
@@ -27,11 +28,24 @@ export const STORY_SUGGESTIONS: readonly { area: string; prompts: readonly strin
   { area: msg("Money"), prompts: [msg("Someone owes me money"), msg("A shop won’t refund me")] },
 ];
 
+/** Starters only one site offers, added to the end of their group: in Korea, getting a jeonse (lump-sum
+ * lease) deposit back is one of the most common housing disputes. */
+const SITE_PROMPTS: Partial<Record<TenantCode, Record<string, readonly string[]>>> = {
+  KR: { Housing: [msg("I want my jeonse deposit back")] },
+};
+
+/** The starters a site shows: STORY_SUGGESTIONS plus that site's own. */
+export function storySuggestions(site: TenantCode): readonly { area: string; prompts: readonly string[] }[] {
+  const extra = SITE_PROMPTS[site] ?? {};
+  return STORY_SUGGESTIONS.map((group) => ({ area: group.area, prompts: [...group.prompts, ...(extra[group.area] ?? [])] }));
+}
+
 /** Whether the suggestions are still offered: while the box is empty, or holds a suggestion as it
  * was tapped (so another can be tapped instead). Once the client writes their own, they go. */
-export function offersSuggestions(text: string, translate: (key: string) => string): boolean {
+export function offersSuggestions(text: string, translate: (key: string) => string, site?: TenantCode): boolean {
   const typed = text.trim();
-  return !typed || STORY_SUGGESTIONS.some((group) => group.prompts.some((p) => translate(p) === typed));
+  const groups = site ? storySuggestions(site) : STORY_SUGGESTIONS;
+  return !typed || groups.some((group) => group.prompts.some((p) => translate(p) === typed));
 }
 
 /** How often to look while the story is being read. */

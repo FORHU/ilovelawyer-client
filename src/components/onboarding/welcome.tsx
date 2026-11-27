@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { Camera, Mic, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { buttonClass } from "@/components/ui/button";
 import { useT } from "@/components/site/language-provider";
@@ -14,9 +15,9 @@ import { OnboardingFrame, OnboardingHeading } from "./onboarding-frame";
 export const ONBOARDING_SIGNUP_PATH = "/login?tab=signup&flow=start";
 
 const STEPS = [
-  { title: msg("Tell us"), body: msg("Talk or type, then answer a few questions") },
-  { title: msg("Add proof"), body: msg("Photos, files and emails") },
-  { title: msg("Get a lawyer"), body: msg("Your case arrives ready to review") },
+  { icon: Mic, title: msg("Tell us"), body: msg("Talk or type, then answer a few questions") },
+  { icon: Camera, title: msg("Add proof"), body: msg("Photos, files, voice memos and emails") },
+  { icon: ShieldCheck, title: msg("Get a lawyer"), body: msg("Your case arrives ready to review") },
 ] as const;
 
 /** The new-client flow's first screen (/start): what happens, then an account. Someone already
@@ -36,28 +37,29 @@ export function Welcome() {
         {t("No forms and no legal words. Talk or type, and show us any proof you have.")}
       </OnboardingHeading>
 
-      <ol className="flex flex-col gap-3.5" aria-label={t("How it works")}>
-        {STEPS.map((step, i) => (
-          <li key={step.title} className="grid grid-cols-[30px_minmax(0,1fr)] items-start gap-3">
-            <span aria-hidden="true" className="flex size-7 items-center justify-center rounded-full border border-gold font-display text-[13px] text-gold">
-              {i + 1}
+      <ol className="flex flex-col gap-4" aria-label={t("How it works")}>
+        {STEPS.map(({ icon: Icon, title, body }) => (
+          <li key={title} className="grid grid-cols-[40px_minmax(0,1fr)] items-center gap-3.5">
+            <span aria-hidden="true" className="flex size-10 items-center justify-center rounded-full bg-gold-soft text-gold">
+              <Icon size={19} />
             </span>
-            <span className="text-[15px] leading-[1.45]">
-              <span className="font-semibold">{t(step.title)}</span> <span className="text-ink-2">{t(step.body)}</span>
+            <span className="flex flex-col">
+              <span className="text-[15.5px] font-semibold leading-snug">{t(title)}</span>
+              <span className="text-[14px] leading-snug text-ink-2">{t(body)}</span>
             </span>
           </li>
         ))}
       </ol>
 
-      <div className="flex flex-col gap-2.5 pt-2">
+      <div className="flex flex-col gap-1 pt-2">
         <Link href={ONBOARDING_SIGNUP_PATH} className={buttonClass("primary", "xl", "w-full")}>
           {t("Get started")}
         </Link>
-        <Link href="/login" className={buttonClass("soft", "xl", "w-full")}>
+        <Link href="/login" className={buttonClass("quiet", "lg", "w-full !text-[14px]")}>
           {t("I already have an account")}
         </Link>
       </div>
-      <p className="text-center text-[11.5px] text-muted">{t("AI guidance, not legal advice.")}</p>
+      <p className="text-center text-[12.5px] text-ink-2">{t("AI guidance, not legal advice.")}</p>
     </OnboardingFrame>
   );
 }

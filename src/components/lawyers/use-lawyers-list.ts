@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useCaseAvailability } from "@/components/lawyers/use-case-availability";
 import { useCaseAreasQuery } from "@/lib/cases/case-areas";
+import { areaName as nameOfArea } from "@/lib/types";
 import { useCasesQuery } from "@/lib/cases/queries";
 import {
   consultationScale,
@@ -61,7 +62,8 @@ export function useLawyersList() {
   const toggleLanguage = (l: string) =>
     set({ languages: filters.languages.includes(l) ? filters.languages.filter((x) => x !== l) : [...filters.languages, l] });
 
-  const areaName = areas.find((a) => a.code === filters.area)?.name;
+  const found = areas.find((a) => a.code === filters.area);
+  const areaName = found ? nameOfArea(found.name) : undefined;
   const summary = [areaName?.toLowerCase(), filters.jurisdiction].filter(Boolean).join(" in ");
   const activeFilters =
     (filters.area ? 1 : 0) + (filters.jurisdiction ? 1 : 0) + (filters.maxConsultation < consultationScale().max ? 1 : 0) + filters.languages.length;

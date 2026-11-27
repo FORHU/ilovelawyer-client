@@ -128,6 +128,13 @@ export function useQuestionsStatusQuery(caseId: string, enabled = true) {
   });
 }
 
+/** The case's questions are started and not yet done. The case page holds back what would compete
+ * with them meanwhile (the lawyer offers, the AI's "still to cover" count), so one count shows.
+ * False for a case that never had questions. `enabled`: the site has the story intake. */
+export function useQuestionsUnderway(caseId: string, enabled: boolean): boolean {
+  return useQuestionsStatusQuery(caseId, enabled).data?.status === "OPEN";
+}
+
 /** Codes that mean this screen is behind the saved questions (another tab, a double tap): read them again. */
 const BEHIND = new Set(["QUESTION_NOT_CURRENT", "QUESTIONS_DONE", "QUESTIONS_NOT_STARTED"]);
 export function isBehind(err: unknown): boolean {
@@ -139,9 +146,15 @@ export function isBehind(err: unknown): boolean {
  * still being written) is asked again every two seconds for a while. */
 export function useQuestionsQuery(caseId: string) {
   const userId = useUserId();
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: questionsKey(userId, caseId),
-    queryFn: () => startQuestions(caseId),
+    // The case page's banner reads the same state: kept in step from the first read, not 30 s later.
+    queryFn: async () => {
+      const state = await startQuestions(caseId);
+      queryClient.setQueryData(questionsStatusKey(userId, caseId), state);
+      return state;
+    },
     enabled: !!userId,
     staleTime: Infinity,
     refetchOnWindowFocus: false,

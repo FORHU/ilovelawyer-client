@@ -80,7 +80,9 @@ function useCompleteSignIn() {
     const path = afterSignInPath({ isNewAccount, hasCases, storyIntake, searchText: readSearchText() });
     // The onboarding says its own welcome; a banner would land on the first case's screen.
     useApp.getState().setBanner(path === ONBOARDING_PRIVACY_PATH ? NO_BANNER : hasCases === false && !isNewAccount ? FIRST_CASE_BANNER : banner);
-    if (replace) router.replace(path);
+    // Into the new-client flow, the sign-in page leaves the history: Back from the first case
+    // mustn't land on a sign-up that's done.
+    if (replace || path === ONBOARDING_PRIVACY_PATH) router.replace(path);
     else router.push(path);
   };
 }

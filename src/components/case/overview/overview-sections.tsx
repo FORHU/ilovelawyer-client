@@ -10,6 +10,9 @@ import { deadlineStatus, urgentFirst } from "@/lib/cases/overview-urgency";
 import { formatDay, formatEventDate } from "@/lib/format";
 import { useEligibilityQuery, useLawyerRequestForm, useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
 import type { CaseIntake, IntakeFormFields, IntakeItem } from "@/lib/types";
+import { useQuestionsUnderway } from "@/lib/cases/questions";
+import { useSite } from "@/components/site/site-provider";
+import { useT } from "@/components/site/language-provider";
 
 export type SourceProps = { onOpenChat: () => void; onOpenDocument: (id: string) => void };
 
@@ -329,16 +332,19 @@ export function NothingYet({ sections }: { sections: EmptySection[] }) {
 }
 
 /** Asking for a lawyer, from the page that has just shown what a lawyer would see. Only offered when
- * the case can have one and doesn't already. */
+ * the case can have one, doesn't already, and isn't still answering its questions (the header's
+ * button is offer enough until then). */
 export function GetLawyerCard({ caseId, fullWidth }: { caseId: string; fullWidth?: boolean }) {
   const { data: openRequest } = useOpenLawyerRequestQuery(caseId);
   const { data } = useEligibilityQuery(caseId);
-  if (openRequest || !data?.eligible) return null;
+  const underway = useQuestionsUnderway(caseId, useSite().storyIntake === "open");
+  const t = useT();
+  if (openRequest || !data?.eligible || underway) return null;
   return (
     <section className="flex flex-col gap-2.5 rounded-card bg-primary px-5 py-[18px] text-white">
-      <h3 className="font-display text-[19px]">Get a lawyer for this case</h3>
+      <h3 className="font-display text-[19px]">{t("Get a lawyer for this case")}</h3>
       <p className="text-[13px] text-[#d4d4d4]">
-        Let us send an anonymised summary to every matching lawyer. The first to pick it up checks for conflicts and sends you a quote.
+        {t("We send a summary without your name to every matching lawyer. The first to pick it up checks for conflicts and sends you a quote.")}
       </p>
       <Button
         variant="soft"
@@ -346,7 +352,7 @@ export function GetLawyerCard({ caseId, fullWidth }: { caseId: string; fullWidth
         className={cn("mt-1 !border-0", fullWidth ? "w-full" : "self-start")}
         onClick={() => useLawyerRequestForm.getState().openFor(caseId)}
       >
-        Match me
+        {t("Match me")}
       </Button>
     </section>
   );

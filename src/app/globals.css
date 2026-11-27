@@ -29,6 +29,8 @@
 
   --color-gold: #8a6200;
   --color-gold-hover: #6d4d00;
+  /* The pale gold behind the onboarding's icons and the mic's halo. */
+  --color-gold-soft: #f6efdf;
 
   --color-success: #2e8b57;
   --color-success-bg: #f3f8f4;
@@ -93,6 +95,7 @@
 
   --color-gold: #d8a93e;
   --color-gold-hover: #e9bf5f;
+  --color-gold-soft: #2a2313;
 
   --color-success: #4cb07a;
   --color-success-bg: #12251a;

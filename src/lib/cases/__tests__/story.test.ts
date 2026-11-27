@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CaseIntake, IntakeStatus } from "@/lib/types";
-import { FACT_LINGER_MS, FACT_POP_MS, FACT_STEP_MS, READING_PATIENCE_MS, STORY_SUGGESTIONS, factsRevealMs, factsShown, offersSuggestions, storyReading, storySegments } from "../story";
+import { FACT_LINGER_MS, FACT_POP_MS, FACT_STEP_MS, READING_PATIENCE_MS, STORY_SUGGESTIONS, factsRevealMs, factsShown, offersSuggestions, storyReading, storySegments, storySuggestions } from "../story";
 
 const withStatus = (status: IntakeStatus) => ({ status }) as CaseIntake;
 
@@ -75,6 +75,14 @@ describe("story suggestions", () => {
     expect(offersSuggestions("  ", same)).toBe(true);
     expect(offersSuggestions("I was let go without notice", same)).toBe(true);
     expect(offersSuggestions("I was let go without notice on 3 March", same)).toBe(false);
+  });
+
+  it("adds a site's own starters to their group, on that site only", () => {
+    const housing = (site: "KR" | "UK") => storySuggestions(site).find((g) => g.area === "Housing")!.prompts;
+    expect(housing("KR")).toContain("I want my jeonse deposit back");
+    expect(housing("UK")).not.toContain("I want my jeonse deposit back");
+    expect(offersSuggestions("I want my jeonse deposit back", same, "KR")).toBe(true);
+    expect(offersSuggestions("I want my jeonse deposit back", same, "UK")).toBe(false);
   });
 
   it("knows a tapped suggestion in the client's language", () => {

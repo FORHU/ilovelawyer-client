@@ -77,7 +77,7 @@ export function NewCaseFormMobile({ included, creating, error, onBack, onNext, o
 
       <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto">
         <div className="flex flex-col gap-5 px-4 pb-8 pt-5">
-          {step === 1 && <TourHint />}
+          {step === 1 && <TourHint form />}
           {step === 1 && <StepDetailsMobile />}
           {step === 2 && <StepPeopleMobile />}
           {step === 3 && <StepBudgetMobile />}

@@ -35,7 +35,7 @@ export function WelcomeCard({ name, onShow, onSkip }: { name: string | null; onS
           </h2>
           <p className="text-[14px] leading-[1.55] text-ink-2">
             {open
-              ? "Tell us about a legal problem. We'll help you organise it, then you can find a solicitor if you want one."
+              ? t("Tell us about a legal problem. We’ll help you put it in order, then you can find a lawyer if you want one.")
               : t("Tell us about a legal problem and keep its details and documents together in one place.")}
           </p>
         </div>

@@ -22,6 +22,7 @@ import {
   type OtherParty,
   type PartyRole,
   type Side,
+  areaName,
 } from "@/lib/types";
 import { useWizard } from "@/lib/wizard-store";
 import { useSite } from "@/components/site/site-provider";
@@ -107,7 +108,7 @@ export function AreaField({
                 className={cn("inline-flex min-h-[34px] items-center gap-1 rounded-full bg-chip pl-3.5 pr-1 text-[13px] font-medium text-ink", isRetired && "opacity-60")}
                 title={isRetired ? t("No longer offered. You can keep it or remove it, but not add it back.") : undefined}
               >
-                {a.name}
+                {areaName(a.name)}
                 <button
                   type="button"
                   onClick={() => toggle(a.code)}
@@ -133,7 +134,7 @@ export function AreaField({
             const picked = value.includes(a.code);
             return (
               <CommandItem key={a.code} value={a.name} data-checked={picked} aria-checked={picked} disabled={disabled} onSelect={() => toggle(a.code)}>
-                {a.name}
+                {areaName(a.name)}
               </CommandItem>
             );
           })}
@@ -264,7 +265,8 @@ export function OthersField({
   );
 }
 
-/** The two optional questions that go to the case's notes: what happened and what the client wants. */
+/** The two questions that go to the case's notes: what happened (not required, but the most useful
+ * thing on the form, so not marked optional) and what the client wants. */
 export function IntakeNotesField({
   happened,
   wants,
@@ -278,7 +280,8 @@ export function IntakeNotesField({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <WizardLabel htmlFor="case-happened">{t("What happened, and roughly when? (optional)")}</WizardLabel>
+        <WizardLabel htmlFor="case-happened">{t("What happened, and roughly when?")}</WizardLabel>
+        <p className="text-[13px] text-ink-2">{t("The more you tell us, the better we can help.")}</p>
         <TextArea
           id="case-happened"
           rows={4}
@@ -375,13 +378,13 @@ export function BudgetField({ value, onChange, error }: { value: BudgetDraft; on
 
 export function StepDetails() {
   const { title, region, where, areas, happened, wants, titleErr, regionErr, areasErr, set } = useWizard();
-  const { regionQuestion } = useSite();
+  const { regionQuestion, placeExample } = useSite();
   const t = useT();
   return (
     <Section
       numeral="I"
       title={msg("What's your case about?")}
-      sub={msg("Give it a short name you'll recognise later.")}
+      sub={msg("Give it a short name so you can find it later.")}
     >
       <div className="flex flex-col gap-2">
         <WizardLabel htmlFor="case-title">{t("Case title *")}</WizardLabel>
@@ -413,7 +416,7 @@ export function StepDetails() {
         <TextInput
           id="case-where"
           value={where}
-          placeholder={t("e.g. Leeds")}
+          placeholder={t("e.g. {place}", { place: t(placeExample) })}
           onChange={(e) => set({ where: e.target.value })}
         />
       </div>
