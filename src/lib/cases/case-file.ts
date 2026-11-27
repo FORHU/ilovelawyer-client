@@ -1,5 +1,5 @@
 import { msg } from "@/lib/i18n/msg";
-import type { IntakeFormFields, IntakeItem } from "@/lib/types";
+import type { IntakeFormFields } from "@/lib/types";
 import type { QuestionDetail, QuestionsState } from "./questions";
 
 // "Your case" beside the questions and evidence (components/steps/case-rail.tsx): each detail the
@@ -30,28 +30,26 @@ function detailOf(id: string): string {
   return id.split(".")[0] ?? id;
 }
 
-const joined = (items: IntakeItem[]) => items.map((i) => i.text).join(" · ");
-
-/** What the story already told us about a detail, from the intake's case fields. */
+/** What the story already told us about a detail, from the intake's case fields: only the names
+ * and the place. Its other fields are written about the client for their lawyer ("The client was an
+ * employee of…"), which reads wrong said back to the client, so those wait for the client's answer. */
 function fromStory(detail: QuestionDetail, f: IntakeFormFields): string {
   switch (detail) {
     case "otherSide":
       return f.parties.map((p) => p.name).join(", ");
-    case "relationship":
-      return joined(f.relationship);
-    case "terms":
-      return joined(f.roleAndTerms);
-    case "reasonGiven":
-      return joined(f.reasonGiven);
     case "place":
       return f.venue ?? "";
     case "witnesses":
       return f.witnesses.map((p) => p.name).join(", ");
-    case "goal":
-      return joined(f.clientGoals);
-    case "status":
+    default:
       return "";
   }
+}
+
+/** An amount written as a currency sign and bare digits ("₩3000000") with its thousands separated
+ * ("₩3,000,000"). Only after a sign, so years and other numbers are left alone. */
+export function withSeparators(text: string, locale?: string): string {
+  return text.replace(/([₩₱£$€])\s?(\d{4,})(?![\d.,])/g, (_, sign: string, digits: string) => sign + new Intl.NumberFormat(locale).format(Number(digits)));
 }
 
 /**
@@ -66,7 +64,7 @@ export function caseFileOf(questions: Pick<QuestionsState, "history" | "current"
     const asked = (questions?.history ?? []).filter((h) => detailOf(h.id) === detail);
     const said = asked.filter((h) => !h.skipped && h.answer?.trim()).map((h) => h.answer!.trim());
     if (said.length) {
-      rows.push({ detail, label, value: said.join(" · "), state: "filled" });
+      rows.push({ detail, label, value: withSeparators(said.join(" · "), "en"), state: "filled" });
       continue;
     }
     if (questions?.current && detailOf(questions.current.id) === detail) {

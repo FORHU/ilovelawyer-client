@@ -7,7 +7,7 @@ import { BottomSheet } from "@/components/mobile/bottom-sheet";
 import { useT } from "@/components/site/language-provider";
 import { caseFileOf, type CaseFileRow } from "@/lib/cases/case-file";
 import { useCaseQuery } from "@/lib/cases/queries";
-import { progressOf, useQuestionsStatusQuery } from "@/lib/cases/questions";
+import { useQuestionsStatusQuery } from "@/lib/cases/questions";
 import { useStoryIntakeQuery } from "@/lib/cases/story";
 
 /** What "Your case" lists: the problem, each detail the client has given (caseFileOf), and the
@@ -20,13 +20,13 @@ function useCaseFile(caseId: string) {
     title: theCase?.title ?? "",
     rows: caseFileOf(questions, fields),
     documents: theCase?.documents.length ?? 0,
-    progress: questions && questions.total > 0 ? progressOf(questions) : null,
   };
 }
 
 /** The case so far as a list of labelled details. `addProofHref`: where "Add" goes for documents
- * (the evidence step), absent on the evidence step itself. */
-function CaseFile({ caseId, addProofHref }: { caseId: string; addProofHref?: string }) {
+ * (the evidence step). `onEvidence`: shown on the evidence step itself, where the documents are the
+ * live count, not something for later. */
+function CaseFile({ caseId, addProofHref, onEvidence = false }: { caseId: string; addProofHref?: string; onEvidence?: boolean }) {
   const t = useT();
   const file = useCaseFile(caseId);
   return (
@@ -38,6 +38,8 @@ function CaseFile({ caseId, addProofHref }: { caseId: string; addProofHref?: str
       <Row label={t("Documents")}>
         {file.documents > 0 ? (
           t("{count} added", { count: file.documents })
+        ) : onEvidence ? (
+          <span className="text-ink-2">{t("None yet")}</span>
         ) : (
           <span className="text-ink-2">
             {t("Optional, you can add these later")}
@@ -94,21 +96,21 @@ function DetailRow({ row }: { row: CaseFileRow }) {
  * the step scrolls. Shown once the step's column has room beside it (StepPage's container query),
  * so it shows on a laptop without the sidebar too. A phone has CaseSheetButton instead.
  */
-export function CaseRail({ caseId, addProofHref }: { caseId: string; addProofHref?: string }) {
+export function CaseRail({ caseId, addProofHref, onEvidence }: { caseId: string; addProofHref?: string; onEvidence?: boolean }) {
   const t = useT();
   return (
     <div className="sticky top-6 flex flex-col gap-4 rounded-2xl border border-line bg-subtle p-5">
       <h2 className="text-[13px] font-semibold text-ink-2">{t("Your case")}</h2>
-      <CaseFile caseId={caseId} addProofHref={addProofHref} />
+      <CaseFile caseId={caseId} addProofHref={addProofHref} onEvidence={onEvidence} />
     </div>
   );
 }
 
-/** A phone's way to the case so far: the step's progress line, which opens it in a sheet. */
-export function CaseSheetButton({ caseId, addProofHref }: { caseId: string; addProofHref?: string }) {
+/** A phone's way to the case so far: "Case details", which opens it in a sheet. Not "Your case":
+ * the way back to the case sits beside it with that name. */
+export function CaseSheetButton({ caseId, addProofHref, onEvidence }: { caseId: string; addProofHref?: string; onEvidence?: boolean }) {
   const t = useT();
   const [open, setOpen] = useState(false);
-  const { progress } = useCaseFile(caseId);
   return (
     <>
       <button
@@ -117,13 +119,12 @@ export function CaseSheetButton({ caseId, addProofHref }: { caseId: string; addP
         aria-haspopup="dialog"
         className="flex min-h-11 items-center gap-1.5 rounded-full px-1 text-[13.5px] font-medium text-ink-2 hover:text-ink"
       >
-        {t("Your case")}
-        {progress && <span className="tabular-nums">· {t("{done} of {total} details", { done: progress.done, total: progress.total })}</span>}
+        {t("Case details")}
         <ChevronDown size={16} aria-hidden="true" />
       </button>
-      <BottomSheet open={open} onClose={() => setOpen(false)} title={t("Your case")}>
+      <BottomSheet open={open} onClose={() => setOpen(false)} title={t("Case details")}>
         <div className="px-5 pb-4">
-          <CaseFile caseId={caseId} addProofHref={addProofHref} />
+          <CaseFile caseId={caseId} addProofHref={addProofHref} onEvidence={onEvidence} />
         </div>
       </BottomSheet>
     </>
