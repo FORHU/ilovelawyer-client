@@ -4,8 +4,6 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { useT } from "@/components/site/language-provider";
-import { useDevice } from "@/components/device/device-provider";
-import { useStepFlow } from "@/lib/cases/step-flow";
 import { cn } from "@/lib/cn";
 
 /** The column the new-case steps (story, questions, evidence) share on desktop. */
@@ -34,27 +32,10 @@ export function StepPage({ header, bar, children }: { header: ReactNode; bar?: R
   );
 }
 
-/**
- * The row over a step's title (questions, evidence): in the app, the way back to the case, with
- * `aside` (the progress) on the right; in the onboarding, no way back, the progress, and on a phone
- * Skip (where a desktop has it in the top bar, OnboardingBar).
- */
+/** The row over a step's title (questions, evidence): the way back to the case, with `aside` (the
+ * progress) on the right. */
 export function StepTopRow({ caseHref, aside }: { caseHref: string; aside?: ReactNode }) {
   const t = useT();
-  const { onboarding } = useStepFlow();
-  const mobile = useDevice() === "mobile";
-  if (onboarding) {
-    return (
-      <div className="flex min-h-11 items-center justify-between gap-3">
-        {aside}
-        {mobile && (
-          <Link href={caseHref} data-no-tap className="ml-auto flex min-h-11 items-center text-[13px] font-medium text-ink-2 underline underline-offset-4 hover:text-ink">
-            {t("Skip")}
-          </Link>
-        )}
-      </div>
-    );
-  }
   return (
     <div className="flex items-center justify-between gap-3">
       <Link href={caseHref} data-no-tap className="flex min-h-11 items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[1.2px] text-ink-2 hover:text-ink">

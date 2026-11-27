@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { IntakeChat } from "@/components/cases/intake-chat";
 import { GuideButton } from "@/components/tour/guide-button";
+import { useFirstCase } from "@/components/shell/first-case";
 import { TourHint } from "@/components/tour/tour-hint";
 import { useDevice } from "@/components/device/device-provider";
 import { EMPTY_INTAKE_DRAFT, type IntakeDraft } from "@/lib/cases/use-intake-chat";
@@ -44,6 +45,7 @@ const SAVE_MS = 400;
 function NewCase() {
   const router = useRouter();
   const device = useDevice();
+  const firstCase = useFirstCase();
   const t = useT();
   const wiz = useWizard();
   const { data: pricing } = usePricingQuery();
@@ -265,7 +267,8 @@ function NewCase() {
     return (
       <div className="flex min-h-0 flex-1 flex-col">
         {/* On a desktop the story screen has nothing to show here (its back button is the phone's). */}
-        {(device === "mobile" || !storyMode) && (
+        {/* A first case has the onboarding's bar instead (AppShell), with Skip and no way back. */}
+        {(device === "mobile" || !storyMode) && !firstCase && (
         <div className="keyboard-hide mx-auto w-full max-w-[768px] px-4 pt-5 max-md:pt-2 md:px-6">
           <div className="flex items-center justify-between">
             <button

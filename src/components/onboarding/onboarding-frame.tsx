@@ -24,9 +24,9 @@ export function OnboardingFrame({ step, children }: { step?: { n: number; total:
 export function OnboardingHeading({ eyebrow, title, children }: { eyebrow: string; title: string; children?: ReactNode }) {
   return (
     <header className="flex flex-col gap-2.5">
-      <p className="text-[10.5px] font-semibold uppercase tracking-[1.2px] text-gold">{eyebrow}</p>
+      <p className="text-[14px] font-medium text-ink-2">{eyebrow}</p>
       {/* Focusable, so a screen moving on (the story's) can take the reader to its new heading. */}
-      <h1 tabIndex={-1} className="text-balance font-display text-[32px] font-normal leading-[1.1] tracking-[-0.02em] outline-none md:text-[38px]">
+      <h1 tabIndex={-1} className="text-balance font-display text-[28px] font-normal leading-[1.1] tracking-[-0.02em] outline-none md:text-[38px] xl:text-[44px]">
         {title}
       </h1>
       {children && <p className="text-[15.5px] leading-[1.55] text-ink-2">{children}</p>}

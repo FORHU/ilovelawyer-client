@@ -12,7 +12,6 @@ import { useT } from "@/components/site/language-provider";
 import { ApiError } from "@/lib/api/fetch";
 import { endMessageOf, progressOf, threadOf, type ThreadTurn } from "@/lib/cases/questions";
 import { StepPage, StepTopRow } from "@/components/steps/step-page";
-import { useStepFlow } from "@/lib/cases/step-flow";
 import { useQuestions, type QuestionsController } from "./use-questions";
 
 /** The Questions step after the story (/cases/:id/questions): the details the case still needs, one
@@ -253,11 +252,10 @@ function AnswerBar({ q }: { q: QuestionsController }) {
 
 function Finished({ caseId, caseHref }: { caseId: string; caseHref: string }) {
   const t = useT();
-  const { evidenceHref } = useStepFlow();
   return (
     <div className="flex flex-col gap-2.5 md:flex-row">
       {/* Next comes the evidence step, in the same flow: the proof the story and answers call for. */}
-      <Link href={evidenceHref(caseId)} className={buttonClass("primary", "lg", "w-full md:w-auto")}>
+      <Link href={`/cases/${caseId}/evidence`} className={buttonClass("primary", "lg", "w-full md:w-auto")}>
         {t("Add your proof")}
       </Link>
       <Link href={caseHref} className={buttonClass("soft", "lg", "w-full md:w-auto")}>
