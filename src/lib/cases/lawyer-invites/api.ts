@@ -31,6 +31,18 @@ export interface CreatedLawyerInvite {
   expiresAt: string;
 }
 
+/** Whether an invite is still actually pending — `status === "PENDING"` AND not past its
+ * `expiresAt`. The API only flips status to EXPIRED lazily, when the lawyer app's signup page
+ * looks the invite up or a redeem is attempted — so an invite nobody ever opened (the lawyer
+ * never clicked the link) keeps reporting PENDING from this client-facing GET forever, well past
+ * when it actually expired. Both the invite card and GetLawyerCard's guard call this instead of
+ * trusting `status === "PENDING"` on its own. `now` defaults to the real current time but can be
+ * passed explicitly for deterministic tests (same convention as overview-urgency.ts's
+ * deadlineStatus). */
+export function isInvitePending(invite: CaseLawyerInvite | null | undefined, now: Date = new Date()): boolean {
+  return invite?.status === "PENDING" && new Date(invite.expiresAt) > now;
+}
+
 function post<T>(path: string, body: unknown): Promise<T> {
   return apiFetch<T>(path, { method: "POST", body: JSON.stringify(body) });
 }
@@ -76,7 +88,7 @@ export function useCaseLawyerInviteQuery(caseId: string) {
     queryFn: () => getCurrentInvite(caseId),
     enabled: !!userId && !!caseId,
     staleTime: 0,
-    refetchInterval: (query) => (query.state.data?.status === "PENDING" ? 30_000 : false),
+    refetchInterval: (query) => (isInvitePending(query.state.data) ? 30_000 : false),
   });
 }
 

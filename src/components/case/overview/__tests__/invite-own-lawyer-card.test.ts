@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { inviteCardState, inviteSignupUrl } from "../invite-own-lawyer-card";
+import { inviteCardState, inviteSignupUrl, showLinkCopyFallback } from "../invite-own-lawyer-card";
 import type { CaseLawyerInvite } from "@/lib/cases/lawyer-invites/api";
 
 // invite-own-lawyer-card.tsx renders the component itself, which this repo has no rendering
@@ -24,11 +24,19 @@ describe("inviteSignupUrl", () => {
   });
 });
 
+const NOW = new Date("2026-11-27T12:00:00Z");
+
 describe("inviteCardState", () => {
   it("is 'pending' with the email when PENDING and addressed to one", () => {
     const invite: CaseLawyerInvite = { status: "PENDING", email: "lawyer@x.com", expiresAt: "2026-12-03T00:00:00Z", acceptedAt: null, revokedAt: null };
 
     expect(inviteCardState(invite)).toEqual({ kind: "pending", email: "lawyer@x.com" });
+  });
+
+  it("is 'offer' for a PENDING invite whose expiresAt has already passed — nobody ever opened it", () => {
+    const invite: CaseLawyerInvite = { status: "PENDING", email: "lawyer@x.com", expiresAt: "2026-11-20T00:00:00Z", acceptedAt: null, revokedAt: null };
+
+    expect(inviteCardState(invite, NOW)).toEqual({ kind: "offer" });
   });
 
   it("is 'pending' with a null email for a bare link invite", () => {
@@ -55,5 +63,33 @@ describe("inviteCardState", () => {
 
     expect(inviteCardState(revoked)).toEqual({ kind: "offer" });
     expect(inviteCardState(expired)).toEqual({ kind: "offer" });
+  });
+});
+
+describe("showLinkCopyFallback", () => {
+  // Copy-link's createLinkInvite mutation hands back a token the GET endpoint never repeats, and
+  // on Safari/iOS a clipboard write issued after that network await loses the user-gesture
+  // permission and silently fails. So the card keeps the just-created URL in local state and
+  // shows a read-only field + explicit "Copy" button the user can click again — this is the pure
+  // decision of when that fallback should be on screen, given the invite it was created for.
+
+  it("shows once a link invite exists and the card is in the 'offer' state (right after creation)", () => {
+    expect(showLinkCopyFallback({ url: "https://x/login?tab=signup&caseInviteToken=t", copyFailed: true }, { kind: "offer" })).toBe(true);
+  });
+
+  it("keeps showing once the refetch flips the card to 'pending' with no email (a bare link invite)", () => {
+    expect(showLinkCopyFallback({ url: "https://x", copyFailed: false }, { kind: "pending", email: null })).toBe(true);
+  });
+
+  it("hides once the invite is addressed to an email — that's a different invite, not this link", () => {
+    expect(showLinkCopyFallback({ url: "https://x", copyFailed: false }, { kind: "pending", email: "lawyer@x.com" })).toBe(false);
+  });
+
+  it("hides once the invite has been accepted", () => {
+    expect(showLinkCopyFallback({ url: "https://x", copyFailed: false }, { kind: "accepted" })).toBe(false);
+  });
+
+  it("hides when there's no link invite to show at all", () => {
+    expect(showLinkCopyFallback(null, { kind: "offer" })).toBe(false);
   });
 });

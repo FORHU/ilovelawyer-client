@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "@/lib/api/fetch";
-import { createEmailInvite, createLinkInvite, getCurrentInvite, lawyerInviteKeys, revokeInvite, type CaseLawyerInvite } from "../api";
+import { createEmailInvite, createLinkInvite, getCurrentInvite, isInvitePending, lawyerInviteKeys, revokeInvite, type CaseLawyerInvite } from "../api";
 
 vi.mock("@/lib/api/fetch", () => ({ apiFetch: vi.fn() }));
 
@@ -82,5 +82,48 @@ describe("lawyerInviteKeys", () => {
     const forUser2 = lawyerInviteKeys.detail("user-2", "case-a");
 
     expect(forUser1).not.toEqual(forUser2);
+  });
+});
+
+// isInvitePending is the one place that decides whether a PENDING invite is still actually live.
+// The API only flips status to EXPIRED lazily (on lookup/redeem from the lawyer app's side), so an
+// invite nobody ever opened keeps reporting PENDING from this client's GET forever — this pure
+// function is what both the invite card and GetLawyerCard's guard call instead of trusting
+// `status === "PENDING"` on its own. Takes `now` so it's deterministic to test (same convention as
+// lib/cases/overview-urgency.ts's deadlineStatus).
+
+const NOW = new Date("2026-11-27T12:00:00Z");
+
+describe("isInvitePending", () => {
+  it("is true for a PENDING invite that hasn't expired yet", () => {
+    const invite: CaseLawyerInvite = { status: "PENDING", email: null, expiresAt: "2026-11-28T00:00:00Z", acceptedAt: null, revokedAt: null };
+
+    expect(isInvitePending(invite, NOW)).toBe(true);
+  });
+
+  it("is false for a PENDING invite whose expiresAt has already passed", () => {
+    const invite: CaseLawyerInvite = { status: "PENDING", email: null, expiresAt: "2026-11-26T00:00:00Z", acceptedAt: null, revokedAt: null };
+
+    expect(isInvitePending(invite, NOW)).toBe(false);
+  });
+
+  it("is false for ACCEPTED, REVOKED, EXPIRED, null or undefined", () => {
+    const accepted: CaseLawyerInvite = { status: "ACCEPTED", email: null, expiresAt: "2026-12-01T00:00:00Z", acceptedAt: "2026-11-25T00:00:00Z", revokedAt: null };
+    const revoked: CaseLawyerInvite = { status: "REVOKED", email: null, expiresAt: "2026-12-01T00:00:00Z", acceptedAt: null, revokedAt: "2026-11-25T00:00:00Z" };
+    const expired: CaseLawyerInvite = { status: "EXPIRED", email: null, expiresAt: "2026-11-01T00:00:00Z", acceptedAt: null, revokedAt: null };
+
+    expect(isInvitePending(accepted, NOW)).toBe(false);
+    expect(isInvitePending(revoked, NOW)).toBe(false);
+    expect(isInvitePending(expired, NOW)).toBe(false);
+    expect(isInvitePending(null, NOW)).toBe(false);
+    expect(isInvitePending(undefined, NOW)).toBe(false);
+  });
+
+  it("defaults `now` to the current time when not given", () => {
+    const farFuture: CaseLawyerInvite = { status: "PENDING", email: null, expiresAt: "2099-01-01T00:00:00Z", acceptedAt: null, revokedAt: null };
+    const longPast: CaseLawyerInvite = { status: "PENDING", email: null, expiresAt: "2000-01-01T00:00:00Z", acceptedAt: null, revokedAt: null };
+
+    expect(isInvitePending(farFuture)).toBe(true);
+    expect(isInvitePending(longPast)).toBe(false);
   });
 });
