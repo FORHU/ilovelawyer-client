@@ -96,7 +96,7 @@ export function NewCaseFormDesktop({ included, creating, error, onBack, onNext, 
         </div>
 
         <div className="flex min-w-0 flex-col gap-4">
-          {step === 1 && <TourHint />}
+          {step === 1 && <TourHint form />}
           {step === 1 && <StepDetails />}
           {step === 2 && <StepPeople />}
           {step === 3 && <StepBudget />}

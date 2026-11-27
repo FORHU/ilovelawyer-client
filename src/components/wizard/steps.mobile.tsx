@@ -11,7 +11,7 @@ import { budgetCurrency, budgetRanges, FEE_PREFERENCES, budgetFromDraft, formatB
 import { useCaseAreasQuery } from "@/lib/cases/case-areas";
 import { describeLimits } from "@/lib/cases/limits";
 import { cn } from "@/lib/cn";
-import { UK_JURISDICTIONS, sideLabel, type CaseRegion } from "@/lib/types";
+import { UK_JURISDICTIONS, areaName, sideLabel, type CaseRegion } from "@/lib/types";
 import { useWizard } from "@/lib/wizard-store";
 import { useSite } from "@/components/site/site-provider";
 import { IntakeNotesField, OthersField, SideField, useWizardFiles } from "./steps";
@@ -68,7 +68,7 @@ function AreaFieldMobile({ value, onChange, error }: { value: string[]; onChange
         <ul className="flex flex-wrap gap-2" aria-label={t("Picked types of issue")}>
           {chosen.map((a) => (
             <li key={a.code} className="inline-flex min-h-11 items-center gap-1 rounded-full bg-chip pl-4 pr-1 text-[14px] font-medium text-ink">
-              {a.name}
+              {areaName(a.name)}
               <button type="button" onClick={() => toggle(a.code)} aria-label={t("Remove {name}", { name: a.name })} data-no-tap className="flex size-10 items-center justify-center rounded-full text-ink-2 active:bg-ink/10">
                 <X size={16} aria-hidden="true" />
               </button>
@@ -123,7 +123,7 @@ function AreaFieldMobile({ value, onChange, error }: { value: string[]; onChange
                     <span aria-hidden="true" className={cn("flex size-6 shrink-0 items-center justify-center rounded-md border", picked ? "border-ink bg-ink text-white" : "border-line-input bg-surface")}>
                       {picked && <Check size={15} strokeWidth={3} />}
                     </span>
-                    {a.name}
+                    {areaName(a.name)}
                   </button>
                 </li>
               );
@@ -172,12 +172,10 @@ function RegionFieldMobile({ value, onChange, error }: { value: CaseRegion | "";
 
 export function StepDetailsMobile() {
   const { title, region, where, areas, happened, wants, titleErr, regionErr, areasErr, set } = useWizard();
-  const { regionQuestion } = useSite();
-  // The optional notes stay folded away until asked for, unless there is something in them.
-  const [more, setMore] = useState(!!(happened || wants));
+  const { regionQuestion, placeExample } = useSite();
   const t = useT();
   return (
-    <MobileStep title={msg("What's your case about?")} sub={msg("Give it a short name you'll recognise later.")}>
+    <MobileStep title={msg("What's your case about?")} sub={msg("Give it a short name so you can find it later.")}>
       <div className="flex flex-col gap-2">
         <WizardLabel htmlFor="case-title">{t("Case title *")}</WizardLabel>
         <input
@@ -203,17 +201,11 @@ export function StepDetailsMobile() {
       {regionQuestion && <RegionFieldMobile value={region} onChange={(r) => set({ region: r })} error={regionErr} />}
       <div className="flex flex-col gap-2">
         <WizardLabel htmlFor="case-where">{t("Town or city")}</WizardLabel>
-        <TextInput id="case-where" value={where} placeholder={t("e.g. Leeds")} autoComplete="address-level2" enterKeyHint="done" onChange={(e) => set({ where: e.target.value })} />
+        <TextInput id="case-where" value={where} placeholder={t("e.g. {place}", { place: t(placeExample) })} autoComplete="address-level2" enterKeyHint="done" onChange={(e) => set({ where: e.target.value })} />
       </div>
       <div className="border-t border-line pt-4">
-        {more ? (
-          <IntakeNotesField happened={happened} wants={wants} onChange={set} />
-        ) : (
-          <button type="button" onClick={() => setMore(true)} data-no-tap className="flex min-h-12 w-full items-center justify-between rounded-input border border-dashed border-line-input px-4 text-left text-[15px] font-medium text-ink-2 active:bg-chip">
-            {t("Add what happened (optional)")}
-            <Plus size={18} aria-hidden="true" />
-          </button>
-        )}
+        {/* Open from the start: what happened is the most useful thing on the form. */}
+        <IntakeNotesField happened={happened} wants={wants} onChange={set} />
       </div>
     </MobileStep>
   );
