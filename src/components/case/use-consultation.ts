@@ -16,6 +16,8 @@ import { tr } from "@/lib/i18n/translate";
 import { useDictation } from "@/lib/voice/use-dictation";
 import { useOpenLawyerRequestQuery } from "@/lib/lawyer-requests/api";
 import { useSocketConnected } from "@/lib/socket";
+import { useQuestionsUnderway } from "@/lib/cases/questions";
+import { useSite } from "@/components/site/site-provider";
 import type { Case, ChatMessage, IntakeGap } from "@/lib/types";
 
 export const PROMPTS = [
@@ -74,7 +76,10 @@ export function useConsultation(c: Case) {
   // than re-deriving it in each view, and alongside `missing` for the places that only need the
   // number (the banner text is unchanged).
   const missingGaps: IntakeGap[] = intake?.missing ?? [];
-  const missing = missingGaps.length;
+  // While the questions are under way, their count is the one shown (questions banner): the AI's
+  // own list of gaps would be a second, different number.
+  const questionsUnderway = useQuestionsUnderway(c.id, useSite().storyIntake === "open");
+  const missing = questionsUnderway ? 0 : missingGaps.length;
   // #158: the current question's suggested replies, if CW sent any — only meaningful on the
   // latest AI turn while waiting for an answer, never while a reply is in flight.
   const suggestions = !thinking ? (latestAnswer?.suggestions ?? []) : [];

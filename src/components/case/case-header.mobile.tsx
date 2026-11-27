@@ -46,7 +46,7 @@ export function CaseHeaderMobile({ c }: { c: Case }) {
             {areasLabel(c.areas)}
             {` · ${c.where || regionLabel(c)}`}
           </div>
-          <h1 className="truncate font-display text-[18px] leading-[1.25] tracking-[-0.01em]">{c.title}</h1>
+          <h1 className="line-clamp-2 break-words font-display text-[18px] leading-[1.25] tracking-[-0.01em]">{c.title}</h1>
         </div>
         <button
           type="button"

@@ -12,11 +12,13 @@ import { CitationText } from "@/components/case/citation-text";
 import { SensitiveInfoNotice } from "@/components/consent/sensitive-info-notice";
 import { DeleteConfirm, MessageMenu } from "@/components/case/message-actions";
 import { useSite } from "@/components/site/site-provider";
+import { useT } from "@/components/site/language-provider";
 import { usePayment } from "@/lib/payment-store";
 import { caseRegion, type Case } from "@/lib/types";
 import { PROMPTS, type Consultation } from "./use-consultation";
 
 export function ConsultationDesktop({ c, consultation }: { c: Case; consultation: Consultation }) {
+  const t = useT();
   const {
     credits, openRequest, loadError, upload, connected, input, setInput, notice, dragging, scroller, textareaRef, recorder,
     messages, documentById, thinking, out, lastFailed, latestAnswer, missing, missingGaps, suggestions, attachmentPending, failedAttachedIds,
@@ -37,11 +39,10 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
       {messages.length === 0 && !thinking ? (
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-5 overflow-y-auto overscroll-contain px-12 py-6">
           <h2 className="text-balance text-center font-display text-[28px] font-normal tracking-[-0.02em]">
-            Tell me about your situation
+            {t("Tell me about your situation")}
           </h2>
           <p className="max-w-[460px] text-center text-[13.5px] leading-[1.6] text-ink-2">
-            I&apos;ll ask a few questions, organise what you tell me, and help you get it in front of a lawyer. I
-            can&apos;t give legal advice myself.
+            {t("I’ll ask a few questions, put what you tell me in order, and help you get it in front of a lawyer. I can’t give legal advice myself.")}
           </p>
         </div>
       ) : (
@@ -56,7 +57,7 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
                   data-no-tap
                   className="self-center rounded-full bg-chip px-3 py-1 text-[12px] text-ink-2 hover:bg-chip/80"
                 >
-                  {missing} thing{missing === 1 ? "" : "s"} still to cover — see the Overview tab, or tap to ask here
+                  {missing === 1 ? t("1 thing still to cover. See the Overview tab, or tap to ask here") : t("{n} things still to cover. See the Overview tab, or tap to ask here", { n: missing })}
                 </button>
                 {showMissing && (
                   <div role="group" aria-label="Still to cover" className="flex max-w-[640px] flex-wrap justify-center gap-1.5">
@@ -116,7 +117,7 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
                       </div>
                       {m.audioUrl && <audio controls src={m.audioUrl} className="h-8 w-56" />}
                       <div className="flex items-center justify-between gap-3">
-                        <div className="text-xs text-muted">I collect and organise your information for a lawyer. I can&apos;t give legal advice.</div>
+                        <div className="text-xs text-muted">{t("I collect your information and put it in order for a lawyer. I can’t give legal advice.")}</div>
                         <MessageMenu m={m} consultation={consultation} />
                       </div>
                     </div>
@@ -357,7 +358,7 @@ export function ConsultationDesktop({ c, consultation }: { c: Case; consultation
             )}
           </form>
           <div className="text-center text-[11px] text-muted">
-            I collect and organise your information for a lawyer; I&apos;m not a lawyer myself. Each answer uses 1 credit. Stopped or failed answers are free.
+            {t("I collect your information and put it in order for a lawyer; I’m not a lawyer myself. Each chat answer uses 1 credit; stopped or failed answers are free. Your case questions are free.")}
           </div>
         </div>
       </div>

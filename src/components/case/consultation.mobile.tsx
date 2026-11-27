@@ -14,12 +14,14 @@ import { AfterAnswer, isJurisdictionQuestion } from "@/components/case/after-ans
 import { CitationText } from "@/components/case/citation-text";
 import { DeleteConfirm, MessageMenu } from "@/components/case/message-actions";
 import { useSite } from "@/components/site/site-provider";
+import { useT } from "@/components/site/language-provider";
 import { cn } from "@/lib/cn";
 import { usePayment } from "@/lib/payment-store";
 import { caseRegion, type Case } from "@/lib/types";
 import { PROMPTS, type Consultation } from "./use-consultation";
 
 export function ConsultationMobile({ c, consultation }: { c: Case; consultation: Consultation }) {
+  const t = useT();
   const {
     recorder, out, thinking, messages, documentById, scroller, missing, missingGaps, suggestions, openRequest, lastFailed, latestAnswer, connected, loadError, notice, credits, attachedIds, failedAttachedIds, removeAttached, input, setInput, onPaste, textareaRef, attach, upload, attachmentPending, sendableAttachedIds, send, stop, canStop, askAbout,
   } = consultation;
@@ -34,9 +36,9 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
     <ChatScreen>
       {messages.length === 0 && !thinking ? (
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-6 text-center">
-          <h2 className="text-balance font-display text-[26px] font-normal leading-[1.15] tracking-[-0.02em]">Tell me about your situation</h2>
+          <h2 className="text-balance font-display text-[26px] font-normal leading-[1.15] tracking-[-0.02em]">{t("Tell me about your situation")}</h2>
           <p className="mt-2.5 max-w-[320px] text-[15px] leading-[1.5] text-ink-2">
-            I&apos;ll ask a few questions, organise what you tell me, and help you get it in front of a lawyer.
+            {t("I’ll ask a few questions, put what you tell me in order, and help you get it in front of a lawyer.")}
           </p>
         </div>
       ) : (
@@ -51,7 +53,7 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
                   data-no-tap
                   className="self-center rounded-full bg-chip px-3 py-1.5 text-center text-[12.5px] leading-[1.35] text-ink-2"
                 >
-                  {missing} thing{missing === 1 ? "" : "s"} still to cover. See the Overview tab, or tap to ask here
+                  {missing === 1 ? t("1 thing still to cover. See the Overview tab, or tap to ask here") : t("{n} things still to cover. See the Overview tab, or tap to ask here", { n: missing })}
                 </button>
                 {showMissing && (
                   <div role="group" aria-label="Still to cover" className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4">
@@ -288,13 +290,13 @@ export function ConsultationMobile({ c, consultation }: { c: Case; consultation:
         </form>
         <p className="mt-2 text-center text-[11.5px] leading-[1.4] text-muted">
           {recorder.phase === "recording"
-            ? "Recording…"
+            ? t("Recording…")
             : recorder.phase === "transcribing"
-              ? "Transcribing…"
+              ? t("Transcribing…")
               : upload.isPending || attachmentPending
-                ? "Uploading…"
-                : `${credits} credits left · 1 per answer, free if stopped or failed`}
-          . I&apos;m not a lawyer and can&apos;t give legal advice.
+                ? t("Uploading…")
+                : t("{credits} credits left · 1 per chat answer, free if stopped or failed. Case questions are free.", { credits })}{" "}
+          {t("I’m not a lawyer and can’t give legal advice.")}
         </p>
       </ChatBar>
     </ChatScreen>
