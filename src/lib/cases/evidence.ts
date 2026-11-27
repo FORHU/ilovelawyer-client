@@ -103,15 +103,15 @@ export function stillWorking(docs: Pick<CaseDocument, "status" | "note" | "noteB
 /** The button a suggestion's card shows, by how it's best added: photos and files open the file
  * picker, emails open Gmail, and a memo opens the recorder. */
 export const SOURCE_ACTION: Record<EvidenceSource, string> = {
-  photos: msg("Add photos"),
+  photos: msg("Add photo or file"),
   files: msg("Add a file"),
   email: msg("Add emails"),
   memo: msg("Record a memo"),
 };
 
-/** What the file dialog offers for a suggestion: photos first for "photos", recordings for "memo". */
+/** What the file dialog offers for a suggestion: recordings for "memo"; everything else takes any
+ * file the API does (a letter may be a photo or a PDF), which is the picker's default. */
 export const SOURCE_ACCEPT: Partial<Record<EvidenceSource, string>> = {
-  photos: "image/*,.heic",
   memo: ".mp3,.m4a,.wav,.mp4,.webm",
 };
 

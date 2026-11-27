@@ -1,5 +1,4 @@
 {
-  "Add photos": "사진 추가",
   "Add a file": "파일 추가",
   "Add emails": "이메일 추가",
   "Told": "말씀하셨어요",
@@ -42,11 +41,9 @@
   "Add a note": "메모 추가",
   "Remove this from your case?": "이 자료를 사건에서 삭제할까요?",
   "Here’s what your case has. You can add more any time.": "지금 사건에 있는 내용이에요. 언제든 더 추가할 수 있어요.",
-  "Add more": "더 추가하기",
   "Undo": "되돌리기",
   "Record a memo": "음성 메모 녹음",
   "Add a file instead": "대신 파일 추가",
-  "Photos or files": "사진이나 파일",
   "Voice memo": "음성 메모",
   "Emails from Gmail": "Gmail의 이메일",
   "We didn’t catch anything. Try again.": "아무것도 녹음되지 않았어요. 다시 시도해 주세요.",
@@ -60,5 +57,17 @@
   "1 suggested document to add.": "추가하면 좋을 서류가 1개 있어요.",
   "{count} suggested documents to add.": "추가하면 좋을 서류가 {count}개 있어요.",
   "See all {count}": "{count}개 모두 보기",
-  "Stop": "중지"
+  "Stop": "중지",
+  "Photos & videos": "사진과 동영상",
+  "Take a photo": "사진 찍기",
+  "Files": "파일",
+  "Add more evidence": "증거 더 추가하기",
+  "Go to my cases": "내 사건으로 가기",
+  "Tap to start recording": "눌러서 녹음 시작",
+  "{added} of {total} suggested added": "제안된 {total}개 중 {added}개 추가됨",
+  "Add more": "더 추가하기",
+  "Continue without proof": "증거 없이 계속하기",
+  "Done · {count} added": "완료 · {count}개 추가됨",
+  "None yet": "아직 없어요",
+  "Add photo or file": "사진이나 파일 추가"
 }

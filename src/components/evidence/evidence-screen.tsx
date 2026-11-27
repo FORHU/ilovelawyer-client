@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
-import { Check, FileText, Image as ImageIcon, Loader2, Lock, Mail, Mic, Plus, Sparkles, WifiOff } from "lucide-react";
+import { Camera, Check, FileText, Image as ImageIcon, Loader2, Lock, Mail, Mic, Plus, Sparkles, WifiOff } from "lucide-react";
 import { Button, buttonClass } from "@/components/ui/button";
 import { ChatBar, ChatScreen } from "@/components/mobile/chat";
 import { FilePicker } from "@/components/ui/file-picker";
@@ -13,7 +13,8 @@ import { msg } from "@/lib/i18n/msg";
 import { SOURCE_ACCEPT, SOURCE_ACTION, checklistOf, type EvidenceSuggestion } from "@/lib/cases/evidence";
 import type { CaseDocument } from "@/lib/types";
 import { GmailImportModal } from "@/components/gmail/gmail-import-modal";
-import { CaseRail } from "@/components/steps/case-rail";
+import { BottomSheet } from "@/components/mobile/bottom-sheet";
+import { CaseRail, CaseSheetButton } from "@/components/steps/case-rail";
 import { StepPage, StepTopRow } from "@/components/steps/step-page";
 import { MemoRecorder } from "./memo-recorder";
 import { useEvidence, type EvidenceController } from "./use-evidence";
@@ -31,9 +32,21 @@ export function EvidenceScreen({ caseId }: { caseId: string }) {
     <header className="flex shrink-0 flex-col gap-2.5 px-4 pt-3 pb-2 md:px-0 md:pt-6">
       <StepTopRow
         caseHref={caseHref}
-        aside={<span className="text-[11px] font-semibold uppercase tracking-[1.2px] text-ink-2 tabular-nums">{t("{count} added", { count: e.documents.length })}</span>}
+        aside={
+          // A phone has no room for Your case beside the proof: its line opens it.
+          mobile ? (
+            <CaseSheetButton caseId={caseId} onEvidence />
+          ) : (
+            <span className="text-[13.5px] font-medium text-ink-2 tabular-nums">{t("{count} added", { count: e.documents.length })}</span>
+          )
+        }
       />
       <h1 className="font-display text-[26px] leading-[1.15] tracking-[-0.02em] md:text-[30px]">{e.finished ? t("Your case is ready") : t("Add your proof")}</h1>
+      {!e.finished && e.suggestions.length > 0 && (
+        <p className="text-[14px] text-ink-2 tabular-nums">
+          {t("{added} of {total} suggested added", { added: e.suggestions.filter((s) => s.state === "ADDED").length, total: e.suggestions.length })}
+        </p>
+      )}
     </header>
   );
 
@@ -52,7 +65,7 @@ export function EvidenceScreen({ caseId }: { caseId: string }) {
     );
   }
   return (
-    <StepPage header={header} bar={bar} rail={<CaseRail caseId={caseId} />}>
+    <StepPage header={header} bar={bar} rail={<CaseRail caseId={caseId} onEvidence />}>
       {body}
     </StepPage>
   );
@@ -61,7 +74,7 @@ export function EvidenceScreen({ caseId }: { caseId: string }) {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-2.5">
-      <h2 className="text-[11px] font-semibold uppercase tracking-[1.2px] text-ink-2">{title}</h2>
+      <h2 className="text-[15px] font-semibold text-ink">{title}</h2>
       {children}
     </section>
   );
@@ -97,8 +110,7 @@ function Collect({ e }: { e: EvidenceController }) {
             </Button>
           </div>
         ) : (
-          // Two across on a wide screen, so the suggestions don't run down the page.
-          <ul className="grid gap-2.5 lg:grid-cols-2">
+          <ul className="flex flex-col divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
             {e.suggestions.map((s) => (
               <SuggestionCard key={s.id} s={s} e={e} />
             ))}
@@ -107,21 +119,7 @@ function Collect({ e }: { e: EvidenceController }) {
       </Section>
 
       <Section title={t("Add other proof")}>
-        <div className="grid gap-2 sm:grid-cols-3">
-          <FilePicker onPick={(files) => e.upload(files)}>
-            {(open) => (
-              <AddButton onClick={open} disabled={!e.online} icon={<Plus size={16} aria-hidden="true" />}>
-                {t("Photos or files")}
-              </AddButton>
-            )}
-          </FilePicker>
-          <AddButton onClick={() => e.openMemo(null)} disabled={!e.online} icon={<Mic size={16} aria-hidden="true" />}>
-            {t("Voice memo")}
-          </AddButton>
-          <AddButton onClick={() => e.openEmail(null)} disabled={!e.online} icon={<Mail size={16} aria-hidden="true" />}>
-            {t("Emails from Gmail")}
-          </AddButton>
-        </div>
+        <AddProof e={e} />
       </Section>
 
       {e.memoFor !== undefined && <MemoRecorder onAdd={e.addMemo} onClose={e.closeMemo} adding={e.addingMemo} />}
@@ -138,16 +136,16 @@ function Collect({ e }: { e: EvidenceController }) {
 
       {(e.uploading.length > 0 || e.failed.length > 0 || e.documents.length > 0) && (
         <Section title={t("In your case")}>
-          <ul className="flex flex-col gap-2.5">
+          <ul className="flex flex-col divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
             {e.uploading.map((u, i) => (
-              <li key={`up-${u.name}-${i}`} className="flex items-center gap-3 rounded-2xl border border-line bg-surface px-3.5 py-3 text-[14px]">
+              <li key={`up-${u.name}-${i}`} className="flex items-center gap-3 px-4 py-3 text-[14px]">
                 <Loader2 size={16} className="shrink-0 text-gold motion-safe:animate-spin" aria-hidden="true" />
                 <span className="min-w-0 flex-1 truncate">{u.name}</span>
                 <span className="text-[12.5px] text-ink-2">{t("Uploading…")}</span>
               </li>
             ))}
             {e.failed.map((f, i) => (
-              <li key={`failed-${f.file.name}-${i}`} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-2xl border border-error-line bg-error-bg px-3.5 py-3 text-[14px]">
+              <li key={`failed-${f.file.name}-${i}`} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 bg-error-bg px-4 py-3 text-[14px]">
                 <span className="min-w-0 flex-1 truncate font-medium">{f.file.name}</span>
                 <span className="text-[12.5px] text-error-ink">{t("Didn’t upload.")}</span>
                 <Button variant="soft" size="sm" onClick={() => e.retry(f)} disabled={!e.online}>
@@ -170,19 +168,76 @@ function Collect({ e }: { e: EvidenceController }) {
 
 const SOURCE_ICON = { photos: ImageIcon, files: FileText, email: Mail, memo: Mic } as const;
 
-/** One way to add proof that isn't on the suggested list. */
-function AddButton({ onClick, disabled, icon, children }: { onClick: () => void; disabled: boolean; icon: ReactNode; children: ReactNode }) {
+/** Photos and videos the API takes, from a phone's library or a computer's files. */
+const MEDIA_ACCEPT = ".jpg,.jpeg,.png,.webp,.heic,.mp4,.webm";
+
+/**
+ * Every way to add proof that isn't on the suggested list: listed as it is on a desktop, behind
+ * "+ Add proof" and its sheet on a phone. The file inputs stay mounted outside the sheet, so a
+ * file picked after it closes still arrives.
+ */
+function AddProof({ e }: { e: EvidenceController }) {
+  const t = useT();
+  const mobile = useDevice() === "mobile";
+  const [open, setOpen] = useState(false);
+  const pick = (files: File[]) => e.upload(files);
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      data-no-tap
-      className="flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-dashed border-line-input px-3 text-[14px] font-medium text-ink transition-colors hover:border-line-hover disabled:opacity-40"
-    >
-      {icon}
-      {children}
-    </button>
+    <FilePicker accept={MEDIA_ACCEPT} onPick={pick}>
+      {(openMedia) => (
+        <FilePicker accept=".jpg,.jpeg,.png,.webp,.heic" capture="environment" multiple={false} onPick={pick}>
+          {(openCamera) => (
+            <FilePicker onPick={pick}>
+              {(openFiles) => {
+                const ways = [
+                  { key: "media", Icon: ImageIcon, label: t("Photos & videos"), run: openMedia },
+                  ...(mobile ? [{ key: "camera", Icon: Camera, label: t("Take a photo"), run: openCamera }] : []),
+                  { key: "files", Icon: FileText, label: t("Files"), run: openFiles },
+                  { key: "memo", Icon: Mic, label: t("Voice memo"), run: () => e.openMemo(null) },
+                  { key: "email", Icon: Mail, label: t("Emails from Gmail"), run: () => e.openEmail(null) },
+                ];
+                const list = (
+                  <ul className={cn("flex flex-col", !mobile && "divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface")}>
+                    {ways.map(({ key, Icon, label, run }) => (
+                      <li key={key}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpen(false);
+                            run();
+                          }}
+                          className="flex min-h-12 w-full items-center gap-3 px-4 py-2.5 text-left text-[15px] font-medium text-ink transition-colors hover:bg-subtle"
+                        >
+                          <Icon size={18} className="shrink-0 text-gold" aria-hidden="true" />
+                          {label}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                );
+                if (!mobile) return list;
+                return (
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setOpen((was) => !was)}
+                      disabled={!e.online}
+                      aria-haspopup="dialog"
+                      className="flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-line-input bg-surface px-4 text-[15px] font-medium text-ink transition-colors hover:border-line-hover disabled:opacity-40"
+                    >
+                      <Plus size={18} aria-hidden="true" />
+                      {t("Add proof")}
+                    </button>
+                    <BottomSheet open={open} onClose={() => setOpen(false)} title={t("Add proof")}>
+                      <div className="pb-2">{list}</div>
+                    </BottomSheet>
+                  </div>
+                );
+              }}
+            </FilePicker>
+          )}
+        </FilePicker>
+      )}
+    </FilePicker>
   );
 }
 
@@ -191,12 +246,12 @@ function SuggestionCard({ s, e }: { s: EvidenceSuggestion; e: EvidenceController
   const Icon = SOURCE_ICON[s.source];
   const filledBy = s.documentId ? e.documents.find((d) => d.id === s.documentId) : null;
   return (
-    <li className={cn("flex flex-col gap-2 rounded-2xl border px-4 py-3.5", s.state === "DISMISSED" ? "border-line bg-subtle" : "border-line bg-surface")}>
+    <li className={cn("flex flex-col gap-2 px-4 py-3.5", s.state === "DISMISSED" && "bg-subtle opacity-75")}>
       <div className="flex items-start gap-2.5">
         <Icon size={17} className="mt-0.5 shrink-0 text-gold" aria-hidden="true" />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <p className={cn("text-[15px] font-semibold leading-snug", s.state === "DISMISSED" && "text-ink-2")}>{s.title}</p>
-          {s.why && <p className="text-[13.5px] leading-[1.45] text-ink-2">{s.why}</p>}
+          {s.why && s.state !== "DISMISSED" && <p className="text-[13.5px] leading-[1.45] text-ink-2">{s.why}</p>}
         </div>
         {s.state === "ADDED" && (
           <span className="flex shrink-0 items-center gap-1 rounded-full bg-success-bg px-2 py-0.5 text-[12px] font-semibold text-success-ink">
@@ -205,7 +260,23 @@ function SuggestionCard({ s, e }: { s: EvidenceSuggestion; e: EvidenceController
           </span>
         )}
       </div>
-      {s.state === "ADDED" && filledBy && <p className="truncate pl-7 text-[12.5px] text-ink-2">{filledBy.name}</p>}
+      {s.state === "ADDED" && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-7 text-[13px]">
+          {filledBy && <span className="min-w-0 max-w-full truncate text-ink-2">{filledBy.name}</span>}
+          <FilePicker accept={SOURCE_ACCEPT[s.source]} onPick={(files) => e.upload(files, s.id)}>
+            {(open) => (
+              <Button variant="quiet" size="sm" className="min-h-11" onClick={open} disabled={!e.online}>
+                {t("Add more")}
+              </Button>
+            )}
+          </FilePicker>
+          {filledBy && (
+            <Button variant="quiet" size="sm" className="min-h-11" onClick={() => e.remove(filledBy.id)} disabled={e.removing || !e.online}>
+              {t("Remove")}
+            </Button>
+          )}
+        </div>
+      )}
       {s.state === "OPEN" && (
         <div className="flex flex-wrap items-center gap-2 pl-7">
           {s.source === "email" || s.source === "memo" ? (
@@ -254,6 +325,12 @@ const RECORDING = msg("Recording");
 const KIND_OF: Record<string, string> = { jpg: PHOTO, jpeg: PHOTO, png: PHOTO, webp: PHOTO, heic: PHOTO, mp3: RECORDING, m4a: RECORDING, wav: RECORDING, webm: RECORDING, mp4: msg("Video") };
 const kindOf = (name: string) => KIND_OF[name.split(".").pop()?.toLowerCase() ?? ""] ?? msg("Document");
 
+function DocIcon({ name }: { name: string }) {
+  const kind = kindOf(name);
+  const Icon = kind === PHOTO || kind === "Video" ? ImageIcon : kind === RECORDING ? Mic : FileText;
+  return <Icon size={16} className="shrink-0 text-ink-2" aria-hidden="true" />;
+}
+
 /** One document in the case: what it is, its note (drafted, the client's, or none yet), and changing
  * or removing it. */
 function DocumentRow({ doc, e }: { doc: CaseDocument; e: EvidenceController }) {
@@ -268,8 +345,9 @@ function DocumentRow({ doc, e }: { doc: CaseDocument; e: EvidenceController }) {
   };
 
   return (
-    <li className="flex flex-col gap-2 rounded-2xl border border-line bg-surface px-3.5 py-3">
+    <li className="flex flex-col gap-2 px-4 py-3">
       <div className="flex items-center gap-3">
+        <DocIcon name={doc.name} />
         <span className="min-w-0 flex-1 truncate text-[14px] font-medium">{doc.name}</span>
         <span className="shrink-0 text-[12px] text-ink-2">{t(kindOf(doc.name))}</span>
       </div>
@@ -328,7 +406,7 @@ function DocumentRow({ doc, e }: { doc: CaseDocument; e: EvidenceController }) {
       )}
 
       {!editing && (
-        <div className="flex flex-wrap items-center gap-2 border-t border-line pt-2 text-[12.5px]">
+        <div className="flex flex-wrap items-center gap-2 text-[12.5px]">
           {removing ? (
             <>
               <span className="text-ink-2">{t("Remove this from your case?")}</span>
@@ -350,19 +428,36 @@ function DocumentRow({ doc, e }: { doc: CaseDocument; e: EvidenceController }) {
   );
 }
 
+/**
+ * The way on from the proof, by where it is: with proof added, Done (the case is read again over
+ * it); with every suggestion answered "I don't have this", Continue; with nothing added yet, only
+ * Continue without proof, which leaves for the case as Skip did.
+ */
 function CollectActions({ e, caseHref }: { e: EvidenceController; caseHref: string }) {
   const t = useT();
   const mobile = useDevice() === "mobile";
-  return (
-    <div className="flex flex-col gap-2 md:flex-row md:items-center">
-      <Button variant="primary" size="lg" className={cn(mobile && "w-full")} onClick={e.finish} disabled={e.finishing || e.uploading.length > 0 || !e.online} aria-busy={e.finishing}>
-        {e.finishing && <Loader2 size={16} className="motion-safe:animate-spin" aria-hidden="true" />}
-        {t("Done")}
-      </Button>
-      <Link href={caseHref} className={buttonClass("quiet", "lg", mobile ? "w-full" : undefined)}>
-        {t("Skip for now")}
+  const added = e.documents.length;
+  const allDismissed = e.suggestions.length > 0 && e.suggestions.every((s) => s.state === "DISMISSED");
+  const label = "!normal-case !text-[15px] !tracking-normal";
+  if (!added && !allDismissed) {
+    return (
+      <Link href={caseHref} className={buttonClass("soft", "lg", cn(label, mobile && "w-full"))}>
+        {t("Continue without proof")}
       </Link>
-    </div>
+    );
+  }
+  return (
+    <Button
+      variant="primary"
+      size="lg"
+      className={cn(label, mobile && "w-full")}
+      onClick={e.finish}
+      disabled={e.finishing || e.uploading.length > 0 || !e.online}
+      aria-busy={e.finishing}
+    >
+      {e.finishing && <Loader2 size={16} className="motion-safe:animate-spin" aria-hidden="true" />}
+      {added ? t("Done · {count} added", { count: added }) : t("Continue")}
+    </Button>
   );
 }
 
@@ -371,13 +466,19 @@ function AllSet({ e }: { e: EvidenceController }) {
   const t = useT();
   const rows = checklistOf({ questions: e.questions, documents: e.documents.length, evidence: e.evidence.data });
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-[15px] leading-[1.55] text-ink-2">{t("Here’s what your case has. You can add more any time.")}</p>
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center gap-3">
+        <span aria-hidden="true" className="flex size-12 shrink-0 items-center justify-center rounded-full bg-success-bg text-success">
+          <Check size={26} strokeWidth={2.4} />
+        </span>
+        <p className="text-[15px] leading-[1.55] text-ink-2">{t("Here’s what your case has. You can add more any time.")}</p>
+      </div>
       <ul className="flex flex-col divide-y divide-line rounded-2xl border border-line bg-surface">
         {rows.map((r) => (
           <li key={r.label} className="flex items-center justify-between gap-3 px-4 py-3 text-[14.5px]">
             <span>{t(r.label)}</span>
-            <span className={cn("rounded-full px-2.5 py-0.5 text-[12.5px] font-semibold", r.tone === "ok" ? "bg-success-bg text-success-ink" : "bg-subtle text-ink-2")}>
+            <span className={cn("flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[12.5px] font-semibold", r.tone === "ok" ? "bg-success-bg text-success-ink" : "bg-subtle text-ink-2")}>
+              {r.tone === "ok" && <Check size={12} aria-hidden="true" />}
               {t(r.value, r.vars)}
             </span>
           </li>
@@ -396,8 +497,11 @@ function AllSetActions({ e, caseHref }: { e: EvidenceController; caseHref: strin
         {t("Open my case")}
       </Link>
       <Button variant="soft" size="lg" className={cn(mobile && "w-full")} onClick={e.addMore}>
-        {t("Add more")}
+        {t("Add more evidence")}
       </Button>
+      <Link href="/cases" className={buttonClass("quiet", "lg", mobile ? "w-full" : undefined)}>
+        {t("Go to my cases")}
+      </Link>
     </div>
   );
 }
