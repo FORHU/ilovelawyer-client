@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { getAppSocket } from "@/lib/socket";
+import { currentLang } from "@/lib/i18n/translate";
 import { LIVE_SAMPLE_RATE, PcmDownsampler } from "./pcm";
 import {
   CONNECTION_LOST,
@@ -187,7 +188,7 @@ export function createRecorder(ui: Ui, { chainUpTo }: { chainUpTo?: number } = {
     const socket = getAppSocket();
     let ack: LiveStartAck;
     try {
-      ack = await socket.timeout(START_TIMEOUT_MS).emitWithAck("dictation:start", { sampleRate: LIVE_SAMPLE_RATE });
+      ack = await socket.timeout(START_TIMEOUT_MS).emitWithAck("dictation:start", { sampleRate: LIVE_SAMPLE_RATE, language: currentLang() });
     } catch {
       return finish(run, { error: FAILED });
     }
@@ -324,7 +325,7 @@ export function createRecorder(ui: Ui, { chainUpTo }: { chainUpTo?: number } = {
 
     let ack: LiveStartAck;
     try {
-      ack = await socket.timeout(START_TIMEOUT_MS).emitWithAck("dictation:start", { sampleRate: LIVE_SAMPLE_RATE });
+      ack = await socket.timeout(START_TIMEOUT_MS).emitWithAck("dictation:start", { sampleRate: LIVE_SAMPLE_RATE, language: currentLang() });
     } catch {
       if (run.done) return;
       abandon(run);
